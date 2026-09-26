@@ -1,0 +1,65 @@
+{
+  "format": "totipo-case-v1",
+  "id": "v1.future.version-does-not-order.001",
+  "operation": "graph",
+  "expected": "PASS",
+  "graph": {
+    "steps": [
+      {
+        "action": "learn",
+        "node": {
+          "id": "a",
+          "version": 255,
+          "type": "TOKEN",
+          "identity": "T",
+          "class": "OPAQUE_ROUTABLE",
+          "parents": null,
+          "author_time": 18446744073709551615,
+          "semantic_digest": "bytes-a"
+        }
+      },
+      {
+        "action": "learn",
+        "node": {
+          "id": "b",
+          "version": 1,
+          "type": "TOKEN",
+          "identity": "T",
+          "class": "SUPPORTED_VALID",
+          "parents": [
+            "a"
+          ],
+          "author_time": 0,
+          "semantic_digest": "bytes-b"
+        },
+        "value": {
+          "status": "LIVE",
+          "issuer": "Example",
+          "account": "bob",
+          "algorithm": 1,
+          "digits": 6,
+          "period": 30,
+          "secret_hex": "3132333435"
+        }
+      },
+      {
+        "action": "query",
+        "query": {
+          "identity": "T",
+          "candidate": "a"
+        },
+        "expect": {
+          "heads": [
+            "b"
+          ],
+          "value_state": "UNAMBIGUOUS",
+          "ordinary": true,
+          "author": true,
+          "candidate": false,
+          "candidate_warning": false,
+          "integrity_failure": false
+        }
+      }
+    ]
+  }
+}

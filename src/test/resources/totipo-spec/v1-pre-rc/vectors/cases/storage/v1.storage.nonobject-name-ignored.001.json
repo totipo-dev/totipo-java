@@ -1,0 +1,96 @@
+{
+  "storage": {
+    "notes": "Noncanonical names, nested paths, symlinks and special entries never enter semantic processing. Entry kinds describe un-followed filesystem observations.",
+    "root_hex": "1111111111111111111111111111111111111111111111111111111111111111",
+    "namespace_kind": "directory",
+    "entries": [
+      {
+        "path": "objects-v1/c5fdfb91b8624f9ab649f79d0d22621c0ce10ba2ca46e59983e25ed388787a8f",
+        "kind": "regular",
+        "fixture_case": "v1.crypto.token-root.001"
+      },
+      {
+        "path": "objects-v1/CC1BE40D096AC277C2773865702A02980CD3523F897EA122837278767B27E8C5",
+        "kind": "regular",
+        "fixture_case": "v1.crypto.future-token-opaque.001"
+      },
+      {
+        "path": "objects-v1/cc1be40d096ac277c2773865702a02980cd3523f897ea122837278767b27e8c5.tmp",
+        "kind": "regular",
+        "fixture_case": "v1.crypto.future-token-opaque.001"
+      },
+      {
+        "path": "objects-v1/cc1be40d096ac277c2773865702a02980cd3523f897ea122837278767b27e8c5.sync-conflict",
+        "kind": "regular",
+        "fixture_case": "v1.crypto.future-token-opaque.001"
+      },
+      {
+        "path": "objects-v1/nested/cc1be40d096ac277c2773865702a02980cd3523f897ea122837278767b27e8c5",
+        "kind": "regular",
+        "fixture_case": "v1.crypto.future-token-opaque.001"
+      },
+      {
+        "path": "objects-v1/../objects-v1/cc1be40d096ac277c2773865702a02980cd3523f897ea122837278767b27e8c5",
+        "kind": "regular",
+        "fixture_case": "v1.crypto.future-token-opaque.001"
+      },
+      {
+        "path": "objects-v1/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "kind": "directory",
+        "fixture_case": "v1.crypto.future-token-opaque.001"
+      },
+      {
+        "path": "objects-v1/cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "kind": "symlink",
+        "fixture_case": "v1.crypto.future-token-opaque.001"
+      },
+      {
+        "path": "objects-v1/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "kind": "fifo",
+        "fixture_case": "v1.crypto.future-token-opaque.001"
+      },
+      {
+        "path": "objects-v1/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "kind": "socket",
+        "fixture_case": "v1.crypto.future-token-opaque.001"
+      },
+      {
+        "path": "objects-v1/ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "kind": "device",
+        "fixture_case": "v1.crypto.future-token-opaque.001"
+      }
+    ],
+    "query": {
+      "identity": "2222222222222222222222222222222222222222222222222222222222222222",
+      "candidate": "c5fdfb91b8624f9ab649f79d0d22621c0ce10ba2ca46e59983e25ed388787a8f"
+    },
+    "expect": {
+      "observations": [
+        {
+          "path": "objects-v1/c5fdfb91b8624f9ab649f79d0d22621c0ce10ba2ca46e59983e25ed388787a8f",
+          "class": "SUPPORTED_VALID"
+        }
+      ],
+      "learned_ids": [
+        "c5fdfb91b8624f9ab649f79d0d22621c0ce10ba2ca46e59983e25ed388787a8f"
+      ],
+      "opaque_unscoped_ids": [],
+      "authoritative": true,
+      "view": {
+        "heads": [
+          "c5fdfb91b8624f9ab649f79d0d22621c0ce10ba2ca46e59983e25ed388787a8f"
+        ],
+        "value_state": "UNAMBIGUOUS",
+        "ordinary": true,
+        "author": true,
+        "candidate": true,
+        "candidate_warning": true,
+        "integrity_failure": false
+      }
+    }
+  },
+  "format": "totipo-case-v1",
+  "id": "v1.storage.nonobject-name-ignored.001",
+  "operation": "storage",
+  "expected": "PASS"
+}

@@ -1,0 +1,51 @@
+{
+  "storage": {
+    "notes": "Without an objects-v1 compatibility assertion the sibling yields no authenticated future-state evidence and no warning/block. This means that future family is not providing rolling-upgrade compatibility to v1 for that state.",
+    "root_hex": "1111111111111111111111111111111111111111111111111111111111111111",
+    "namespace_kind": "directory",
+    "entries": [
+      {
+        "path": "objects-v1/c5fdfb91b8624f9ab649f79d0d22621c0ce10ba2ca46e59983e25ed388787a8f",
+        "kind": "regular",
+        "fixture_case": "v1.crypto.token-root.001"
+      },
+      {
+        "path": "objects-v2/future-state",
+        "kind": "regular",
+        "zero_bytes": 2048
+      }
+    ],
+    "query": {
+      "identity": "2222222222222222222222222222222222222222222222222222222222222222",
+      "candidate": "c5fdfb91b8624f9ab649f79d0d22621c0ce10ba2ca46e59983e25ed388787a8f"
+    },
+    "expect": {
+      "observations": [
+        {
+          "path": "objects-v1/c5fdfb91b8624f9ab649f79d0d22621c0ce10ba2ca46e59983e25ed388787a8f",
+          "class": "SUPPORTED_VALID"
+        }
+      ],
+      "learned_ids": [
+        "c5fdfb91b8624f9ab649f79d0d22621c0ce10ba2ca46e59983e25ed388787a8f"
+      ],
+      "opaque_unscoped_ids": [],
+      "authoritative": true,
+      "view": {
+        "heads": [
+          "c5fdfb91b8624f9ab649f79d0d22621c0ce10ba2ca46e59983e25ed388787a8f"
+        ],
+        "value_state": "UNAMBIGUOUS",
+        "ordinary": true,
+        "author": true,
+        "candidate": true,
+        "candidate_warning": true,
+        "integrity_failure": false
+      }
+    }
+  },
+  "format": "totipo-case-v1",
+  "id": "v1.future.family-no-shadow.001",
+  "operation": "storage",
+  "expected": "PASS"
+}

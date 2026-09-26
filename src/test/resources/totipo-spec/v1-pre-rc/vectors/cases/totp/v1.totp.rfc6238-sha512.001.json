@@ -1,0 +1,53 @@
+{
+  "totp": {
+    "source": "https://www.rfc-editor.org/rfc/rfc6238.html#appendix-B",
+    "notes": "RFC 6238 Appendix B known answers; algorithm-specific 20/32/64-byte ASCII secrets from Appendix A. Counter = floor((unix_time_seconds - t0) / period), encoded as u64be. Public test material.",
+    "algorithm": 3,
+    "digits": 8,
+    "period": 30,
+    "t0": 0,
+    "secret_hex": "31323334353637383930313233343536373839303132333435363738393031323334353637383930313233343536373839303132333435363738393031323334",
+    "rows": [
+      {
+        "unix_time_seconds": 59,
+        "counter": 1,
+        "counter_hex": "0000000000000001",
+        "code": "90693936"
+      },
+      {
+        "unix_time_seconds": 1111111109,
+        "counter": 37037036,
+        "counter_hex": "00000000023523ec",
+        "code": "25091201"
+      },
+      {
+        "unix_time_seconds": 1111111111,
+        "counter": 37037037,
+        "counter_hex": "00000000023523ed",
+        "code": "99943326"
+      },
+      {
+        "unix_time_seconds": 1234567890,
+        "counter": 41152263,
+        "counter_hex": "000000000273ef07",
+        "code": "93441116"
+      },
+      {
+        "unix_time_seconds": 2000000000,
+        "counter": 66666666,
+        "counter_hex": "0000000003f940aa",
+        "code": "38618901"
+      },
+      {
+        "unix_time_seconds": 20000000000,
+        "counter": 666666666,
+        "counter_hex": "0000000027bc86aa",
+        "code": "47863826"
+      }
+    ]
+  },
+  "format": "totipo-case-v1",
+  "id": "v1.totp.rfc6238-sha512.001",
+  "operation": "totp",
+  "expected": "PASS"
+}

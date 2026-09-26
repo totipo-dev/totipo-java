@@ -1,0 +1,65 @@
+{
+  "format": "totipo-case-v1",
+  "id": "v1.future.device-presentation.001",
+  "operation": "graph",
+  "expected": "PASS",
+  "graph": {
+    "steps": [
+      {
+        "action": "learn",
+        "node": {
+          "id": "a",
+          "version": 1,
+          "type": "TOKEN",
+          "identity": "T",
+          "class": "SUPPORTED_VALID",
+          "parents": null,
+          "author_time": 0,
+          "semantic_digest": "bytes-a"
+        },
+        "value": {
+          "status": "LIVE",
+          "issuer": "Example",
+          "account": "alice",
+          "algorithm": 1,
+          "digits": 6,
+          "period": 30,
+          "secret_hex": "3132333435"
+        }
+      },
+      {
+        "action": "learn",
+        "node": {
+          "id": "d",
+          "version": 2,
+          "type": "DEVICE",
+          "identity": "D",
+          "class": "OPAQUE_ROUTABLE",
+          "parents": null,
+          "author_time": 0,
+          "semantic_digest": "bytes-d"
+        }
+      },
+      {
+        "action": "query",
+        "query": {
+          "identity": "T",
+          "candidate": "a",
+          "device": "D"
+        },
+        "expect": {
+          "heads": [
+            "a"
+          ],
+          "value_state": "UNAMBIGUOUS",
+          "ordinary": true,
+          "author": true,
+          "candidate": true,
+          "candidate_warning": true,
+          "integrity_failure": false,
+          "presentation": "OPAQUE"
+        }
+      }
+    ]
+  }
+}

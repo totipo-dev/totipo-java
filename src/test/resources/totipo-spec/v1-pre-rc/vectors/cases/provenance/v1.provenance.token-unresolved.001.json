@@ -1,0 +1,23 @@
+{
+  "format": "totipo-case-v1",
+  "id": "v1.provenance.token-unresolved.001",
+  "operation": "provenance",
+  "expected": "UNRESOLVED",
+  "input": {
+    "version": 1,
+    "type": 1,
+    "parents": null,
+    "author_time": 0,
+    "identity": "IiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiI=",
+    "author": "9MXiZhY0N07/U+xamrwlEvFVg0gE2w+pIH6VDVXuTDU=",
+    "status": 1,
+    "issuer": "Example",
+    "account": "alice@example.test",
+    "algorithm": 1,
+    "digits": 6,
+    "period": 30,
+    "secret": "MTIzNDU2Nzg5MDEyMzQ1Njc4OTA=",
+    "signature": "MEUCIGqQ3bpsvlsMHts3R84/vhcRIhctCRzFQaDwjWWMkUZSAiEA/Ncsut3Wx89YFXb1bpF1vPzf19TDbuXszVth7o+IUU0="
+  },
+  "root_hex": "1111111111111111111111111111111111111111111111111111111111111111"
+}

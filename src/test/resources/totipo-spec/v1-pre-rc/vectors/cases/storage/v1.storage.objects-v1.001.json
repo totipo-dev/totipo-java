@@ -1,0 +1,58 @@
+{
+  "storage": {
+    "notes": "Discover supported TOKEN and routable future DEVICE only in the exact family namespace. Opaque DEVICE presentation does not block token use.",
+    "root_hex": "1111111111111111111111111111111111111111111111111111111111111111",
+    "namespace_kind": "directory",
+    "entries": [
+      {
+        "path": "objects-v1/c5fdfb91b8624f9ab649f79d0d22621c0ce10ba2ca46e59983e25ed388787a8f",
+        "kind": "regular",
+        "fixture_case": "v1.crypto.token-root.001"
+      },
+      {
+        "path": "objects-v1/71cb1e07eccc7258136489888cd864fd57dc679b70a53a22e0beff956d6501b9",
+        "kind": "regular",
+        "fixture_case": "v1.crypto.future-device-opaque.001"
+      }
+    ],
+    "query": {
+      "identity": "2222222222222222222222222222222222222222222222222222222222222222",
+      "candidate": "c5fdfb91b8624f9ab649f79d0d22621c0ce10ba2ca46e59983e25ed388787a8f",
+      "device": "f4c5e2661634374eff53ec5a9abc2512f155834804db0fa9207e950d55ee4c35"
+    },
+    "expect": {
+      "observations": [
+        {
+          "path": "objects-v1/c5fdfb91b8624f9ab649f79d0d22621c0ce10ba2ca46e59983e25ed388787a8f",
+          "class": "SUPPORTED_VALID"
+        },
+        {
+          "path": "objects-v1/71cb1e07eccc7258136489888cd864fd57dc679b70a53a22e0beff956d6501b9",
+          "class": "OPAQUE_ROUTABLE"
+        }
+      ],
+      "learned_ids": [
+        "71cb1e07eccc7258136489888cd864fd57dc679b70a53a22e0beff956d6501b9",
+        "c5fdfb91b8624f9ab649f79d0d22621c0ce10ba2ca46e59983e25ed388787a8f"
+      ],
+      "opaque_unscoped_ids": [],
+      "authoritative": true,
+      "view": {
+        "heads": [
+          "c5fdfb91b8624f9ab649f79d0d22621c0ce10ba2ca46e59983e25ed388787a8f"
+        ],
+        "value_state": "UNAMBIGUOUS",
+        "ordinary": true,
+        "author": true,
+        "candidate": true,
+        "candidate_warning": true,
+        "integrity_failure": false,
+        "presentation": "OPAQUE"
+      }
+    }
+  },
+  "format": "totipo-case-v1",
+  "id": "v1.storage.objects-v1.001",
+  "operation": "storage",
+  "expected": "PASS"
+}

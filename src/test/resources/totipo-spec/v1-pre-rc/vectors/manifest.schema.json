@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://totipo.dev/schemas/v1-vector-manifest.schema.json",
+  "title": "Totipo v1 vector manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "protocol",
+    "spec_revision",
+    "cases"
+  ],
+  "properties": {
+    "format": {
+      "const": "totipo-vector-manifest-v1"
+    },
+    "protocol": {
+      "const": "totipo-v1"
+    },
+    "spec_revision": {
+      "type": "string",
+      "pattern": "^r[0-9]+$"
+    },
+    "cases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "category",
+          "kind",
+          "normative",
+          "path",
+          "expected",
+          "spec_sections",
+          "sha256"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^v1\\.[a-z0-9-]+(?:\\.[a-z0-9-]+)+$"
+          },
+          "category": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "bytes",
+              "semantic",
+              "negative"
+            ]
+          },
+          "normative": {
+            "type": "boolean"
+          },
+          "path": {
+            "type": "string"
+          },
+          "expected": {
+            "type": "string"
+          },
+          "spec_sections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "notes": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
+      },
+      "minItems": 1
+    }
+  }
+}

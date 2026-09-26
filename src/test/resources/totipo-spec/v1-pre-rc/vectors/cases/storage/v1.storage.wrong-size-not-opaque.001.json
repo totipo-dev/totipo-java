@@ -1,0 +1,72 @@
+{
+  "storage": {
+    "notes": "Wrong-sized direct candidates are invalid storage observations, never persisted opaque evidence. Existing supported state remains ordinarily and explicitly usable.",
+    "root_hex": "1111111111111111111111111111111111111111111111111111111111111111",
+    "namespace_kind": "directory",
+    "entries": [
+      {
+        "path": "objects-v1/c5fdfb91b8624f9ab649f79d0d22621c0ce10ba2ca46e59983e25ed388787a8f",
+        "kind": "regular",
+        "fixture_case": "v1.crypto.token-root.001"
+      },
+      {
+        "path": "objects-v1/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "kind": "regular"
+      },
+      {
+        "path": "objects-v1/cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "kind": "regular",
+        "zero_bytes": 1023
+      },
+      {
+        "path": "objects-v1/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "kind": "regular",
+        "zero_bytes": 1025
+      }
+    ],
+    "query": {
+      "identity": "2222222222222222222222222222222222222222222222222222222222222222",
+      "candidate": "c5fdfb91b8624f9ab649f79d0d22621c0ce10ba2ca46e59983e25ed388787a8f"
+    },
+    "expect": {
+      "observations": [
+        {
+          "path": "objects-v1/c5fdfb91b8624f9ab649f79d0d22621c0ce10ba2ca46e59983e25ed388787a8f",
+          "class": "SUPPORTED_VALID"
+        },
+        {
+          "path": "objects-v1/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "class": "INVALID_STORAGE"
+        },
+        {
+          "path": "objects-v1/cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "class": "INVALID_STORAGE"
+        },
+        {
+          "path": "objects-v1/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "class": "INVALID_STORAGE"
+        }
+      ],
+      "learned_ids": [
+        "c5fdfb91b8624f9ab649f79d0d22621c0ce10ba2ca46e59983e25ed388787a8f"
+      ],
+      "opaque_unscoped_ids": [],
+      "authoritative": true,
+      "view": {
+        "heads": [
+          "c5fdfb91b8624f9ab649f79d0d22621c0ce10ba2ca46e59983e25ed388787a8f"
+        ],
+        "value_state": "UNAMBIGUOUS",
+        "ordinary": true,
+        "author": true,
+        "candidate": true,
+        "candidate_warning": true,
+        "integrity_failure": false
+      }
+    }
+  },
+  "format": "totipo-case-v1",
+  "id": "v1.storage.wrong-size-not-opaque.001",
+  "operation": "storage",
+  "expected": "PASS"
+}

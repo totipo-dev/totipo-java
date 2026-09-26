@@ -1,0 +1,77 @@
+{
+  "format": "totipo-case-v1",
+  "id": "v1.candidate.current-peer-missing.001",
+  "operation": "graph",
+  "expected": "PASS",
+  "graph": {
+    "steps": [
+      {
+        "action": "learn",
+        "node": {
+          "id": "a",
+          "version": 1,
+          "type": "TOKEN",
+          "identity": "T",
+          "class": "SUPPORTED_VALID",
+          "parents": null,
+          "author_time": 0,
+          "semantic_digest": "bytes-a"
+        },
+        "value": {
+          "status": "LIVE",
+          "issuer": "Example",
+          "account": "alice",
+          "algorithm": 1,
+          "digits": 6,
+          "period": 30,
+          "secret_hex": "3132333435"
+        }
+      },
+      {
+        "action": "learn",
+        "node": {
+          "id": "b",
+          "version": 1,
+          "type": "TOKEN",
+          "identity": "T",
+          "class": "SUPPORTED_VALID",
+          "parents": null,
+          "author_time": 0,
+          "semantic_digest": "bytes-b"
+        },
+        "value": {
+          "status": "LIVE",
+          "issuer": "Example",
+          "account": "bob",
+          "algorithm": 1,
+          "digits": 6,
+          "period": 30,
+          "secret_hex": "3132333435"
+        }
+      },
+      {
+        "action": "disappear",
+        "id": "b"
+      },
+      {
+        "action": "query",
+        "query": {
+          "identity": "T",
+          "candidate": "a"
+        },
+        "expect": {
+          "heads": [
+            "a",
+            "b"
+          ],
+          "value_state": "VALUE_INCOMPLETE_UNAVAILABLE",
+          "ordinary": false,
+          "author": true,
+          "candidate": true,
+          "candidate_warning": true,
+          "integrity_failure": false
+        }
+      }
+    ]
+  }
+}

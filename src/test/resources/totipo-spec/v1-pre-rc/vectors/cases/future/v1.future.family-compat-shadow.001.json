@@ -1,0 +1,62 @@
+{
+  "storage": {
+    "notes": "The 2048-byte sibling is illustrative richer future-family material, not a v2 format definition. Only the authenticated objects-v1 compatibility assertion enters the graph; its concurrent opaque TOKEN scopes degradation to this token and retains explicit supported candidate use.",
+    "root_hex": "1111111111111111111111111111111111111111111111111111111111111111",
+    "namespace_kind": "directory",
+    "entries": [
+      {
+        "path": "objects-v1/c5fdfb91b8624f9ab649f79d0d22621c0ce10ba2ca46e59983e25ed388787a8f",
+        "kind": "regular",
+        "fixture_case": "v1.crypto.token-root.001"
+      },
+      {
+        "path": "objects-v2/future-state",
+        "kind": "regular",
+        "zero_bytes": 2048
+      },
+      {
+        "path": "objects-v1/cc1be40d096ac277c2773865702a02980cd3523f897ea122837278767b27e8c5",
+        "kind": "regular",
+        "fixture_case": "v1.crypto.future-token-opaque.001"
+      }
+    ],
+    "query": {
+      "identity": "2222222222222222222222222222222222222222222222222222222222222222",
+      "candidate": "c5fdfb91b8624f9ab649f79d0d22621c0ce10ba2ca46e59983e25ed388787a8f"
+    },
+    "expect": {
+      "observations": [
+        {
+          "path": "objects-v1/c5fdfb91b8624f9ab649f79d0d22621c0ce10ba2ca46e59983e25ed388787a8f",
+          "class": "SUPPORTED_VALID"
+        },
+        {
+          "path": "objects-v1/cc1be40d096ac277c2773865702a02980cd3523f897ea122837278767b27e8c5",
+          "class": "OPAQUE_ROUTABLE"
+        }
+      ],
+      "learned_ids": [
+        "c5fdfb91b8624f9ab649f79d0d22621c0ce10ba2ca46e59983e25ed388787a8f",
+        "cc1be40d096ac277c2773865702a02980cd3523f897ea122837278767b27e8c5"
+      ],
+      "opaque_unscoped_ids": [],
+      "authoritative": true,
+      "view": {
+        "heads": [
+          "c5fdfb91b8624f9ab649f79d0d22621c0ce10ba2ca46e59983e25ed388787a8f",
+          "cc1be40d096ac277c2773865702a02980cd3523f897ea122837278767b27e8c5"
+        ],
+        "value_state": "VALUE_INCOMPLETE_OPAQUE",
+        "ordinary": false,
+        "author": false,
+        "candidate": true,
+        "candidate_warning": true,
+        "integrity_failure": false
+      }
+    }
+  },
+  "format": "totipo-case-v1",
+  "id": "v1.future.family-compat-shadow.001",
+  "operation": "storage",
+  "expected": "PASS"
+}

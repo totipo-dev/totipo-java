@@ -2,13 +2,14 @@
 
 Java implementation of the Totipo vault protocol.
 
-This repository is currently at **M0: repository setup**. It intentionally
-contains no Totipo protocol implementation yet. Protocol/spec pinning begins
-in M1.
+This repository targets **Totipo Vault Format v1**, design revision **r10**.
+Development currently uses an exact snapshot of the moving `v1-pre-rc` profile,
+documented in [SPEC_PIN.md](SPEC_PIN.md). It contains no Totipo protocol
+implementation yet and does not claim protocol conformance.
 
 ## Toolchain
 
-- Gradle 9.8.0, pinned by the Gradle Wrapper after bootstrap.
+- Gradle 9.8.0, pinned by the checked-in Gradle Wrapper.
 - JDK 21 is the build/toolchain JDK.
 - Production Java is compiled with `--release 17` so the reusable library can
   remain compatible with Java 17 consumers, including the planned Android
@@ -16,45 +17,44 @@ in M1.
 - Nix/direnv provide the local development environment.
 - M0 has no production dependencies. JUnit is test-only.
 
-## First-time bootstrap
+## Build
 
-The archive deliberately does not contain generated lock files or a hand-made
-Gradle Wrapper binary. Generate them from the pinned inputs on the machine
-that will make the initial repository commit.
+The Gradle Wrapper, Nix and Gradle lock files, and dependency-verification
+metadata are checked in. A fresh clone can build directly without running
+the bootstrap script.
 
 With Nix:
 
 ```sh
-nix develop --command ./bootstrap-m0.sh
+nix develop --command ./gradlew build
 ```
 
 Or with direnv:
 
 ```sh
 direnv allow
-./bootstrap-m0.sh
+./gradlew build
 ```
 
-The bootstrap script:
+With JDK 21 already configured, run `./gradlew build` directly. The first build
+downloads the pinned Gradle distribution and dependencies if they are not cached.
+
+## Bootstrap maintenance
+
+`bootstrap-m0.sh` is retained for explicitly regenerating the repository's
+bootstrap files. Run it in the development shell, for example with
+`nix develop --command ./bootstrap-m0.sh`. The script:
 
 1. writes `flake.lock` when Nix is available;
 2. generates a Gradle 9.8.0 Wrapper;
 3. verifies the Wrapper JAR against Gradle's published SHA-256;
 4. writes Gradle dependency locks;
 5. writes SHA-256 dependency-verification metadata; and
-6. runs the initial build.
+6. runs the build.
 
-Review the generated files before the first commit, especially
-`gradle/verification-metadata.xml`: its initial checksums necessarily come
-from the artifacts downloaded during bootstrap.
-
-## Build
-
-After bootstrap:
-
-```sh
-./gradlew build
-```
+Review any generated changes before committing, especially
+`gradle/verification-metadata.xml`: newly recorded checksums come from the
+artifacts downloaded during bootstrap.
 
 ## Repository shape
 
