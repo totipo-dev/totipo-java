@@ -1,6 +1,8 @@
 import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.api.tasks.javadoc.Javadoc
 import org.gradle.api.tasks.wrapper.Wrapper
+import org.gradle.external.javadoc.JavadocMemberLevel
+import org.gradle.external.javadoc.StandardJavadocDocletOptions
 
 plugins {
     `java-library`
@@ -26,10 +28,13 @@ tasks.withType<JavaCompile>().configureEach {
 
 tasks.withType<Javadoc>().configureEach {
     options.encoding = "UTF-8"
+    // M1.1 deliberately exposes no public API; document its internal boundaries.
+    (options as StandardJavadocDocletOptions).memberLevel = JavadocMemberLevel.PACKAGE
 }
 
 dependencies {
-    // M0 intentionally has no production dependencies.
+    // Protocol code has no production dependencies.
+    testImplementation(libs.jackson.core)
     testImplementation(platform(libs.junit.bom))
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)
