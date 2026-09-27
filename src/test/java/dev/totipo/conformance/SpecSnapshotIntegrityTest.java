@@ -25,24 +25,24 @@ class SpecSnapshotIntegrityTest {
     private static final Path ROOT = Path.of("src/test/resources/totipo-spec/v1-pre-rc");
     private static final String CHECKSUMS = "SNAPSHOT.sha256";
     private static final String PROFILE_HASH =
-            "d7b68ed799000a8c6449d3f114b8b1e62237db04b77400bf0a3c5e1123361b03";
+            "115dfd42fd6534aab7348c6bce9f4d8927f4823f16b419e0b6f85f3349edf108";
     private static final Map<String, String> PINNED = Map.of(
             "spec/totipo-vault-format-v1.md",
-            "8c93d6e05b0e19682d7875e011aba4961558ff7c606919006b98e3df30219b52",
+            "513426313c7850b998239ed19a3d7399b32de203994931ae2d873516717ae228",
             "vectors/manifest.json",
-            "031456a8b35633ab86c9a7c04c6f54ba00697b7577de9f43379ce4932c6bca38",
+            "da289e75ccb2a8d73080cb8cc6ebcc2a6d39623edf2bfcbccce84b6b67dba8bd",
             "vectors/manifest.schema.json",
             "59bdc9165b1c7e940031c447c2da640185774a6e4fd52fa0fee0b245061e0440",
             "vectors/case.schema.json",
-            "bab64fa1257ecc6cb0fdbd0aa0ceea223f93bf33be8031b1dcd0fd041aaf8af9",
+            "79e33b68bf948dcc332075827b791c8eb8e54d9cb27634dd59c0c6ac1fd95fd5",
             "requirements/v1-pre-rc.json", PROFILE_HASH);
     private static final Pattern RECORD = Pattern.compile("([0-9a-f]{64})  ([A-Za-z0-9_./-]+)");
 
     @Test
     void snapshotMatchesChecksumsAndIndependentPins() throws Exception {
         Set<String> paths = verify(ROOT);
-        assertEquals(84, paths.size(), "Upstream file count");
-        assertEquals(77L, paths.stream().filter(p -> p.startsWith("vectors/cases/")).count());
+        assertEquals(97, paths.size(), "Upstream file count");
+        assertEquals(90L, paths.stream().filter(p -> p.startsWith("vectors/cases/")).count());
         for (var pin : PINNED.entrySet()) {
             assertTrue(paths.contains(pin.getKey()), pin.getKey());
             assertEquals(pin.getValue(), sha256(ROOT.resolve(pin.getKey())), pin.getKey());

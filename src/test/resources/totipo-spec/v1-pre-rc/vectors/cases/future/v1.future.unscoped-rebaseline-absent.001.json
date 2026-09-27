@@ -1,0 +1,193 @@
+{
+  "format": "totipo-case-v1",
+  "id": "v1.future.unscoped-rebaseline-absent.001",
+  "operation": "graph",
+  "expected": "PASS",
+  "graph": {
+    "steps": [
+      {
+        "action": "learn",
+        "node": {
+          "id": "a",
+          "version": 1,
+          "type": "TOKEN",
+          "identity": "T",
+          "class": "SUPPORTED_VALID",
+          "parents": [],
+          "author_time": 0,
+          "semantic_digest": "bytes-a"
+        },
+        "value": {
+          "status": "LIVE",
+          "issuer": "Example",
+          "account": "alice",
+          "algorithm": 1,
+          "digits": 6,
+          "period": 30,
+          "secret_hex": "3132333435"
+        }
+      },
+      {
+        "action": "learn",
+        "node": {
+          "id": "u",
+          "version": 1,
+          "type": "",
+          "identity": "",
+          "class": "OPAQUE_UNSCOPED",
+          "parents": [],
+          "author_time": 0,
+          "semantic_digest": "bytes-u"
+        }
+      },
+      {
+        "action": "query",
+        "query": {
+          "identity": "T",
+          "candidate": "a",
+          "device": ""
+        },
+        "expect": {
+          "heads": [
+            "a"
+          ],
+          "value_state": "UNAMBIGUOUS",
+          "ordinary": false,
+          "author": false,
+          "candidate": true,
+          "candidate_warning": true,
+          "integrity_failure": false
+        }
+      },
+      {
+        "action": "reset-begin"
+      },
+      {
+        "action": "query",
+        "query": {
+          "identity": "T",
+          "candidate": "a",
+          "device": ""
+        },
+        "expect": {
+          "heads": [
+            "a"
+          ],
+          "value_state": "UNAMBIGUOUS",
+          "ordinary": false,
+          "author": false,
+          "candidate": false,
+          "candidate_warning": false,
+          "integrity_failure": true
+        }
+      },
+      {
+        "action": "state-query",
+        "id": "",
+        "query": {
+          "identity": "T",
+          "candidate": "a",
+          "device": "D"
+        },
+        "state_expect": {
+          "known": [
+            "a",
+            "u"
+          ],
+          "device_heads": [],
+          "parents": [],
+          "authoritative": false,
+          "continuity_unknown": true
+        }
+      },
+      {
+        "action": "reset-complete",
+        "flag": false,
+        "success": false
+      },
+      {
+        "action": "baseline-learn",
+        "node": {
+          "id": "a",
+          "version": 1,
+          "type": "TOKEN",
+          "identity": "T",
+          "class": "SUPPORTED_VALID",
+          "parents": [],
+          "author_time": 0,
+          "semantic_digest": "bytes-a"
+        },
+        "value": {
+          "status": "LIVE",
+          "issuer": "Example",
+          "account": "alice",
+          "algorithm": 1,
+          "digits": 6,
+          "period": 30,
+          "secret_hex": "3132333435"
+        }
+      },
+      {
+        "action": "query",
+        "query": {
+          "identity": "T",
+          "candidate": "a",
+          "device": ""
+        },
+        "expect": {
+          "heads": [
+            "a"
+          ],
+          "value_state": "UNAMBIGUOUS",
+          "ordinary": false,
+          "author": false,
+          "candidate": false,
+          "candidate_warning": false,
+          "integrity_failure": true
+        }
+      },
+      {
+        "action": "reset-complete",
+        "flag": true,
+        "success": true
+      },
+      {
+        "action": "state-query",
+        "id": "",
+        "query": {
+          "identity": "T",
+          "candidate": "a",
+          "device": "D"
+        },
+        "state_expect": {
+          "known": [
+            "a"
+          ],
+          "device_heads": [],
+          "parents": [],
+          "authoritative": true,
+          "continuity_unknown": false
+        }
+      },
+      {
+        "action": "query",
+        "query": {
+          "identity": "T",
+          "candidate": "a",
+          "device": ""
+        },
+        "expect": {
+          "heads": [
+            "a"
+          ],
+          "value_state": "UNAMBIGUOUS",
+          "ordinary": true,
+          "author": true,
+          "candidate": true,
+          "candidate_warning": true,
+          "integrity_failure": false
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,620 @@
+{
+  "format": "totipo-case-v1",
+  "id": "v1.graph.known-id-corrupt-bytes-retain-node.001",
+  "operation": "graph",
+  "expected": "PASS",
+  "graph": {
+    "steps": [
+      {
+        "action": "learn",
+        "node": {
+          "id": "a",
+          "version": 1,
+          "type": "TOKEN",
+          "identity": "T",
+          "class": "SUPPORTED_VALID",
+          "parents": [],
+          "author_time": 0,
+          "semantic_digest": "bytes-a"
+        },
+        "value": {
+          "status": "LIVE",
+          "issuer": "Example",
+          "account": "alice",
+          "algorithm": 1,
+          "digits": 6,
+          "period": 30,
+          "secret_hex": "3132333435"
+        }
+      },
+      {
+        "action": "learn",
+        "node": {
+          "id": "b",
+          "version": 1,
+          "type": "TOKEN",
+          "identity": "T",
+          "class": "SUPPORTED_VALID",
+          "parents": [
+            "a"
+          ],
+          "author_time": 0,
+          "semantic_digest": "bytes-b"
+        },
+        "value": {
+          "status": "LIVE",
+          "issuer": "Example",
+          "account": "alice",
+          "algorithm": 1,
+          "digits": 6,
+          "period": 30,
+          "secret_hex": "3132333435"
+        }
+      },
+      {
+        "action": "learn",
+        "node": {
+          "id": "b",
+          "version": 1,
+          "type": "TOKEN",
+          "identity": "T",
+          "class": "SUPPORTED_VALID",
+          "parents": [
+            "a"
+          ],
+          "author_time": 0,
+          "semantic_digest": "bytes-b"
+        },
+        "value": {
+          "status": "LIVE",
+          "issuer": "Example",
+          "account": "alice",
+          "algorithm": 1,
+          "digits": 6,
+          "period": 30,
+          "secret_hex": "3132333435"
+        }
+      },
+      {
+        "action": "remote-unavailable",
+        "id": "b",
+        "reason": "absent",
+        "flag": true
+      },
+      {
+        "action": "query",
+        "query": {
+          "identity": "T",
+          "candidate": "a",
+          "device": ""
+        },
+        "expect": {
+          "heads": [
+            "b"
+          ],
+          "value_state": "UNAMBIGUOUS",
+          "ordinary": true,
+          "author": true,
+          "candidate": true,
+          "candidate_warning": true,
+          "integrity_failure": false
+        }
+      },
+      {
+        "action": "remote-unavailable",
+        "id": "b",
+        "reason": "absent"
+      },
+      {
+        "action": "state-query",
+        "id": "b",
+        "query": {
+          "identity": "T",
+          "candidate": "a",
+          "device": "D"
+        },
+        "state_expect": {
+          "known": [
+            "a",
+            "b"
+          ],
+          "device_heads": [],
+          "parents": [
+            "a"
+          ],
+          "authoritative": true,
+          "continuity_unknown": false
+        }
+      },
+      {
+        "action": "query",
+        "query": {
+          "identity": "T",
+          "candidate": "a",
+          "device": ""
+        },
+        "expect": {
+          "heads": [
+            "b"
+          ],
+          "value_state": "VALUE_INCOMPLETE_UNAVAILABLE",
+          "ordinary": false,
+          "author": true,
+          "candidate": true,
+          "candidate_warning": true,
+          "integrity_failure": false
+        }
+      },
+      {
+        "action": "learn",
+        "node": {
+          "id": "b",
+          "version": 1,
+          "type": "TOKEN",
+          "identity": "T",
+          "class": "SUPPORTED_VALID",
+          "parents": [
+            "a"
+          ],
+          "author_time": 0,
+          "semantic_digest": "bytes-b"
+        },
+        "value": {
+          "status": "LIVE",
+          "issuer": "Example",
+          "account": "alice",
+          "algorithm": 1,
+          "digits": 6,
+          "period": 30,
+          "secret_hex": "3132333435"
+        }
+      },
+      {
+        "action": "remote-unavailable",
+        "id": "b",
+        "reason": "unreadable",
+        "flag": true
+      },
+      {
+        "action": "query",
+        "query": {
+          "identity": "T",
+          "candidate": "a",
+          "device": ""
+        },
+        "expect": {
+          "heads": [
+            "b"
+          ],
+          "value_state": "UNAMBIGUOUS",
+          "ordinary": true,
+          "author": true,
+          "candidate": true,
+          "candidate_warning": true,
+          "integrity_failure": false
+        }
+      },
+      {
+        "action": "remote-unavailable",
+        "id": "b",
+        "reason": "unreadable"
+      },
+      {
+        "action": "state-query",
+        "id": "b",
+        "query": {
+          "identity": "T",
+          "candidate": "a",
+          "device": "D"
+        },
+        "state_expect": {
+          "known": [
+            "a",
+            "b"
+          ],
+          "device_heads": [],
+          "parents": [
+            "a"
+          ],
+          "authoritative": true,
+          "continuity_unknown": false
+        }
+      },
+      {
+        "action": "query",
+        "query": {
+          "identity": "T",
+          "candidate": "a",
+          "device": ""
+        },
+        "expect": {
+          "heads": [
+            "b"
+          ],
+          "value_state": "VALUE_INCOMPLETE_UNAVAILABLE",
+          "ordinary": false,
+          "author": true,
+          "candidate": true,
+          "candidate_warning": true,
+          "integrity_failure": false
+        }
+      },
+      {
+        "action": "learn",
+        "node": {
+          "id": "b",
+          "version": 1,
+          "type": "TOKEN",
+          "identity": "T",
+          "class": "SUPPORTED_VALID",
+          "parents": [
+            "a"
+          ],
+          "author_time": 0,
+          "semantic_digest": "bytes-b"
+        },
+        "value": {
+          "status": "LIVE",
+          "issuer": "Example",
+          "account": "alice",
+          "algorithm": 1,
+          "digits": 6,
+          "period": 30,
+          "secret_hex": "3132333435"
+        }
+      },
+      {
+        "action": "remote-unavailable",
+        "id": "b",
+        "reason": "wrong-size",
+        "flag": true
+      },
+      {
+        "action": "query",
+        "query": {
+          "identity": "T",
+          "candidate": "a",
+          "device": ""
+        },
+        "expect": {
+          "heads": [
+            "b"
+          ],
+          "value_state": "UNAMBIGUOUS",
+          "ordinary": true,
+          "author": true,
+          "candidate": true,
+          "candidate_warning": true,
+          "integrity_failure": false
+        }
+      },
+      {
+        "action": "remote-unavailable",
+        "id": "b",
+        "reason": "wrong-size"
+      },
+      {
+        "action": "state-query",
+        "id": "b",
+        "query": {
+          "identity": "T",
+          "candidate": "a",
+          "device": "D"
+        },
+        "state_expect": {
+          "known": [
+            "a",
+            "b"
+          ],
+          "device_heads": [],
+          "parents": [
+            "a"
+          ],
+          "authoritative": true,
+          "continuity_unknown": false
+        }
+      },
+      {
+        "action": "query",
+        "query": {
+          "identity": "T",
+          "candidate": "a",
+          "device": ""
+        },
+        "expect": {
+          "heads": [
+            "b"
+          ],
+          "value_state": "VALUE_INCOMPLETE_UNAVAILABLE",
+          "ordinary": false,
+          "author": true,
+          "candidate": true,
+          "candidate_warning": true,
+          "integrity_failure": false
+        }
+      },
+      {
+        "action": "learn",
+        "node": {
+          "id": "b",
+          "version": 1,
+          "type": "TOKEN",
+          "identity": "T",
+          "class": "SUPPORTED_VALID",
+          "parents": [
+            "a"
+          ],
+          "author_time": 0,
+          "semantic_digest": "bytes-b"
+        },
+        "value": {
+          "status": "LIVE",
+          "issuer": "Example",
+          "account": "alice",
+          "algorithm": 1,
+          "digits": 6,
+          "period": 30,
+          "secret_hex": "3132333435"
+        }
+      },
+      {
+        "action": "remote-unavailable",
+        "id": "b",
+        "reason": "aead",
+        "flag": true
+      },
+      {
+        "action": "query",
+        "query": {
+          "identity": "T",
+          "candidate": "a",
+          "device": ""
+        },
+        "expect": {
+          "heads": [
+            "b"
+          ],
+          "value_state": "UNAMBIGUOUS",
+          "ordinary": true,
+          "author": true,
+          "candidate": true,
+          "candidate_warning": true,
+          "integrity_failure": false
+        }
+      },
+      {
+        "action": "remote-unavailable",
+        "id": "b",
+        "reason": "aead"
+      },
+      {
+        "action": "state-query",
+        "id": "b",
+        "query": {
+          "identity": "T",
+          "candidate": "a",
+          "device": "D"
+        },
+        "state_expect": {
+          "known": [
+            "a",
+            "b"
+          ],
+          "device_heads": [],
+          "parents": [
+            "a"
+          ],
+          "authoritative": true,
+          "continuity_unknown": false
+        }
+      },
+      {
+        "action": "query",
+        "query": {
+          "identity": "T",
+          "candidate": "a",
+          "device": ""
+        },
+        "expect": {
+          "heads": [
+            "b"
+          ],
+          "value_state": "VALUE_INCOMPLETE_UNAVAILABLE",
+          "ordinary": false,
+          "author": true,
+          "candidate": true,
+          "candidate_warning": true,
+          "integrity_failure": false
+        }
+      },
+      {
+        "action": "learn",
+        "node": {
+          "id": "b",
+          "version": 1,
+          "type": "TOKEN",
+          "identity": "T",
+          "class": "SUPPORTED_VALID",
+          "parents": [
+            "a"
+          ],
+          "author_time": 0,
+          "semantic_digest": "bytes-b"
+        },
+        "value": {
+          "status": "LIVE",
+          "issuer": "Example",
+          "account": "alice",
+          "algorithm": 1,
+          "digits": 6,
+          "period": 30,
+          "secret_hex": "3132333435"
+        }
+      },
+      {
+        "action": "remote-unavailable",
+        "id": "b",
+        "reason": "padding",
+        "flag": true
+      },
+      {
+        "action": "query",
+        "query": {
+          "identity": "T",
+          "candidate": "a",
+          "device": ""
+        },
+        "expect": {
+          "heads": [
+            "b"
+          ],
+          "value_state": "UNAMBIGUOUS",
+          "ordinary": true,
+          "author": true,
+          "candidate": true,
+          "candidate_warning": true,
+          "integrity_failure": false
+        }
+      },
+      {
+        "action": "remote-unavailable",
+        "id": "b",
+        "reason": "padding"
+      },
+      {
+        "action": "state-query",
+        "id": "b",
+        "query": {
+          "identity": "T",
+          "candidate": "a",
+          "device": "D"
+        },
+        "state_expect": {
+          "known": [
+            "a",
+            "b"
+          ],
+          "device_heads": [],
+          "parents": [
+            "a"
+          ],
+          "authoritative": true,
+          "continuity_unknown": false
+        }
+      },
+      {
+        "action": "query",
+        "query": {
+          "identity": "T",
+          "candidate": "a",
+          "device": ""
+        },
+        "expect": {
+          "heads": [
+            "b"
+          ],
+          "value_state": "VALUE_INCOMPLETE_UNAVAILABLE",
+          "ordinary": false,
+          "author": true,
+          "candidate": true,
+          "candidate_warning": true,
+          "integrity_failure": false
+        }
+      },
+      {
+        "action": "learn",
+        "node": {
+          "id": "b",
+          "version": 1,
+          "type": "TOKEN",
+          "identity": "T",
+          "class": "SUPPORTED_VALID",
+          "parents": [
+            "a"
+          ],
+          "author_time": 0,
+          "semantic_digest": "bytes-b"
+        },
+        "value": {
+          "status": "LIVE",
+          "issuer": "Example",
+          "account": "alice",
+          "algorithm": 1,
+          "digits": 6,
+          "period": 30,
+          "secret_hex": "3132333435"
+        }
+      },
+      {
+        "action": "remote-unavailable",
+        "id": "b",
+        "reason": "object-id",
+        "flag": true
+      },
+      {
+        "action": "query",
+        "query": {
+          "identity": "T",
+          "candidate": "a",
+          "device": ""
+        },
+        "expect": {
+          "heads": [
+            "b"
+          ],
+          "value_state": "UNAMBIGUOUS",
+          "ordinary": true,
+          "author": true,
+          "candidate": true,
+          "candidate_warning": true,
+          "integrity_failure": false
+        }
+      },
+      {
+        "action": "remote-unavailable",
+        "id": "b",
+        "reason": "object-id"
+      },
+      {
+        "action": "state-query",
+        "id": "b",
+        "query": {
+          "identity": "T",
+          "candidate": "a",
+          "device": "D"
+        },
+        "state_expect": {
+          "known": [
+            "a",
+            "b"
+          ],
+          "device_heads": [],
+          "parents": [
+            "a"
+          ],
+          "authoritative": true,
+          "continuity_unknown": false
+        }
+      },
+      {
+        "action": "query",
+        "query": {
+          "identity": "T",
+          "candidate": "a",
+          "device": ""
+        },
+        "expect": {
+          "heads": [
+            "b"
+          ],
+          "value_state": "VALUE_INCOMPLETE_UNAVAILABLE",
+          "ordinary": false,
+          "author": true,
+          "candidate": true,
+          "candidate_warning": true,
+          "integrity_failure": false
+        }
+      }
+    ]
+  }
+}

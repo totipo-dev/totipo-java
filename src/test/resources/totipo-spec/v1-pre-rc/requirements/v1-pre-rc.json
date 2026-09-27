@@ -2,11 +2,11 @@
   "format": "totipo-requirements-v1",
   "status": "moving-pre-rc",
   "protocol": "totipo-v1",
-  "spec_revision": "r10",
-  "manifest_sha256": "031456a8b35633ab86c9a7c04c6f54ba00697b7577de9f43379ce4932c6bca38",
-  "spec_sha256": "8c93d6e05b0e19682d7875e011aba4961558ff7c606919006b98e3df30219b52",
+  "spec_revision": "r13",
+  "manifest_sha256": "da289e75ccb2a8d73080cb8cc6ebcc2a6d39623edf2bfcbccce84b6b67dba8bd",
+  "spec_sha256": "513426313c7850b998239ed19a3d7399b32de203994931ae2d873516717ae228",
   "schema_sha256": "59bdc9165b1c7e940031c447c2da640185774a6e4fd52fa0fee0b245061e0440",
-  "case_schema_sha256": "bab64fa1257ecc6cb0fdbd0aa0ceea223f93bf33be8031b1dcd0fd041aaf8af9",
+  "case_schema_sha256": "79e33b68bf948dcc332075827b791c8eb8e54d9cb27634dd59c0c6ac1fd95fd5",
   "required_cases": [
     {
       "id": "v1.routing.token-v1.001",
@@ -315,6 +315,58 @@
     {
       "id": "v1.future.family-no-shadow.001",
       "sha256": "f8c8855769544ea0c7603bd73411faac9bd2af9e89179336e1308eb4632bd85b"
+    },
+    {
+      "id": "v1.future.unscoped-sticky.001",
+      "sha256": "9579b51d431734e16f884c94b8ec2005ffffaf3b5e97b6476f6ace30e4cad019"
+    },
+    {
+      "id": "v1.future.unscoped-rebaseline-absent.001",
+      "sha256": "d8f616a48622ef60c84fcd8c7004034e14fe9bb57bcc53563a2564723919883a"
+    },
+    {
+      "id": "v1.future.unscoped-rebaseline-present.001",
+      "sha256": "1ff79b81ddf46f6f3b012ab111b7798ff26ec2216fb5394f23d9a5184bf68def"
+    },
+    {
+      "id": "v1.device.rename-incorporates-rejected-head.001",
+      "sha256": "6384ee5bcfd7565d98025447f9d3099b869d254a4c108a575c0da36233b0f45e"
+    },
+    {
+      "id": "v1.graph.known-id-corrupt-bytes-retain-node.001",
+      "sha256": "328b73cb11b9bbf90ec09c41bda9fe85b46916eb78af50facbc688143925c5dd"
+    },
+    {
+      "id": "v1.graph.local-security-memory-corruption.001",
+      "sha256": "bcc58726da9039d029e617d6d1211e25dcffcf10747449a3bef54eefd12dcee3"
+    },
+    {
+      "id": "v1.provenance.initial-device-before-token.001",
+      "sha256": "c02ff4e463ebfaedd09a1ff89e4c920ccfb94acb69fefc355a03ce30a08cc1ee"
+    },
+    {
+      "id": "v1.provenance.signature-context-cross-vault.001",
+      "sha256": "df926d8526bd26b08ded0517fb19bb555aad80e1295daecc1fa4c4bce3d39f54"
+    },
+    {
+      "id": "v1.future.unscoped-retains-exact-object.001",
+      "sha256": "f2682f95f83a7b486f4abdaa39f0231f9a803e641ba9f237e91893d446a68a74"
+    },
+    {
+      "id": "v1.future.unscoped-reprocess-retained.001",
+      "sha256": "e1b7fd2e68ec41d945ade8ece4121ae080024d3b1fdfb15fe017093475b834c0"
+    },
+    {
+      "id": "v1.provenance.late-device-reclassify.001",
+      "sha256": "9bb0148a2066440188f82e286c1b97ce8b52e58154606b3059c4a32ff5428a99"
+    },
+    {
+      "id": "v1.graph.rebaseline-history-reappears.001",
+      "sha256": "6cc00307356a66787543f4aee5a31800fcac6efc70a58f0a674e87bbda32ffc9"
+    },
+    {
+      "id": "v1.graph.rebaseline-resource-incomplete.001",
+      "sha256": "a3ed80732e26da31cd42cc7b69312745213524f11551c6f0a33982cf6f4d7943"
     }
   ]
 }

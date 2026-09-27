@@ -1,0 +1,307 @@
+{
+  "format": "totipo-case-v1",
+  "id": "v1.device.rename-incorporates-rejected-head.001",
+  "operation": "graph",
+  "expected": "PASS",
+  "graph": {
+    "steps": [
+      {
+        "action": "learn",
+        "node": {
+          "id": "a",
+          "version": 1,
+          "type": "TOKEN",
+          "identity": "T",
+          "class": "SUPPORTED_VALID",
+          "parents": [],
+          "author_time": 0,
+          "semantic_digest": "bytes-a"
+        },
+        "value": {
+          "status": "LIVE",
+          "issuer": "Example",
+          "account": "alice",
+          "algorithm": 1,
+          "digits": 6,
+          "period": 30,
+          "secret_hex": "3132333435"
+        }
+      },
+      {
+        "action": "learn",
+        "node": {
+          "id": "A",
+          "version": 1,
+          "type": "DEVICE",
+          "identity": "D",
+          "class": "SUPPORTED_VALID",
+          "parents": [],
+          "author_time": 0,
+          "semantic_digest": "bytes-A"
+        },
+        "value": {
+          "status": "LIVE",
+          "issuer": "Example",
+          "account": "alice",
+          "algorithm": 1,
+          "digits": 6,
+          "period": 30,
+          "secret_hex": "3132333435",
+          "display_name": "Alice",
+          "provenance": "VERIFIED"
+        }
+      },
+      {
+        "action": "learn",
+        "node": {
+          "id": "B",
+          "version": 1,
+          "type": "DEVICE",
+          "identity": "D",
+          "class": "SUPPORTED_VALID",
+          "parents": [],
+          "author_time": 0,
+          "semantic_digest": "bytes-B"
+        },
+        "value": {
+          "status": "LIVE",
+          "issuer": "Example",
+          "account": "alice",
+          "algorithm": 1,
+          "digits": 6,
+          "period": 30,
+          "secret_hex": "3132333435",
+          "display_name": "Hostile",
+          "provenance": "REJECTED"
+        }
+      },
+      {
+        "action": "learn",
+        "node": {
+          "id": "C",
+          "version": 1,
+          "type": "DEVICE",
+          "identity": "D",
+          "class": "SUPPORTED_VALID",
+          "parents": [],
+          "author_time": 0,
+          "semantic_digest": "bytes-C"
+        },
+        "value": {
+          "status": "LIVE",
+          "issuer": "Example",
+          "account": "alice",
+          "algorithm": 1,
+          "digits": 6,
+          "period": 30,
+          "secret_hex": "3132333435",
+          "display_name": "Unknown",
+          "provenance": "UNRESOLVED"
+        }
+      },
+      {
+        "action": "query",
+        "query": {
+          "identity": "T",
+          "candidate": "a",
+          "device": "D"
+        },
+        "expect": {
+          "heads": [
+            "a"
+          ],
+          "value_state": "UNAMBIGUOUS",
+          "ordinary": true,
+          "author": true,
+          "candidate": true,
+          "candidate_warning": true,
+          "integrity_failure": false,
+          "presentation": "VERIFIED"
+        }
+      },
+      {
+        "action": "state-query",
+        "id": "",
+        "query": {
+          "identity": "T",
+          "candidate": "a",
+          "device": "D"
+        },
+        "state_expect": {
+          "known": [
+            "A",
+            "B",
+            "C",
+            "a"
+          ],
+          "device_heads": [
+            "A",
+            "B",
+            "C"
+          ],
+          "parents": [],
+          "authoritative": true,
+          "continuity_unknown": false
+        }
+      },
+      {
+        "action": "rename",
+        "node": {
+          "id": "R",
+          "version": 1,
+          "type": "DEVICE",
+          "identity": "D",
+          "class": "SUPPORTED_VALID",
+          "parents": [],
+          "author_time": 0,
+          "semantic_digest": "bytes-R"
+        },
+        "value": {
+          "status": "LIVE",
+          "issuer": "Example",
+          "account": "alice",
+          "algorithm": 1,
+          "digits": 6,
+          "period": 30,
+          "secret_hex": "3132333435",
+          "display_name": "Renamed",
+          "provenance": "VERIFIED"
+        },
+        "success": true
+      },
+      {
+        "action": "state-query",
+        "id": "R",
+        "query": {
+          "identity": "T",
+          "candidate": "a",
+          "device": "D"
+        },
+        "state_expect": {
+          "known": [
+            "A",
+            "B",
+            "C",
+            "R",
+            "a"
+          ],
+          "device_heads": [
+            "R"
+          ],
+          "parents": [
+            "A",
+            "B",
+            "C"
+          ],
+          "authoritative": true,
+          "continuity_unknown": false
+        }
+      },
+      {
+        "action": "query",
+        "query": {
+          "identity": "T",
+          "candidate": "a",
+          "device": "D"
+        },
+        "expect": {
+          "heads": [
+            "a"
+          ],
+          "value_state": "UNAMBIGUOUS",
+          "ordinary": true,
+          "author": true,
+          "candidate": true,
+          "candidate_warning": true,
+          "integrity_failure": false,
+          "presentation": "VERIFIED"
+        }
+      },
+      {
+        "action": "learn",
+        "node": {
+          "id": "O",
+          "version": 1,
+          "type": "DEVICE",
+          "identity": "D",
+          "class": "OPAQUE_ROUTABLE",
+          "parents": [
+            "R"
+          ],
+          "author_time": 0,
+          "semantic_digest": "bytes-O"
+        }
+      },
+      {
+        "action": "rename",
+        "node": {
+          "id": "S",
+          "version": 1,
+          "type": "DEVICE",
+          "identity": "D",
+          "class": "SUPPORTED_VALID",
+          "parents": [],
+          "author_time": 0,
+          "semantic_digest": "bytes-S"
+        },
+        "value": {
+          "status": "LIVE",
+          "issuer": "Example",
+          "account": "alice",
+          "algorithm": 1,
+          "digits": 6,
+          "period": 30,
+          "secret_hex": "3132333435",
+          "display_name": "Blocked",
+          "provenance": "VERIFIED"
+        },
+        "success": false
+      },
+      {
+        "action": "state-query",
+        "id": "",
+        "query": {
+          "identity": "T",
+          "candidate": "a",
+          "device": "D"
+        },
+        "state_expect": {
+          "known": [
+            "A",
+            "B",
+            "C",
+            "O",
+            "R",
+            "a"
+          ],
+          "device_heads": [
+            "O"
+          ],
+          "parents": [],
+          "authoritative": true,
+          "continuity_unknown": false
+        }
+      },
+      {
+        "action": "query",
+        "query": {
+          "identity": "T",
+          "candidate": "a",
+          "device": "D"
+        },
+        "expect": {
+          "heads": [
+            "a"
+          ],
+          "value_state": "UNAMBIGUOUS",
+          "ordinary": true,
+          "author": true,
+          "candidate": true,
+          "candidate_warning": true,
+          "integrity_failure": false,
+          "presentation": "OPAQUE"
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,262 @@
+{
+  "format": "totipo-case-v1",
+  "id": "v1.graph.rebaseline-resource-incomplete.001",
+  "operation": "graph",
+  "expected": "PASS",
+  "graph": {
+    "notes": "Each snapshot observation must reach terminal classification. Resource exhaustion, unavailable required bytes, and an unclassified candidate prevent completion and leave continuity unknown. Invalid storage is terminal and does not itself prevent a complete scan. No production resource limits are invented.",
+    "steps": [
+      {
+        "action": "learn",
+        "node": {
+          "id": "a",
+          "version": 1,
+          "type": "TOKEN",
+          "identity": "T",
+          "class": "SUPPORTED_VALID",
+          "parents": [],
+          "author_time": 0,
+          "semantic_digest": "bytes-a"
+        },
+        "value": {
+          "status": "LIVE",
+          "issuer": "Example",
+          "account": "old",
+          "algorithm": 1,
+          "digits": 6,
+          "period": 30,
+          "secret_hex": "3132333435"
+        }
+      },
+      {
+        "action": "reset-begin"
+      },
+      {
+        "action": "baseline-learn",
+        "node": {
+          "id": "a",
+          "version": 1,
+          "type": "TOKEN",
+          "identity": "T",
+          "class": "SUPPORTED_VALID",
+          "parents": [],
+          "author_time": 0,
+          "semantic_digest": "bytes-a"
+        },
+        "value": {
+          "status": "LIVE",
+          "issuer": "Example",
+          "account": "old",
+          "algorithm": 1,
+          "digits": 6,
+          "period": 30,
+          "secret_hex": "3132333435"
+        }
+      },
+      {
+        "action": "reset-complete-scan",
+        "scan": [
+          {
+            "id": "a",
+            "classification": "SUPPORTED_VALID"
+          },
+          {
+            "id": "pending",
+            "classification": "RESOURCE_EXHAUSTED"
+          }
+        ],
+        "flag": false,
+        "success": false
+      },
+      {
+        "action": "state-query",
+        "id": "c",
+        "query": {
+          "identity": "T",
+          "candidate": "a",
+          "device": "D"
+        },
+        "state_expect": {
+          "known": [
+            "a"
+          ],
+          "device_heads": [],
+          "parents": [],
+          "authoritative": false,
+          "continuity_unknown": true
+        }
+      },
+      {
+        "action": "query",
+        "query": {
+          "identity": "T",
+          "candidate": "a"
+        },
+        "expect": {
+          "heads": [
+            "a"
+          ],
+          "value_state": "UNAMBIGUOUS",
+          "ordinary": false,
+          "author": false,
+          "candidate": false,
+          "candidate_warning": false,
+          "integrity_failure": true
+        }
+      },
+      {
+        "action": "reset-complete-scan",
+        "scan": [
+          {
+            "id": "a",
+            "classification": "SUPPORTED_VALID"
+          },
+          {
+            "id": "pending",
+            "classification": "BYTES_UNAVAILABLE"
+          }
+        ],
+        "flag": false,
+        "success": false
+      },
+      {
+        "action": "state-query",
+        "id": "c",
+        "query": {
+          "identity": "T",
+          "candidate": "a",
+          "device": "D"
+        },
+        "state_expect": {
+          "known": [
+            "a"
+          ],
+          "device_heads": [],
+          "parents": [],
+          "authoritative": false,
+          "continuity_unknown": true
+        }
+      },
+      {
+        "action": "query",
+        "query": {
+          "identity": "T",
+          "candidate": "a"
+        },
+        "expect": {
+          "heads": [
+            "a"
+          ],
+          "value_state": "UNAMBIGUOUS",
+          "ordinary": false,
+          "author": false,
+          "candidate": false,
+          "candidate_warning": false,
+          "integrity_failure": true
+        }
+      },
+      {
+        "action": "reset-complete-scan",
+        "scan": [
+          {
+            "id": "a",
+            "classification": "SUPPORTED_VALID"
+          },
+          {
+            "id": "pending",
+            "classification": "UNCLASSIFIED"
+          }
+        ],
+        "flag": false,
+        "success": false
+      },
+      {
+        "action": "state-query",
+        "id": "c",
+        "query": {
+          "identity": "T",
+          "candidate": "a",
+          "device": "D"
+        },
+        "state_expect": {
+          "known": [
+            "a"
+          ],
+          "device_heads": [],
+          "parents": [],
+          "authoritative": false,
+          "continuity_unknown": true
+        }
+      },
+      {
+        "action": "query",
+        "query": {
+          "identity": "T",
+          "candidate": "a"
+        },
+        "expect": {
+          "heads": [
+            "a"
+          ],
+          "value_state": "UNAMBIGUOUS",
+          "ordinary": false,
+          "author": false,
+          "candidate": false,
+          "candidate_warning": false,
+          "integrity_failure": true
+        }
+      },
+      {
+        "action": "reset-complete-scan",
+        "scan": [
+          {
+            "id": "a",
+            "classification": "SUPPORTED_VALID"
+          },
+          {
+            "id": "pending",
+            "classification": "INVALID_STORAGE"
+          }
+        ],
+        "flag": true,
+        "success": true
+      },
+      {
+        "action": "state-query",
+        "id": "c",
+        "query": {
+          "identity": "T",
+          "candidate": "a",
+          "device": "D"
+        },
+        "state_expect": {
+          "known": [
+            "a"
+          ],
+          "device_heads": [],
+          "parents": [],
+          "authoritative": true,
+          "continuity_unknown": false
+        }
+      },
+      {
+        "action": "query",
+        "query": {
+          "identity": "T",
+          "candidate": "a"
+        },
+        "expect": {
+          "heads": [
+            "a"
+          ],
+          "value_state": "UNAMBIGUOUS",
+          "ordinary": true,
+          "author": true,
+          "candidate": true,
+          "candidate_warning": true,
+          "integrity_failure": false
+        }
+      }
+    ]
+  }
+}

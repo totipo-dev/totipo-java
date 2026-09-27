@@ -2,10 +2,10 @@
 
 Java implementation of the Totipo vault protocol.
 
-This repository targets **Totipo Vault Format v1**, design revision **r10**.
-Development currently uses an exact snapshot of the moving `v1-pre-rc` profile,
-documented in [SPEC_PIN.md](SPEC_PIN.md). It contains no Totipo protocol
-implementation yet and does not claim protocol conformance.
+This repository targets **Totipo Vault Format v1**, design revision **r13**.
+Development currently uses an exact pinned snapshot of the moving `v1-pre-rc` profile,
+documented in [SPEC_PIN.md](SPEC_PIN.md). The implementation covers the M1.1–M1.3
+routing, structural parsing, and cryptographic surfaces; it does not claim full protocol conformance.
 
 ## Toolchain
 

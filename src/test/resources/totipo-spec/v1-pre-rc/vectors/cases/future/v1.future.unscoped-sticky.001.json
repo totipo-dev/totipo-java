@@ -1,0 +1,159 @@
+{
+  "format": "totipo-case-v1",
+  "id": "v1.future.unscoped-sticky.001",
+  "operation": "graph",
+  "expected": "PASS",
+  "graph": {
+    "steps": [
+      {
+        "action": "learn",
+        "node": {
+          "id": "a",
+          "version": 1,
+          "type": "TOKEN",
+          "identity": "T",
+          "class": "SUPPORTED_VALID",
+          "parents": [],
+          "author_time": 0,
+          "semantic_digest": "bytes-a"
+        },
+        "value": {
+          "status": "LIVE",
+          "issuer": "Example",
+          "account": "alice",
+          "algorithm": 1,
+          "digits": 6,
+          "period": 30,
+          "secret_hex": "3132333435"
+        }
+      },
+      {
+        "action": "learn",
+        "node": {
+          "id": "u",
+          "version": 1,
+          "type": "",
+          "identity": "",
+          "class": "OPAQUE_UNSCOPED",
+          "parents": [],
+          "author_time": 0,
+          "semantic_digest": "bytes-u"
+        }
+      },
+      {
+        "action": "query",
+        "query": {
+          "identity": "T",
+          "candidate": "a",
+          "device": ""
+        },
+        "expect": {
+          "heads": [
+            "a"
+          ],
+          "value_state": "UNAMBIGUOUS",
+          "ordinary": false,
+          "author": false,
+          "candidate": true,
+          "candidate_warning": true,
+          "integrity_failure": false
+        }
+      },
+      {
+        "action": "disappear",
+        "id": "u"
+      },
+      {
+        "action": "query",
+        "query": {
+          "identity": "T",
+          "candidate": "a",
+          "device": ""
+        },
+        "expect": {
+          "heads": [
+            "a"
+          ],
+          "value_state": "UNAMBIGUOUS",
+          "ordinary": false,
+          "author": false,
+          "candidate": true,
+          "candidate_warning": true,
+          "integrity_failure": false
+        }
+      },
+      {
+        "action": "state-query",
+        "id": "",
+        "query": {
+          "identity": "T",
+          "candidate": "a",
+          "device": "D"
+        },
+        "state_expect": {
+          "known": [
+            "a",
+            "u"
+          ],
+          "device_heads": [],
+          "parents": [],
+          "authoritative": false,
+          "continuity_unknown": false
+        }
+      },
+      {
+        "action": "reclassify",
+        "node": {
+          "id": "u",
+          "version": 1,
+          "type": "DEVICE",
+          "identity": "D",
+          "class": "OPAQUE_ROUTABLE",
+          "parents": [],
+          "author_time": 0,
+          "semantic_digest": "bytes-u"
+        }
+      },
+      {
+        "action": "state-query",
+        "id": "",
+        "query": {
+          "identity": "T",
+          "candidate": "a",
+          "device": "D"
+        },
+        "state_expect": {
+          "known": [
+            "a",
+            "u"
+          ],
+          "device_heads": [
+            "u"
+          ],
+          "parents": [],
+          "authoritative": true,
+          "continuity_unknown": false
+        }
+      },
+      {
+        "action": "query",
+        "query": {
+          "identity": "T",
+          "candidate": "a",
+          "device": ""
+        },
+        "expect": {
+          "heads": [
+            "a"
+          ],
+          "value_state": "UNAMBIGUOUS",
+          "ordinary": true,
+          "author": true,
+          "candidate": true,
+          "candidate_warning": true,
+          "integrity_failure": false
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,127 @@
+{
+  "format": "totipo-case-v1",
+  "id": "v1.provenance.initial-device-before-token.001",
+  "operation": "publication",
+  "expected": "PASS",
+  "publication": {
+    "device_id": "D",
+    "public_key": "key-D",
+    "events": [
+      {
+        "action": "report-success",
+        "success": false
+      },
+      {
+        "action": "publish-token",
+        "durable": true
+      },
+      {
+        "action": "report-success",
+        "success": false
+      },
+      {
+        "action": "advertise",
+        "device_id": "other",
+        "public_key": "key-D",
+        "assertion_valid": true,
+        "verified": true,
+        "durable": true
+      },
+      {
+        "action": "report-success",
+        "success": false
+      },
+      {
+        "action": "advertise",
+        "device_id": "D",
+        "public_key": "other",
+        "assertion_valid": true,
+        "verified": true,
+        "durable": true
+      },
+      {
+        "action": "report-success",
+        "success": false
+      },
+      {
+        "action": "advertise",
+        "device_id": "D",
+        "public_key": "key-D",
+        "assertion_valid": false,
+        "verified": true,
+        "durable": true
+      },
+      {
+        "action": "report-success",
+        "success": false
+      },
+      {
+        "action": "advertise",
+        "device_id": "D",
+        "public_key": "key-D",
+        "assertion_valid": true,
+        "verified": false,
+        "durable": true
+      },
+      {
+        "action": "report-success",
+        "success": false
+      },
+      {
+        "action": "advertise",
+        "device_id": "D",
+        "public_key": "key-D",
+        "assertion_valid": true,
+        "verified": true,
+        "durable": false
+      },
+      {
+        "action": "report-success",
+        "success": false
+      },
+      {
+        "action": "advertise",
+        "device_id": "D",
+        "public_key": "key-D",
+        "assertion_valid": true,
+        "verified": true,
+        "durable": true
+      },
+      {
+        "action": "report-success",
+        "success": true
+      },
+      {
+        "action": "restart-workflow"
+      },
+      {
+        "action": "advertise",
+        "device_id": "D",
+        "public_key": "key-D",
+        "assertion_valid": true,
+        "verified": true,
+        "durable": true
+      },
+      {
+        "action": "report-success",
+        "success": false
+      },
+      {
+        "action": "publish-token",
+        "durable": false
+      },
+      {
+        "action": "report-success",
+        "success": false
+      },
+      {
+        "action": "publish-token",
+        "durable": true
+      },
+      {
+        "action": "report-success",
+        "success": true
+      }
+    ]
+  }
+}

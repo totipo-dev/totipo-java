@@ -1,7 +1,7 @@
 {
   "format": "totipo-vector-manifest-v1",
   "protocol": "totipo-v1",
-  "spec_revision": "r10",
+  "spec_revision": "r13",
   "cases": [
     {
       "id": "v1.routing.token-v1.001",
@@ -1023,6 +1023,176 @@
         "50"
       ],
       "sha256": "f8c8855769544ea0c7603bd73411faac9bd2af9e89179336e1308eb4632bd85b"
+    },
+    {
+      "id": "v1.future.unscoped-sticky.001",
+      "category": "future",
+      "kind": "semantic",
+      "normative": true,
+      "path": "cases/future/v1.future.unscoped-sticky.001.json",
+      "expected": "PASS",
+      "spec_sections": [
+        "24.2",
+        "37.3"
+      ],
+      "sha256": "9579b51d431734e16f884c94b8ec2005ffffaf3b5e97b6476f6ace30e4cad019"
+    },
+    {
+      "id": "v1.future.unscoped-rebaseline-absent.001",
+      "category": "future",
+      "kind": "semantic",
+      "normative": true,
+      "path": "cases/future/v1.future.unscoped-rebaseline-absent.001.json",
+      "expected": "PASS",
+      "spec_sections": [
+        "24.2",
+        "34.4",
+        "37.3"
+      ],
+      "sha256": "d8f616a48622ef60c84fcd8c7004034e14fe9bb57bcc53563a2564723919883a"
+    },
+    {
+      "id": "v1.future.unscoped-rebaseline-present.001",
+      "category": "future",
+      "kind": "semantic",
+      "normative": true,
+      "path": "cases/future/v1.future.unscoped-rebaseline-present.001.json",
+      "expected": "PASS",
+      "spec_sections": [
+        "24.2",
+        "34.4",
+        "37.3"
+      ],
+      "sha256": "1ff79b81ddf46f6f3b012ab111b7798ff26ec2216fb5394f23d9a5184bf68def"
+    },
+    {
+      "id": "v1.device.rename-incorporates-rejected-head.001",
+      "category": "device",
+      "kind": "semantic",
+      "normative": true,
+      "path": "cases/device/v1.device.rename-incorporates-rejected-head.001.json",
+      "expected": "PASS",
+      "spec_sections": [
+        "31",
+        "49"
+      ],
+      "sha256": "6384ee5bcfd7565d98025447f9d3099b869d254a4c108a575c0da36233b0f45e"
+    },
+    {
+      "id": "v1.graph.known-id-corrupt-bytes-retain-node.001",
+      "category": "graph",
+      "kind": "semantic",
+      "normative": true,
+      "path": "cases/graph/v1.graph.known-id-corrupt-bytes-retain-node.001.json",
+      "expected": "PASS",
+      "spec_sections": [
+        "24.7"
+      ],
+      "sha256": "328b73cb11b9bbf90ec09c41bda9fe85b46916eb78af50facbc688143925c5dd"
+    },
+    {
+      "id": "v1.graph.local-security-memory-corruption.001",
+      "category": "graph",
+      "kind": "semantic",
+      "normative": true,
+      "path": "cases/graph/v1.graph.local-security-memory-corruption.001.json",
+      "expected": "PASS",
+      "spec_sections": [
+        "24.7",
+        "34"
+      ],
+      "sha256": "bcc58726da9039d029e617d6d1211e25dcffcf10747449a3bef54eefd12dcee3"
+    },
+    {
+      "id": "v1.provenance.initial-device-before-token.001",
+      "category": "provenance",
+      "kind": "semantic",
+      "normative": true,
+      "path": "cases/provenance/v1.provenance.initial-device-before-token.001.json",
+      "expected": "PASS",
+      "spec_sections": [
+        "16.2"
+      ],
+      "sha256": "c02ff4e463ebfaedd09a1ff89e4c920ccfb94acb69fefc355a03ce30a08cc1ee"
+    },
+    {
+      "id": "v1.provenance.signature-context-cross-vault.001",
+      "category": "provenance",
+      "kind": "bytes",
+      "normative": true,
+      "path": "cases/provenance/v1.provenance.signature-context-cross-vault.001.json",
+      "expected": "PASS",
+      "spec_sections": [
+        "19"
+      ],
+      "sha256": "df926d8526bd26b08ded0517fb19bb555aad80e1295daecc1fa4c4bce3d39f54"
+    },
+    {
+      "id": "v1.future.unscoped-retains-exact-object.001",
+      "category": "future",
+      "kind": "semantic",
+      "normative": true,
+      "path": "cases/future/v1.future.unscoped-retains-exact-object.001.json",
+      "expected": "PASS",
+      "spec_sections": [
+        "24",
+        "24.1",
+        "24.7",
+        "34"
+      ],
+      "sha256": "f2682f95f83a7b486f4abdaa39f0231f9a803e641ba9f237e91893d446a68a74"
+    },
+    {
+      "id": "v1.future.unscoped-reprocess-retained.001",
+      "category": "future",
+      "kind": "semantic",
+      "normative": true,
+      "path": "cases/future/v1.future.unscoped-reprocess-retained.001.json",
+      "expected": "PASS",
+      "spec_sections": [
+        "24.2",
+        "37.3"
+      ],
+      "sha256": "e1b7fd2e68ec41d945ade8ece4121ae080024d3b1fdfb15fe017093475b834c0"
+    },
+    {
+      "id": "v1.provenance.late-device-reclassify.001",
+      "category": "provenance",
+      "kind": "semantic",
+      "normative": true,
+      "path": "cases/provenance/v1.provenance.late-device-reclassify.001.json",
+      "expected": "PASS",
+      "spec_sections": [
+        "16.1",
+        "55"
+      ],
+      "sha256": "9bb0148a2066440188f82e286c1b97ce8b52e58154606b3059c4a32ff5428a99"
+    },
+    {
+      "id": "v1.graph.rebaseline-history-reappears.001",
+      "category": "graph",
+      "kind": "semantic",
+      "normative": true,
+      "path": "cases/graph/v1.graph.rebaseline-history-reappears.001.json",
+      "expected": "PASS",
+      "spec_sections": [
+        "34.3",
+        "34.4"
+      ],
+      "sha256": "6cc00307356a66787543f4aee5a31800fcac6efc70a58f0a674e87bbda32ffc9"
+    },
+    {
+      "id": "v1.graph.rebaseline-resource-incomplete.001",
+      "category": "graph",
+      "kind": "semantic",
+      "normative": true,
+      "path": "cases/graph/v1.graph.rebaseline-resource-incomplete.001.json",
+      "expected": "PASS",
+      "spec_sections": [
+        "24.3",
+        "34.3"
+      ],
+      "sha256": "a3ed80732e26da31cd42cc7b69312745213524f11551c6f0a33982cf6f4d7943"
     }
   ]
 }

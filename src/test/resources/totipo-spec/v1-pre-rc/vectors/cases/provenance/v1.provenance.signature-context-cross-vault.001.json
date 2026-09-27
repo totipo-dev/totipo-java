@@ -1,0 +1,30 @@
+{
+  "format": "totipo-case-v1",
+  "id": "v1.provenance.signature-context-cross-vault.001",
+  "operation": "signature-context",
+  "expected": "PASS",
+  "input": {
+    "version": 1,
+    "type": 1,
+    "parents": null,
+    "author_time": 0,
+    "identity": "IiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiI=",
+    "author": "9MXiZhY0N07/U+xamrwlEvFVg0gE2w+pIH6VDVXuTDU=",
+    "status": 1,
+    "issuer": "Example",
+    "account": "alice@example.test",
+    "algorithm": 1,
+    "digits": 6,
+    "period": 30,
+    "secret": "MTIzNDU2Nzg5MDEyMzQ1Njc4OTA=",
+    "signature": "MEUCIGqQ3bpsvlsMHts3R84/vhcRIhctCRzFQaDwjWWMkUZSAiEA/Ncsut3Wx89YFXb1bpF1vPzf19TDbuXszVth7o+IUU0="
+  },
+  "public_key_hex": "046b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c2964fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5",
+  "signature_context": {
+    "context_a_hex": "551bac2f3e4ad51ec59ad3b7dba4805f51e6a96bdfa736b132cecf15b6d7f156",
+    "context_b_hex": "2222222222222222222222222222222222222222222222222222222222222222",
+    "unsigned_semantic_hex": "0001000101000200010100040002000000060008000000000000000001010020222222222222222222222222222222222222222222222222222222222222222201020020f4c5e2661634374eff53ec5a9abc2512f155834804db0fa9207e950d55ee4c350103000101010400074578616d706c6501050012616c696365406578616d706c652e746573740106002a03010001010302000106030300040000001e030400143132333435363738393031323334353637383930",
+    "under_a": "VERIFIED",
+    "under_b": "REJECTED"
+  }
+}
