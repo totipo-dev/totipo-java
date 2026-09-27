@@ -24,7 +24,20 @@ final class EnvelopeReader {
         AUTHENTICATED_INVALID_STRUCTURE, AUTHENTICATED_V1_STRUCTURE
     }
 
-    record Result(Status status, RoutingParser.Result routing, V1Plaintext plaintext) {}
+    record Result(Status status, RoutingParser.Result routing, V1Plaintext plaintext, byte[] semanticBytes) {
+        Result {
+            semanticBytes = semanticBytes == null ? null : semanticBytes.clone();
+        }
+
+        Result(Status status, RoutingParser.Result routing, V1Plaintext plaintext) {
+            this(status, routing, plaintext, null);
+        }
+
+        @Override
+        public byte[] semanticBytes() {
+            return semanticBytes == null ? null : semanticBytes.clone();
+        }
+    }
 
     static byte[] nonce(ObjectId id) {
         return Arrays.copyOf(id.bytes(), NONCE_BYTES);
@@ -85,7 +98,7 @@ final class EnvelopeReader {
                     var parsed = V1PlaintextParser.parse(semantic);
                     yield new Result(parsed.status() == V1PlaintextParser.Status.STRUCTURALLY_VALID
                             ? Status.AUTHENTICATED_V1_STRUCTURE : Status.AUTHENTICATED_INVALID_STRUCTURE,
-                            routing, parsed.plaintext());
+                            routing, parsed.plaintext(), parsed.plaintext() == null ? null : semantic);
                 }
             };
         } catch (AEADBadTagException e) {

@@ -70,7 +70,18 @@ final class P256 {
         }
     }
 
-    /** JCA DER verification; strict protocol-level DER acceptance is deferred. */
+    /** Normal verification keeps root-derived signature input operation-local. */
+    static boolean verifySemantic(byte[] root, int objectType, byte[] unsignedSemantic,
+                                  byte[] key, byte[] signature) {
+        byte[] input = signatureInput(root, objectType, unsignedSemantic);
+        try {
+            return verify(key, input, signature);
+        } finally {
+            Arrays.fill(input, (byte) 0);
+        }
+    }
+
+    /** Mathematical primitive; protocol callers independently enforce canonical DER. */
     static boolean verify(byte[] protocolKey, byte[] message, byte[] signature) {
         if (signature.length == 0 || signature.length > 72) {
             return false;
@@ -85,10 +96,14 @@ final class P256 {
             var verifier = Signature.getInstance("SHA256withECDSA");
             verifier.initVerify(key);
             verifier.update(message);
-            return verifier.verify(signature);
-        } catch (SignatureException e) {
-            return false;
+            try {
+                return verifier.verify(signature);
+            } catch (SignatureException e) {
+                // Invalid supplied signature values/encoding, not a local resource failure.
+                return false;
+            }
         } catch (GeneralSecurityException e) {
+            // Setup/update failures occurred before examining the supplied signature.
             throw CryptoSupport.unavailable();
         }
     }

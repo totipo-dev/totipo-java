@@ -46,6 +46,10 @@ public final class VectorCaseLoader {
         return cases("crypto");
     }
 
+    public static List<Case> provenanceCases() throws IOException { return cases("provenance"); }
+
+    public static List<Case> deviceCases() throws IOException { return cases("device"); }
+
     private static List<Case> cases(String category) throws IOException {
         Node manifest = resource("manifest.json");
         if (!manifest.field("format").string().equals("totipo-vector-manifest-v1")) {
@@ -77,7 +81,10 @@ public final class VectorCaseLoader {
                     || !entry.field("expected").string().equals(expected)
                     || !data.field("format").string().equals("totipo-case-v1")
                     || !(data.field("operation").string().equals("dispatch")
-                        || (category.equals("crypto") && data.field("operation").string().equals("crypto")))) {
+                        || (category.equals("crypto") && data.field("operation").string().equals("crypto"))
+                        || (category.equals("device") && data.field("operation").string().equals("graph"))
+                        || (category.equals("provenance") && java.util.Set.of("provenance", "publication",
+                            "signature-context", "late-provenance").contains(data.field("operation").string())))) {
                 throw data.error("Manifest/case identity, expected value, or format mismatch");
             }
             cases.add(new Case(id, path, expected, data));
@@ -166,6 +173,15 @@ public final class VectorCaseLoader {
                 throw error("Missing required object field " + name);
             }
             return new Node(fields.get(name), context + "." + name);
+        }
+
+        public boolean has(String name) {
+            return value instanceof Map<?, ?> fields && fields.containsKey(name);
+        }
+
+        public boolean bool() {
+            if (!(value instanceof Boolean result)) { throw error("Expected boolean"); }
+            return result;
         }
 
         public boolean isNull() {
