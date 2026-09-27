@@ -58,7 +58,7 @@ class EncodingVectorTest {
         }
     }
 
-    private static void checkFields(Node expected, V1Plaintext actual) {
+    static void checkFields(Node expected, V1Plaintext actual) {
         var prefix = actual.routing();
         assertEquals(expected.field("version").integer(), BigInteger.valueOf(prefix.version()));
         assertEquals(expected.field("type").integer(), BigInteger.valueOf(prefix.objectType()));

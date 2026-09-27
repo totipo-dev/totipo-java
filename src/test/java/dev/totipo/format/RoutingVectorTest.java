@@ -81,7 +81,7 @@ class RoutingVectorTest {
         return (prefix.objectType() == 1 ? 100 : 64) + 36 * prefix.parents().size();
     }
 
-    private static void checkFields(Node expected, RoutingPrefix prefix) {
+    static void checkFields(Node expected, RoutingPrefix prefix) {
         assertNotNull(prefix);
         assertEquals(expected.field("version").integer(), BigInteger.valueOf(prefix.version()));
         assertEquals(expected.field("type").integer(), BigInteger.valueOf(prefix.objectType()));

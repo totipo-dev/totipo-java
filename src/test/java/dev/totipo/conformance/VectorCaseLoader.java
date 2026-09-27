@@ -42,6 +42,10 @@ public final class VectorCaseLoader {
         return cases("encoding");
     }
 
+    public static List<Case> cryptoCases() throws IOException {
+        return cases("crypto");
+    }
+
     private static List<Case> cases(String category) throws IOException {
         Node manifest = resource("manifest.json");
         if (!manifest.field("format").string().equals("totipo-vector-manifest-v1")) {
@@ -72,7 +76,8 @@ public final class VectorCaseLoader {
             if (!data.field("id").string().equals(id)
                     || !entry.field("expected").string().equals(expected)
                     || !data.field("format").string().equals("totipo-case-v1")
-                    || !data.field("operation").string().equals("dispatch")) {
+                    || !(data.field("operation").string().equals("dispatch")
+                        || (category.equals("crypto") && data.field("operation").string().equals("crypto")))) {
                 throw data.error("Manifest/case identity, expected value, or format mismatch");
             }
             cases.add(new Case(id, path, expected, data));
