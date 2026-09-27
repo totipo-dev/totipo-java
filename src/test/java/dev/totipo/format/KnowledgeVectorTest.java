@@ -104,7 +104,7 @@ class KnowledgeVectorTest {
     }
 
     /** Symbolic authenticated-record invariant seam, NOT synthetic authenticated observations. */
-    private static DurableRecord symbolicRecord(Node n) {
+    static DurableRecord symbolicRecord(Node n) {
         var id = symbolId(n.field("id").string());
         if (n.field("class").string().equals("OPAQUE_UNSCOPED")) {
             // This symbolic fixture has no encrypted bytes. Exact authentication/byte retention
@@ -128,7 +128,7 @@ class KnowledgeVectorTest {
                         status == SemanticStatus.SUPPORTED_VALID ? new SecurityBytes(new byte[65], 65) : null);
     }
 
-    private static ObjectId symbolId(String name) {
+    static ObjectId symbolId(String name) {
         // Padded ASCII preserves symbolic ordering without inventing cryptographic collisions.
         return new ObjectId(Arrays.copyOf(CryptoSupport.ascii(name), 32));
     }

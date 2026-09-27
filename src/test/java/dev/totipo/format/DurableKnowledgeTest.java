@@ -358,14 +358,14 @@ class DurableKnowledgeTest {
         var parents = new ArrayList<>(List.of(a, b));
         var token = new KnownTokenNode(a, 2, SemanticStatus.OPAQUE_ROUTABLE,
                 new SecurityBytes(first, 32), parents, new SecurityBytes(second, 32), BigInteger.ZERO);
-        // Self-parent plus a wrong-kind parent: this milestone stores, but never resolves, claims.
+        // Self-parent plus a wrong-kind parent: M2.1 retains every claim and detects the resolved self-cycle.
         var device = new KnownDeviceNode(b, 2, SemanticStatus.OPAQUE_ROUTABLE,
                 new SecurityBytes(second, 32), List.of(a), BigInteger.ZERO, null);
         var state = DurableKnowledgeState.establishedEmpty().afterRecordPersistence(token, COMMITTED).state()
                 .afterRecordPersistence(device, COMMITTED).state();
         parents.clear(); Arrays.fill(first, (byte) 99); Arrays.fill(second, (byte) 99);
         assertEquals(List.of(a, b), ((KnownTokenNode) state.record(a)).parents());
-        assertEquals(LOCAL_CONTINUITY_KNOWN, state.continuity());
+        assertEquals(LOCAL_CONTINUITY_UNKNOWN, state.continuity());
         assertThrows(IllegalArgumentException.class, () -> new KnownTokenNode(a, 2, SemanticStatus.OPAQUE_ROUTABLE,
                 token.tokenId(), List.of(b, a), token.authorDeviceId(), BigInteger.ZERO));
     }

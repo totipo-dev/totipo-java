@@ -71,8 +71,12 @@ final class DurableKnowledgeState {
         if (persistence == PersistenceResult.FAILED) {
             return new Update(new DurableKnowledgeState(index, size, continuity, true), Outcome.PERSISTENCE_BLOCKED);
         }
-        return new Update(new DurableKnowledgeState(index.put(incoming), size + 1, continuity,
-                knowledgePersistenceBlocked), Outcome.INSERTED);
+        var committed = new DurableKnowledgeState(index.put(incoming), size + 1, continuity,
+                knowledgePersistenceBlocked);
+        if (GraphTopology.insertionClosesCycle(incoming, committed)) {
+            return new Update(committed.localSecurityMemoryCorruption(), Outcome.LOCAL_CONTINUITY_UNKNOWN);
+        }
+        return new Update(committed, Outcome.INSERTED);
     }
 
     /** Includes externally detected malformed records, rollback, or inconsistent local memory. */
