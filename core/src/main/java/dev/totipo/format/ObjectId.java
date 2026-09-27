@@ -5,7 +5,7 @@ import java.util.Arrays;
 import java.util.HexFormat;
 
 /** Owned 32-byte keyed semantic identity (§13), distinct from its filename encoding. */
-final class ObjectId {
+public final class ObjectId {
     private final byte[] bytes;
 
     ObjectId(byte[] bytes) {
@@ -15,7 +15,7 @@ final class ObjectId {
         this.bytes = bytes.clone();
     }
 
-    static ObjectId fromFilename(String filename) {
+    public static ObjectId fromFilename(String filename) {
         if (filename.length() != 64 || !filename.matches("[0-9a-f]{64}")) {
             throw new IllegalArgumentException("Invalid object filename");
         }
@@ -40,7 +40,7 @@ final class ObjectId {
 
     byte[] bytes() { return bytes.clone(); }
 
-    String filename() { return HexFormat.of().formatHex(bytes); }
+    public String filename() { return HexFormat.of().formatHex(bytes); }
 
     @Override
     public boolean equals(Object other) {

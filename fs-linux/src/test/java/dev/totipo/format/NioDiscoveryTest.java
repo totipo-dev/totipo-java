@@ -1,6 +1,8 @@
 package dev.totipo.format;
 
-import static dev.totipo.format.DiscoveryFixtures.*;
+import static dev.totipo.format.NioTestFixtures.*;
+
+import dev.totipo.fs.linux.NioDiscoverySource;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -135,7 +137,7 @@ class NioDiscoveryTest {
         var a = fixture(TOKEN); Files.write(namespace.resolve(a.id().filename()), a.bytes());
         var one = run(controlledFiles(namespace), a.root(), DurableKnowledgeState.establishedEmpty());
         assertEquals(DiscoveryState.READY, one.discoveryState());
-        assertTrue(DiscoveryTest.policy(one, one.readable().get(a.id()).tokenId()).ordinaryUse().eligible());
+        assertTrue(policy(one, one.readable().get(a.id()).tokenId()).ordinaryUse().eligible());
         var b = fixture(CHILD); Files.write(namespace.resolve(b.id().filename()), b.bytes());
         var two = run(controlledFiles(namespace), a.root(), one.knowledge());
         assertEquals(2, two.readable().evidence().size());
@@ -182,7 +184,7 @@ class NioDiscoveryTest {
         assertFalse(result.resourceComplete());
         assertEquals(DiscoveryState.PROCESSING_INCOMPLETE, result.discoveryState());
         assertEquals(TokenOperationPolicy.Reason.DISCOVERY_INCOMPLETE,
-                DiscoveryTest.policy(result, first.readable().get(a.id()).tokenId()).ordinaryUse().reason());
+                policy(result, first.readable().get(a.id()).tokenId()).ordinaryUse().reason());
     }
 
     private void assertUnsafePath() {

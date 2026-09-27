@@ -1,4 +1,7 @@
-package dev.totipo.format;
+package dev.totipo.fs.linux;
+
+import dev.totipo.format.DiscoverySource;
+import dev.totipo.format.ObjectId;
 
 import java.io.IOException;
 import java.nio.file.DirectoryIteratorException;
@@ -25,10 +28,10 @@ import java.util.Objects;
  * A securely prebound namespace can be enumerated using boundNamespace(), but every
  * accepted candidate remains UNAVAILABLE until a secure platform source can open it.
  */
-final class NioDiscoverySource implements DiscoverySource {
+public final class NioDiscoverySource implements DiscoverySource {
     private final Path configuredRoot;
 
-    NioDiscoverySource(Path configuredRoot) { this.configuredRoot = Objects.requireNonNull(configuredRoot); }
+    public NioDiscoverySource(Path configuredRoot) { this.configuredRoot = Objects.requireNonNull(configuredRoot); }
 
     @Override public Snapshot snapshot() throws IOException {
         // Reject an explicitly symlinked/non-directory configured root. Its ancestors
@@ -65,7 +68,7 @@ final class NioDiscoverySource implements DiscoverySource {
      * One stream supports one pass (DirectoryStream permits only one iterator).
      * This does not attest safe candidate opening. Tests bind controlled directories.
      */
-    static DiscoverySource boundNamespace(SecureDirectoryStream<Path> directory) {
+    public static DiscoverySource boundNamespace(SecureDirectoryStream<Path> directory) {
         Objects.requireNonNull(directory);
         return () -> enumerate(directory);
     }

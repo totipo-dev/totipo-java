@@ -10,12 +10,13 @@ routing, structural parsing, and cryptographic surfaces; it does not claim full 
 ## Toolchain
 
 - Gradle 9.8.0, pinned by the checked-in Gradle Wrapper.
-- JDK 21 is the build/toolchain JDK.
-- Production Java is compiled with `--release 17` so the reusable library can
+- JDK 25 is the default Nix shell and compiler toolchain JDK; Gradle runs on it.
+- Core production Java is compiled with `--release 17` so the reusable library can
   remain compatible with Java 17 consumers, including the planned Android
   implementation boundary.
 - Nix/direnv provide the local development environment.
-- M0 has no production dependencies. JUnit is test-only.
+- `fs-linux` explicitly uses the JDK 25 toolchain and `--release 25`.
+- BC 1.86 is core's only external runtime dependency. JUnit and Jackson Core are test-only.
 
 ## Build
 
@@ -36,8 +37,16 @@ direnv allow
 ./gradlew build
 ```
 
-With JDK 21 already configured, run `./gradlew build` directly. The first build
+With JDK 25 already configured in `JAVA_HOME`, run `./gradlew build` directly. The first build
 downloads the pinned Gradle distribution and dependencies if they are not cached.
+Gradle toolchain auto-download is disabled; Nix/local JDK 25 supplies both compilers.
+
+```sh
+./gradlew clean test                              # whole build
+./gradlew :core:clean :core:test                   # portable core only
+./gradlew :fs-linux:test                          # filesystem integration
+./gradlew --offline --no-daemon --no-build-cache --rerun-tasks clean test
+```
 
 ## Bootstrap maintenance
 
@@ -58,6 +67,10 @@ artifacts downloaded during bootstrap.
 
 ## Repository shape
 
-M0 stays deliberately single-project. Package/module boundaries should be
-introduced when the implementation gives us a concrete need for them rather
-than pre-designing a multi-project build.
+- `core` produces `totipo-core`: portable protocol/state/discovery semantics, Java 17 target.
+- `fs-linux` produces `totipo-fs-linux`: Linux/JVM filesystem access, depending on core.
+  It currently contains the fail-closed NIO adapter and is prepared for a later secure
+  JDK 25/Linux adapter. FFM is not implemented; the hostile-filesystem safe-open blocker remains.
+
+The single r13 snapshot lives in `core/src/test/resources/totipo-spec`; `SPEC_PIN.md`
+remains the repository-wide authority. Production JARs contain no test corpus.

@@ -12,3 +12,5 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "totipo-java"
+
+include("core", "fs-linux")

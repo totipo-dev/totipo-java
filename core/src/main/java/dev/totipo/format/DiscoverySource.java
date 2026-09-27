@@ -14,7 +14,7 @@ import java.util.Objects;
  * be guaranteed, throw UnsupportedOperationException before attempting an open.
  * The caller owns the source's lifetime (including any retained directory bindings).
  */
-interface DiscoverySource {
+public interface DiscoverySource {
     Snapshot snapshot() throws IOException;
 
     @FunctionalInterface

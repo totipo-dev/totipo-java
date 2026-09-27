@@ -47,7 +47,7 @@ class SpecSnapshotIntegrityTest {
             assertTrue(paths.contains(pin.getKey()), pin.getKey());
             assertEquals(pin.getValue(), sha256(ROOT.resolve(pin.getKey())), pin.getKey());
         }
-        List<String> profilePin = Files.readAllLines(Path.of("SPEC_PIN.md")).stream()
+        List<String> profilePin = Files.readAllLines(Path.of("../SPEC_PIN.md")).stream()
                 .filter(line -> line.startsWith("- Profile file SHA-256:")).toList();
         assertEquals(List.of("- Profile file SHA-256: `" + PROFILE_HASH + "`"), profilePin,
                 "SPEC_PIN.md must identify the exact vendored profile");

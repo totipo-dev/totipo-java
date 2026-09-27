@@ -22,7 +22,7 @@ This is an **exact snapshot pin of the moving v1 pre-RC profile**.
 - Case schema: `vectors/case.schema.json`
 - Case schema SHA-256: `79e33b68bf948dcc332075827b791c8eb8e54d9cb27634dd59c0c6ac1fd95fd5`
 - Required cases: 90
-- Local snapshot: `src/test/resources/totipo-spec/v1-pre-rc/`
+- Local snapshot: `core/src/test/resources/totipo-spec/v1-pre-rc/`
 - Applicable upstream license: `LICENSE` in the snapshot (Apache-2.0).
 
 ## Authority and independence

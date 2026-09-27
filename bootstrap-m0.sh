@@ -55,7 +55,7 @@ if [[ "${actual_wrapper_sha}" != "${GRADLE_WRAPPER_JAR_SHA256}" ]]; then
 fi
 
 echo "Writing Gradle dependency locks and SHA-256 verification metadata..."
-./gradlew dependencies --write-locks --write-verification-metadata sha256
+./gradlew :core:dependencies :fs-linux:dependencies --write-locks --write-verification-metadata sha256
 
 echo "Running initial build..."
 ./gradlew build
@@ -70,7 +70,8 @@ Review and commit the generated reproducibility inputs:
   gradlew.bat
   gradle/wrapper/gradle-wrapper.jar
   gradle/wrapper/gradle-wrapper.properties
-  gradle.lockfile
+  core/gradle.lockfile
+  fs-linux/gradle.lockfile
   gradle/verification-metadata.xml
 
 The verification metadata is bootstrapped from the artifacts downloaded on

@@ -23,12 +23,12 @@
 
         devShells.default = pkgs.mkShell {
           packages = with pkgs; [
-            jdk21_headless
+            jdk25_headless
             gradle_9
             (jailed-agents.lib.${system}.makeJailedCodex {
               fwdEnv = [ "JAVA_HOME" ];
               extraPkgs = with pkgs; [
-                jdk21_headless
+                jdk25_headless
                 gradle_9
               ];
             })

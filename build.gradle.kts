@@ -5,49 +5,42 @@ import org.gradle.external.javadoc.JavadocMemberLevel
 import org.gradle.external.javadoc.StandardJavadocDocletOptions
 
 plugins {
-    `java-library`
+    base
 }
 
-group = "dev.totipo"
-description = "Java library for Totipo vault repositories"
+description = "Totipo Java libraries"
 
-java {
-    toolchain {
-        languageVersion.set(JavaLanguageVersion.of(21))
+subprojects {
+    apply(plugin = "java-library")
+    group = "dev.totipo"
+
+    extensions.configure<JavaPluginExtension> {
+        toolchain.languageVersion.set(JavaLanguageVersion.of(25))
+        withSourcesJar()
+        withJavadocJar()
     }
-    withSourcesJar()
-    withJavadocJar()
+    tasks.withType<JavaCompile>().configureEach {
+        options.encoding = "UTF-8"
+        options.compilerArgs.addAll(listOf("-Xlint:all", "-Werror"))
+    }
+    tasks.withType<Javadoc>().configureEach {
+        options.encoding = "UTF-8"
+        // The implementation still intentionally keeps most APIs package-private.
+        (options as StandardJavadocDocletOptions).memberLevel = JavadocMemberLevel.PACKAGE
+    }
+    tasks.withType<Test>().configureEach {
+        useJUnitPlatform()
+    }
+    dependencyLocking {
+        lockAllConfigurations()
+    }
 }
 
-tasks.withType<JavaCompile>().configureEach {
-    // Build with JDK 21, but keep the reusable library compatible with Java 17.
-    options.release.set(17)
-    options.encoding = "UTF-8"
-    options.compilerArgs.addAll(listOf("-Xlint:all", "-Werror"))
-}
-
-tasks.withType<Javadoc>().configureEach {
-    options.encoding = "UTF-8"
-    // M1.1 deliberately exposes no public API; document its internal boundaries.
-    (options as StandardJavadocDocletOptions).memberLevel = JavadocMemberLevel.PACKAGE
-}
-
-dependencies {
-    // BC is used only for lightweight Argon2id; existing crypto stays on JDK providers.
-    implementation(libs.bcprov)
-    testImplementation(libs.jackson.core)
-    testImplementation(platform(libs.junit.bom))
-    testImplementation(libs.junit.jupiter)
-    testRuntimeOnly(libs.junit.platform.launcher)
-}
-
-tasks.test {
-    useJUnitPlatform()
-}
-
-dependencyLocking {
-    lockAllConfigurations()
-}
+tasks.named("build") { dependsOn(subprojects.map { "${it.path}:build" }) }
+tasks.named("check") { dependsOn(subprojects.map { "${it.path}:check" }) }
+tasks.named("assemble") { dependsOn(subprojects.map { "${it.path}:assemble" }) }
+tasks.named("clean") { dependsOn(subprojects.map { "${it.path}:clean" }) }
+tasks.register("test") { dependsOn(subprojects.map { "${it.path}:test" }) }
 
 tasks.named<Wrapper>("wrapper") {
     gradleVersion = "9.8.0"
