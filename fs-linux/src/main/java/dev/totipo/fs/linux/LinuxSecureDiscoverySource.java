@@ -9,7 +9,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * Secure fixed-pass source for Linux amd64, JDK 25, libc statx, and usable procfs.
@@ -34,12 +33,8 @@ public final class LinuxSecureDiscoverySource implements DiscoverySource {
     java.util.function.UnaryOperator<LinuxStatx> readableIdentity = value -> value;
 
     public LinuxSecureDiscoverySource(Path configuredRoot) {
-        root = Objects.requireNonNull(configuredRoot);
-        if (root.getFileSystem() != java.nio.file.FileSystems.getDefault()) {
-            throw new IllegalArgumentException("DEFAULT_FILESYSTEM_REQUIRED");
-        }
-        if (!root.isAbsolute()) { throw new IllegalArgumentException("ABSOLUTE_ROOT_REQUIRED"); }
-        LinuxLibc.utf8(root.toString());
+        LinuxBoundFiles.path(configuredRoot);
+        root = configuredRoot;
     }
     static Capability platform(String os, String arch) {
         if (!os.equals("Linux")) { return Capability.NOT_LINUX; }
@@ -79,19 +74,13 @@ public final class LinuxSecureDiscoverySource implements DiscoverySource {
         return capability;
     }
     private void verifyDirectoryView(LinuxFd dir) throws IOException {
-        var identity = libc.stat(dir);
-        if (identity.type() != LinuxAbi.S_IFDIR) { throw new IOException("NOT_DIRECTORY"); }
-        try (var view = libc.open(dir.procPath().toString(), LinuxAbi.O_RDONLY | LinuxAbi.O_DIRECTORY | LinuxAbi.O_CLOEXEC)) {
-            identity.requireSame(libc.stat(view));
-        }
+        LinuxBoundFiles.verifyDirectoryView(libc, dir);
     }
     @Override public Snapshot snapshot() throws IOException {
         if (capability() != Capability.SUPPORTED) { return empty(SnapshotIssue.UNSUPPORTED_DIRECTORY_ACCESS); }
         LinuxFd family = null;
         try {
-            try (var rootFd = libc.open(root.toString(), LinuxAbi.PIN | LinuxAbi.O_DIRECTORY)) {
-                verifyDirectoryView(rootFd);
-                if (!Files.isSameFile(rootFd.procPath(), root)) { return empty(SnapshotIssue.UNSAFE_NAMESPACE); }
+            try (var rootFd = LinuxBoundFiles.bindRoot(libc, root, LinuxAbi.PIN | LinuxAbi.O_DIRECTORY)) {
                 try { family = libc.openAt(rootFd, "objects-v1", LinuxAbi.DIRECTORY); }
                 catch (LinuxLibc.NativeFailure e) {
                     if (e.errno == LinuxAbi.ENOENT) { return empty(SnapshotIssue.NONE); }
@@ -122,6 +111,8 @@ public final class LinuxSecureDiscoverySource implements DiscoverySource {
             var result = new Snapshot(candidates, issue, family);
             family = null; // snapshot takes ownership
             return result;
+        } catch (LinuxBoundFiles.UnsafeRoot e) {
+            return empty(SnapshotIssue.UNSAFE_NAMESPACE);
         } catch (LinuxLibc.NativeFailure e) {
             return empty(e.errno == LinuxAbi.ENOTDIR || e.errno == LinuxAbi.ELOOP
                     ? SnapshotIssue.UNSAFE_NAMESPACE : SnapshotIssue.ENUMERATION_UNAVAILABLE);
@@ -138,15 +129,7 @@ public final class LinuxSecureDiscoverySource implements DiscoverySource {
         }
     }
     private LinuxFd reopen(LinuxFd pin, LinuxStatx identity) throws IOException {
-        if (!identity.regular()) { throw new IOException("NOT_REGULAR"); }
-        var readable = libc.open(pin.procPath().toString(), LinuxAbi.O_RDONLY | LinuxAbi.O_NONBLOCK | LinuxAbi.O_CLOEXEC);
-        try {
-            identity.requireSame(readableIdentity.apply(libc.stat(readable)));
-            return readable;
-        } catch (IOException | RuntimeException | Error e) {
-            try { readable.close(); } catch (IOException close) { e.addSuppressed(close); }
-            throw e;
-        }
+        return LinuxBoundFiles.reopen(libc, pin, identity, readableIdentity);
     }
     private ReadableByteChannel readCandidate(LinuxFd family, String name) throws IOException {
         component(name);

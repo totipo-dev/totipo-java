@@ -10,4 +10,8 @@ final class LinuxAbi {
     static final int ENOENT = 2, EINTR = 4, EAGAIN = 11, ENOTDIR = 20, ELOOP = 40;
     static final int PIN = O_PATH | O_NOFOLLOW | O_CLOEXEC;
     static final int DIRECTORY = O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC;
+    // Installed Linux 7.2 UAPI asm-generic/fcntl.h and linux/fcntl.h (amd64).
+    static final int O_RDWR = 2, O_TMPFILE = 020000000 | O_DIRECTORY;
+    static final int AT_FDCWD = -100, AT_SYMLINK_FOLLOW = 0x400;
+    static final int EEXIST = 17, EOPNOTSUPP = 95;
 }

@@ -83,6 +83,17 @@ artifacts downloaded during bootstrap.
   vault directory**. Durability requires a suitable local Linux filesystem/device honoring
   force/fsync; all processes must cooperate with advisory locking. Whole-journal rollback
   to an older valid copy remains potentially undetectable (pinned r13 §34.2).
+  `LinuxVaultBootstrapStorage.open(Path)` binds an explicit existing synchronized root
+  and reads only exact canonical `vault`. Initial publication uses an unnamed owner-only
+  `O_TMPFILE`, pre-link file fsync, no-replace procfd `linkat`, post-link inode fsync,
+  and bound root-directory fsync. It requires usable procfs and a local filesystem
+  supporting those primitives; arbitrary NFS, remote FUSE and cloud mounts are not
+  covered. Unsupported operations fail without a named-temp or overwrite fallback.
+  Core authenticates the staged inode and reopens canonical before establishing the
+  local binding. Publication errors may leave canonical present for pending recovery.
+  Close storage/staged handles explicitly; streams own separate descriptors and callers
+  close them. Password replacement, alternate-bootstrap recovery and bootstrap
+  fingerprint/rollback detection are not implemented.
 
 The single r13 snapshot lives in `core/src/test/resources/totipo-spec`; `SPEC_PIN.md`
 remains the repository-wide authority. Production JARs contain no test corpus.
