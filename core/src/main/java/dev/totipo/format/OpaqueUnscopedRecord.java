@@ -10,5 +10,5 @@ record OpaqueUnscopedRecord(ObjectId objectId, SecurityBytes exactObjectBytes) i
             throw new IllegalArgumentException("Requires all 1024 authenticated object bytes");
         }
     }
+    @Override public String toString() { return "OpaqueUnscopedRecord[1024 bytes retained]"; }
 }
-

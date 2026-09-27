@@ -39,6 +39,10 @@ final class DurableKnowledgeState {
     LocalContinuityStatus continuity() { return continuity; }
     boolean knowledgePersistenceBlocked() { return knowledgePersistenceBlocked; }
 
+    DurableKnowledgeState persistenceBlocked() {
+        return new DurableKnowledgeState(index, size, continuity, true);
+    }
+
     /** Explicit inspection snapshot; ingestion does not enumerate existing records. */
     Map<ObjectId, DurableRecord> records() { return index.snapshot(); }
 

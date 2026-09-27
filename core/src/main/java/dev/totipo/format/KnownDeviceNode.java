@@ -14,5 +14,7 @@ record KnownDeviceNode(ObjectId objectId, int objectVersion, SemanticStatus sema
             throw new IllegalArgumentException("Impossible durable DEVICE key");
         }
     }
+    @Override public String toString() {
+        return "KnownDeviceNode[version=" + objectVersion + ", status=" + semanticStatus + ", parents=" + parents.size() + "]";
+    }
 }
-

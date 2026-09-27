@@ -19,6 +19,13 @@ final class DiscoveryCoordinator {
 
     private DiscoveryCoordinator() {}
 
+    static DiscoveryResult discover(DiscoverySource source, byte[] establishedRoot, SecurityMemorySession session) {
+        if (session.establishment().phase() != LocalEstablishment.Phase.ESTABLISHED) {
+            throw new IllegalStateException("Discovery requires durable establishment");
+        }
+        return discover(source, establishedRoot, session.knowledge(), null, new ObjectDiscovery(), session);
+    }
+
     static DiscoveryResult discover(DiscoverySource source, byte[] establishedRoot,
                                     DurableKnowledgeState knowledge, Committer committer) {
         return discover(source, establishedRoot, knowledge, committer, new ObjectDiscovery());
@@ -27,7 +34,12 @@ final class DiscoveryCoordinator {
     // Lifecycle test seam: exercise exceptional classification without changing protocol logic.
     static DiscoveryResult discover(DiscoverySource source, byte[] establishedRoot,
                                     DurableKnowledgeState knowledge, Committer committer, ObjectDiscovery classifier) {
-        Objects.requireNonNull(committer);
+        return discover(source, establishedRoot, knowledge, Objects.requireNonNull(committer), classifier, null);
+    }
+
+    private static DiscoveryResult discover(DiscoverySource source, byte[] establishedRoot,
+                                    DurableKnowledgeState knowledge, Committer committer, ObjectDiscovery classifier,
+                                    SecurityMemorySession session) {
         if (establishedRoot.length != 32) { throw new IllegalArgumentException("Requires established root key"); }
         DiscoverySource.Snapshot snapshot;
         try {
@@ -64,7 +76,8 @@ final class DiscoveryCoordinator {
                 observed = classifier.classify(candidate.id(), bytes, establishedRoot);
                 observations.add(observed);
                 if (observed.classification() == ObjectDiscovery.Classification.INVALID) {
-                    knowledge = knowledge.authenticatedInvalidSemantic(observed.id());
+                    if (session == null) { knowledge = knowledge.authenticatedInvalidSemantic(observed.id()); }
+                    else { session.authenticatedInvalidSemantic(observed.id()); knowledge = session.knowledge(); }
                 } else if (observed.classification() == ObjectDiscovery.Classification.INVALID_STORAGE) {
                     var reason = switch (observed.detail()) {
                         case WRONG_LENGTH -> DurableKnowledgeState.CurrentStorageFailure.WRONG_LENGTH;
@@ -75,6 +88,15 @@ final class DiscoveryCoordinator {
                     };
                     knowledge = knowledge.currentStorageFailure(observed.id(), reason);
                 } else if (observed.authenticated() != null) {
+                    if (session != null) {
+                        var update = session.commit(observed.authenticated());
+                        knowledge = update.state();
+                        if (knowledge.knowledgePersistenceBlocked()
+                                || update.outcome() == DurableKnowledgeState.Outcome.RECLASSIFICATION_REQUIRED) {
+                            persistenceComplete = false;
+                        }
+                        continue;
+                    }
                     var old = knowledge.record(observed.id());
                     // Known exact records need no write. Known contradictions go through M2.0
                     // without asking a backend to overwrite anything. COMMITTED here is never
@@ -101,8 +123,10 @@ final class DiscoveryCoordinator {
         }
         var topology = new GraphTopology(knowledge);
         if (topology.integrity() == GraphIntegrityStatus.RESOLVED_CYCLE) {
-            knowledge = knowledge.localSecurityMemoryCorruption();
+            if (session == null) { knowledge = knowledge.localSecurityMemoryCorruption(); }
+            else { session.markUnknown(); knowledge = session.knowledge(); }
         }
+        persistenceComplete &= !knowledge.knowledgePersistenceBlocked();
         var evidence = observations.stream().map(ObjectDiscovery.Observation::readable)
                 .filter(Objects::nonNull)
                 .filter(r -> r.routing().equals(topology.record(r.objectId()))).toList();
