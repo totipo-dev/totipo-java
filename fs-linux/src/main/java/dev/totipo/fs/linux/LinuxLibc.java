@@ -1,0 +1,120 @@
+package dev.totipo.fs.linux;
+
+import java.io.IOException;
+import java.lang.foreign.*;
+import java.lang.invoke.MethodHandle;
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.CodingErrorAction;
+import java.nio.charset.StandardCharsets;
+
+/** Small instance-owned binding; constructing it is restricted, loading this class is not. */
+final class LinuxLibc {
+    private final MethodHandle open, openat, statx, read, close;
+    private final MemoryLayout state = Linker.Option.captureStateLayout();
+    private final long errnoOffset = state.byteOffset(MemoryLayout.PathElement.groupElement("errno"));
+    static final int MAX_ATTEMPTS = 8;
+
+    LinuxLibc() {
+        var linker = Linker.nativeLinker();
+        var c = linker.canonicalLayouts();
+        var i = c.get("int"); var p = c.get("void*");
+        var l = c.get("long"); var size = c.get("size_t");
+        if (!i.equals(ValueLayout.JAVA_INT) || !l.equals(ValueLayout.JAVA_LONG)
+                || !size.equals(ValueLayout.JAVA_LONG) || !p.equals(ValueLayout.ADDRESS)) {
+            throw new UnsupportedOperationException("UNREVIEWED_ABI");
+        }
+        open = bind(linker, "open", FunctionDescriptor.of(i, p, i), 2);
+        openat = bind(linker, "openat", FunctionDescriptor.of(i, i, p, i), 3);
+        statx = bind(linker, "statx", FunctionDescriptor.of(i, i, p, i, i, p), -1);
+        read = bind(linker, "read", FunctionDescriptor.of(l, i, p, size), -1);
+        close = bind(linker, "close", FunctionDescriptor.of(i, i), -1);
+    }
+    @SuppressWarnings("restricted") // Reviewed descriptors; permission checked before lazy construction.
+    private static MethodHandle bind(Linker linker, String name, FunctionDescriptor descriptor, int variadic) {
+        var symbol = linker.defaultLookup().find(name).orElseThrow(() -> new UnsatisfiedLinkError(name));
+        var capture = Linker.Option.captureCallState("errno");
+        return variadic < 0 ? linker.downcallHandle(symbol, descriptor, capture)
+                : linker.downcallHandle(symbol, descriptor, capture, Linker.Option.firstVariadicArg(variadic));
+    }
+    static byte[] utf8(String value) {
+        if (value.indexOf('\0') >= 0) { throw new IllegalArgumentException("NUL_IN_PATH"); }
+        try {
+            var encoded = StandardCharsets.UTF_8.newEncoder().onMalformedInput(CodingErrorAction.REPORT)
+                    .onUnmappableCharacter(CodingErrorAction.REPORT).encode(java.nio.CharBuffer.wrap(value));
+            byte[] bytes = new byte[encoded.remaining() + 1]; encoded.get(bytes, 0, bytes.length - 1);
+            return bytes;
+        } catch (CharacterCodingException e) { throw new IllegalArgumentException("MALFORMED_PATH", e); }
+    }
+    static boolean retry(int errno, int attempt) { return errno == LinuxAbi.EINTR && attempt + 1 < MAX_ATTEMPTS; }
+    private NativeFailure failure(MemorySegment s) { return new NativeFailure(s.get(ValueLayout.JAVA_INT, errnoOffset)); }
+    static final class NativeFailure extends IOException {
+        private static final long serialVersionUID = 1L;
+        final int errno;
+        NativeFailure(int errno) { super("NATIVE_IO_UNAVAILABLE"); this.errno = errno; }
+    }
+    private static IOException invocation(Throwable e) {
+        if (e instanceof Error error) { throw error; }
+        if (e instanceof RuntimeException runtime) { throw runtime; }
+        return new IOException("NATIVE_INVOCATION_FAILED", e);
+    }
+    LinuxFd open(String path, int flags) throws IOException { return openAt(null, path, flags); }
+    LinuxFd openAt(LinuxFd dir, String path, int flags) throws IOException {
+        int directory = dir == null ? -1 : dir.number();
+        try (var arena = Arena.ofConfined()) {
+            var name = arena.allocateFrom(ValueLayout.JAVA_BYTE, utf8(path));
+            var error = arena.allocate(state);
+            for (int attempt = 0; ; attempt++) {
+                int result;
+                try { result = dir == null ? (int) open.invokeExact(error, name, flags)
+                        : (int) openat.invokeExact(error, directory, name, flags); }
+                catch (Throwable e) { throw invocation(e); }
+                if (result >= 0) { return new LinuxFd(this, result); }
+                var failure = failure(error);
+                if (!retry(failure.errno, attempt)) { throw failure; }
+            }
+        }
+    }
+    LinuxStatx stat(LinuxFd fd) throws IOException {
+        try (var arena = Arena.ofConfined()) {
+            var empty = arena.allocateFrom(""); var error = arena.allocate(state);
+            var buffer = arena.allocate(LinuxStatx.SIZE, LinuxStatx.ALIGN);
+            int result;
+            try { result = (int) statx.invokeExact(error, fd.number(), empty, LinuxAbi.AT_EMPTY_PATH,
+                    LinuxAbi.STATX_TYPE | LinuxAbi.STATX_INO, buffer); }
+            catch (Throwable e) { throw invocation(e); }
+            if (result < 0) { throw failure(error); }
+            return LinuxStatx.decode(buffer);
+        }
+    }
+    int read(LinuxFd fd, ByteBuffer dst) throws IOException {
+        if (dst.isReadOnly()) { throw new java.nio.ReadOnlyBufferException(); }
+        if (!dst.hasRemaining()) { return 0; }
+        try (var arena = Arena.ofConfined()) {
+            long count = Math.min(dst.remaining(), 8192);
+            var buffer = arena.allocate(count); var error = arena.allocate(state);
+            for (int attempt = 0; ; attempt++) {
+                long result;
+                try { result = (long) read.invokeExact(error, fd.number(), buffer, count); }
+                catch (Throwable e) { throw invocation(e); }
+                if (result == 0) { return -1; }
+                if (result > 0 && result <= count) {
+                    dst.put(buffer.asSlice(0, result).asByteBuffer()); return (int) result;
+                }
+                if (result > count) { throw new IOException("INVALID_NATIVE_READ_COUNT"); }
+                var failure = failure(error);
+                // EAGAIN (also EWOULDBLOCK on Linux amd64) and all other errors fail immediately.
+                if (!retry(failure.errno, attempt)) { throw failure; }
+            }
+        }
+    }
+    void close(int fd) throws IOException {
+        try (var arena = Arena.ofConfined()) {
+            var error = arena.allocate(state);
+            int result;
+            try { result = (int) close.invokeExact(error, fd); }
+            catch (Throwable e) { throw invocation(e); }
+            if (result < 0) { throw failure(error); } // Linux: never retry close, including EINTR.
+        }
+    }
+}

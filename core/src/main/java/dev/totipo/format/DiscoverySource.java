@@ -12,7 +12,7 @@ import java.util.Objects;
  * returning. Openers must provide stable, bounded-read-capable handles without following
  * links, escaping the bound namespace, or opening hostile special files. If this cannot
  * be guaranteed, throw UnsupportedOperationException before attempting an open.
- * The caller owns the source's lifetime (including any retained directory bindings).
+ * The caller closes each snapshot, including any retained directory bindings.
  */
 public interface DiscoverySource {
     Snapshot snapshot() throws IOException;
@@ -27,15 +27,33 @@ public interface DiscoverySource {
 
     enum SnapshotIssue { NONE, ENUMERATION_UNAVAILABLE, UNSUPPORTED_DIRECTORY_ACCESS, UNSAFE_NAMESPACE }
 
-    record Snapshot(List<Candidate> candidates, SnapshotIssue issue) {
-        public Snapshot {
+    /** Frozen candidate set with an optional, thread-confined resource owner. Close once processing ends. */
+    final class Snapshot implements java.io.Closeable {
+        private final List<Candidate> candidates;
+        private final SnapshotIssue issue;
+        private final java.io.Closeable resource;
+        private boolean closed;
+
+        public Snapshot(List<Candidate> candidates, SnapshotIssue issue) {
+            this(candidates, issue, () -> {});
+        }
+
+        public Snapshot(List<Candidate> candidates, SnapshotIssue issue, java.io.Closeable resource) {
             Objects.requireNonNull(issue);
             candidates = candidates.stream().sorted(Comparator.comparing(c -> c.id().filename())).toList();
             var ids = new HashSet<ObjectId>();
             for (var c : candidates) {
                 if (!ids.add(c.id())) { throw new IllegalArgumentException("Duplicate candidate name"); }
             }
+            this.candidates = candidates;
+            this.issue = issue;
+            this.resource = Objects.requireNonNull(resource);
         }
+        public List<Candidate> candidates() { return candidates; }
+        public SnapshotIssue issue() { return issue; }
         boolean complete() { return issue == SnapshotIssue.NONE; }
+        @Override public void close() throws IOException {
+            if (!closed) { closed = true; resource.close(); }
+        }
     }
 }

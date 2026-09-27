@@ -68,9 +68,14 @@ artifacts downloaded during bootstrap.
 ## Repository shape
 
 - `core` produces `totipo-core`: portable protocol/state/discovery semantics, Java 17 target.
-- `fs-linux` produces `totipo-fs-linux`: Linux/JVM filesystem access, depending on core.
-  It currently contains the fail-closed NIO adapter and is prepared for a later secure
-  JDK 25/Linux adapter. FFM is not implemented; the hostile-filesystem safe-open blocker remains.
+- `fs-linux` produces `totipo-fs-linux`: Java-25 Linux adapters, depending on core.
+  `NioDiscoverySource` remains a deliberately fail-closed fallback.
+  `LinuxSecureDiscoverySource` provides authoritative secure discovery on reviewed
+  Linux amd64 with libc `statx` and usable `/proc/self/fd`. It requires absolute
+  UTF-8-representable roots and explicit FFM native-access permission. Classpath tests
+  use `--enable-native-access=ALL-UNNAMED --illegal-native-access=deny`; core tests do not.
+  Applications select an adapter explicitly and close its snapshots. Future module-path
+  packaging should grant native access selectively to the filesystem artifact.
 
 The single r13 snapshot lives in `core/src/test/resources/totipo-spec`; `SPEC_PIN.md`
 remains the repository-wide authority. Production JARs contain no test corpus.
