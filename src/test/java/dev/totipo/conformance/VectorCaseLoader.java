@@ -55,6 +55,7 @@ public final class VectorCaseLoader {
     public static List<Case> futureCases() throws IOException { return cases("future"); }
     public static List<Case> timestampCases() throws IOException { return cases("timestamp"); }
     public static List<Case> candidateCases() throws IOException { return cases("candidate"); }
+    public static List<Case> storageCases() throws IOException { return cases("storage"); }
 
     private static List<Case> cases(String category) throws IOException {
         Node manifest = resource("manifest.json");
@@ -92,6 +93,7 @@ public final class VectorCaseLoader {
                         || (category.equals("totp") && data.field("operation").string().equals("totp"))
                         || (category.equals("device") && data.field("operation").string().equals("graph"))
                         || (category.equals("graph") && data.field("operation").string().equals("graph"))
+                        || (category.equals("storage") && data.field("operation").string().equals("storage"))
                         || (category.equals("candidate") && data.field("operation").string().equals("graph"))
                         || (category.equals("timestamp") && java.util.Set.of("graph", "dispatch")
                             .contains(data.field("operation").string()))

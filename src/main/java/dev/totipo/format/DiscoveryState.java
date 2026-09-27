@@ -1,4 +1,4 @@
 package dev.totipo.format;
 
-/** §24.3 input from future discovery; no implicit READY default or scanning here. */
+/** §24.3 discovery outcome; scan completeness and operation safety remain separate. */
 enum DiscoveryState { READY, PROCESSING_INCOMPLETE }
