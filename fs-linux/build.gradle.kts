@@ -24,4 +24,7 @@ tasks.test {
     jvmArgs("--enable-native-access=ALL-UNNAMED", "--illegal-native-access=deny")
     inputs.dir(snapshot)
     systemProperty("totipo.test.snapshot", snapshot.asFile.absolutePath)
+    // Backend durability tests use the checkout's filesystem, not a potentially tmpfs /tmp.
+    // Other tests keep short default paths (in particular Unix-domain socket fixtures).
+    systemProperty("totipo.test.local-storage-directory", layout.buildDirectory.dir("test-storage").get().asFile.absolutePath)
 }

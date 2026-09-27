@@ -10,7 +10,7 @@ import java.nio.charset.StandardCharsets;
 
 /** Small instance-owned binding; constructing it is restricted, loading this class is not. */
 final class LinuxLibc {
-    private final MethodHandle open, openat, statx, read, close;
+    private final MethodHandle open, openat, statx, read, close, fsync;
     private final MemoryLayout state = Linker.Option.captureStateLayout();
     private final long errnoOffset = state.byteOffset(MemoryLayout.PathElement.groupElement("errno"));
     static final int MAX_ATTEMPTS = 8;
@@ -29,6 +29,7 @@ final class LinuxLibc {
         statx = bind(linker, "statx", FunctionDescriptor.of(i, i, p, i, i, p), -1);
         read = bind(linker, "read", FunctionDescriptor.of(l, i, p, size), -1);
         close = bind(linker, "close", FunctionDescriptor.of(i, i), -1);
+        fsync = bind(linker, "fsync", FunctionDescriptor.of(i, i), -1);
     }
     @SuppressWarnings("restricted") // Reviewed descriptors; permission checked before lazy construction.
     private static MethodHandle bind(Linker linker, String name, FunctionDescriptor descriptor, int variadic) {
@@ -104,6 +105,19 @@ final class LinuxLibc {
                 if (result > count) { throw new IOException("INVALID_NATIVE_READ_COUNT"); }
                 var failure = failure(error);
                 // EAGAIN (also EWOULDBLOCK on Linux amd64) and all other errors fail immediately.
+                if (!retry(failure.errno, attempt)) { throw failure; }
+            }
+        }
+    }
+    void fsync(LinuxFd fd) throws IOException {
+        try (var arena = Arena.ofConfined()) {
+            var error = arena.allocate(state);
+            for (int attempt = 0; ; attempt++) {
+                int result;
+                try { result = (int) fsync.invokeExact(error, fd.number()); }
+                catch (Throwable e) { throw invocation(e); }
+                if (result == 0) { return; }
+                var failure = failure(error);
                 if (!retry(failure.errno, attempt)) { throw failure; }
             }
         }

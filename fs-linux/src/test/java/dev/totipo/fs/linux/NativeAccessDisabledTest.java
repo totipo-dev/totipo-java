@@ -25,6 +25,13 @@ class NativeAccessDisabledTest {
             Class.forName("dev.totipo.fs.linux.NioDiscoverySource");
             Class.forName("dev.totipo.format.DiscoverySource");
             Class.forName("dev.totipo.fs.linux.LinuxSecureDiscoverySource");
+            Class.forName("dev.totipo.fs.linux.LinuxSecurityMemoryStorage");
+            try {
+                LinuxSecurityMemoryStorage.open(Path.of("/"));
+                throw new AssertionError("Native access must be explicit");
+            } catch (java.io.IOException e) {
+                if (!e.getMessage().equals("NATIVE_ACCESS_DISABLED")) { throw new AssertionError(e); }
+            }
             for (int i = 0; i < 2; i++) {
                 var source = new LinuxSecureDiscoverySource(Path.of("/"));
                 if (source.capability() != LinuxSecureDiscoverySource.Capability.NATIVE_ACCESS_DISABLED) {

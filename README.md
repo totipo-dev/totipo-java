@@ -67,7 +67,8 @@ artifacts downloaded during bootstrap.
 
 ## Repository shape
 
-- `core` produces `totipo-core`: portable protocol/state/discovery semantics, Java 17 target.
+- `core` produces `totipo-core`: portable protocol/state/discovery semantics, Java 17 target,
+  including the private security-memory journal and opaque-byte storage SPI.
 - `fs-linux` produces `totipo-fs-linux`: Java-25 Linux adapters, depending on core.
   `NioDiscoverySource` remains a deliberately fail-closed fallback.
   `LinuxSecureDiscoverySource` provides authoritative secure discovery on reviewed
@@ -76,6 +77,12 @@ artifacts downloaded during bootstrap.
   use `--enable-native-access=ALL-UNNAMED --illegal-native-access=deny`; core tests do not.
   Applications select an adapter explicitly and close its snapshots. Future module-path
   packaging should grant native access selectively to the filesystem artifact.
+  `LinuxSecurityMemoryStorage.open(Path)` provides exclusive crash-durable local journal
+  storage. The caller supplies a pre-existing per-vault directory: **the configured local
+  security-memory directory must be app-local storage independent of the synchronized
+  vault directory**. Durability requires a suitable local Linux filesystem/device honoring
+  force/fsync; all processes must cooperate with advisory locking. Whole-journal rollback
+  to an older valid copy remains potentially undetectable (pinned r13 §34.2).
 
 The single r13 snapshot lives in `core/src/test/resources/totipo-spec`; `SPEC_PIN.md`
 remains the repository-wide authority. Production JARs contain no test corpus.
