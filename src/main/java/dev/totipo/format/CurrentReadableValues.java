@@ -9,6 +9,8 @@ import java.util.Objects;
  * Caller-supplied availability for one evaluation snapshot, from synchronized bytes
  * or trusted exact local copies. No storage source preference or automatic retention.
  * Build a fresh snapshot when availability changes; validation costs O(evidence size).
+ * Current means current availability, not current heads: historical and unrelated
+ * evidence is permitted. Candidate catalogs reuse this same authenticated snapshot.
  */
 final class CurrentReadableValues {
     private final GraphTopology topology;
@@ -38,4 +40,6 @@ final class CurrentReadableValues {
     }
 
     ReadableTokenValue get(ObjectId id) { return values.get(id); }
+
+    Collection<ReadableTokenValue> evidence() { return values.values(); }
 }

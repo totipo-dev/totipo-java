@@ -72,6 +72,13 @@ final class GraphTopology {
     /** Immutable routing facts from the same snapshot that produced the heads. */
     DurableRecord record(ObjectId id) { return records.get(id); }
 
+    /** Policy may use newer safety flags, but never unrelated durable routing/evidence. */
+    void requireKnowledge(DurableKnowledgeState state) {
+        if (!records.equals(state.records())) {
+            throw new IllegalStateException("Topology and readiness describe different knowledge");
+        }
+    }
+
     /** Diagnostics remain available even when a cycle prevents ordinary graph queries. */
     List<ParentEdge> parentEdges(ObjectId child) {
         return edges.getOrDefault(child, List.of());

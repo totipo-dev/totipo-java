@@ -130,7 +130,7 @@ class CurrentTokenValueVectorTest {
 
     private static SecurityBytes identity(String symbol) { return new SecurityBytes(symbolId(symbol).bytes(), 32); }
 
-    private record Material(AuthenticatedObservation observation, ReadableTokenValue readable) {
+    record Material(AuthenticatedObservation observation, ReadableTokenValue readable) {
         ObjectId id() { return observation.record().objectId(); }
     }
 
@@ -140,13 +140,13 @@ class CurrentTokenValueVectorTest {
      * late parents). No production evidence constructor is bypassed. Distinct semantic_digest
      * labels become distinct signature bytes; no provenance is claimed for these synthetic bytes.
      */
-    private static final class AuthenticatedSymbols {
+    static final class AuthenticatedSymbols {
         private final Map<String, Node> definitions = new HashMap<>();
         private final Map<String, Material> materialized = new HashMap<>();
 
         AuthenticatedSymbols(List<Node> steps) {
             for (var step : steps) {
-                if (step.field("action").string().equals("learn")) {
+                if (Set.of("learn", "persist-fails").contains(step.field("action").string())) {
                     definitions.putIfAbsent(step.field("node").field("id").string(), step);
                 }
             }
