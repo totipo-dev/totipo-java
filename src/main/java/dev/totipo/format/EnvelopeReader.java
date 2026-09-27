@@ -24,17 +24,33 @@ final class EnvelopeReader {
         AUTHENTICATED_INVALID_STRUCTURE, AUTHENTICATED_V1_STRUCTURE
     }
 
-    record Result(Status status, RoutingParser.Result routing, V1Plaintext plaintext, byte[] semanticBytes) {
-        Result {
-            semanticBytes = semanticBytes == null ? null : semanticBytes.clone();
+    /** Constructor is private: identity and retained bytes are bound by this reader. */
+    static final class Result {
+        private final Status status;
+        private final RoutingParser.Result routing;
+        private final V1Plaintext plaintext;
+        private final byte[] semanticBytes;
+        private final ObjectId objectId;
+        private final byte[] exactObjectBytes;
+
+        private Result(Status status, RoutingParser.Result routing, V1Plaintext plaintext,
+                       byte[] semanticBytes, ObjectId objectId, byte[] exactObjectBytes) {
+            this.status = status;
+            this.routing = routing;
+            this.plaintext = plaintext;
+            this.semanticBytes = semanticBytes == null ? null : semanticBytes.clone();
+            this.objectId = objectId;
+            this.exactObjectBytes = exactObjectBytes == null ? null : exactObjectBytes.clone();
         }
 
-        Result(Status status, RoutingParser.Result routing, V1Plaintext plaintext) {
-            this(status, routing, plaintext, null);
+        Status status() { return status; }
+        RoutingParser.Result routing() { return routing; }
+        V1Plaintext plaintext() { return plaintext; }
+        ObjectId objectId() { return objectId; }
+        byte[] exactObjectBytes() {
+            return exactObjectBytes == null ? null : exactObjectBytes.clone();
         }
-
-        @Override
-        public byte[] semanticBytes() {
+        byte[] semanticBytes() {
             return semanticBytes == null ? null : semanticBytes.clone();
         }
     }
@@ -57,6 +73,8 @@ final class EnvelopeReader {
         if (object.length != OBJECT_BYTES) {
             return failure(Status.INVALID_ENVELOPE);
         }
+        // Authenticate and retain the same owned snapshot, even if caller storage changes.
+        object = object.clone();
         byte[] prk = null;
         byte[] objectRoot = null;
         byte[] key = null;
@@ -90,15 +108,15 @@ final class EnvelopeReader {
             }
             var routing = RoutingParser.parse(semantic);
             return switch (routing.outcome()) {
-                case OPAQUE_ROUTABLE_TOKEN -> new Result(Status.AUTHENTICATED_FUTURE_TOKEN, routing, null);
-                case OPAQUE_ROUTABLE_DEVICE -> new Result(Status.AUTHENTICATED_FUTURE_DEVICE, routing, null);
-                case OPAQUE_UNSCOPED -> new Result(Status.AUTHENTICATED_OPAQUE_UNSCOPED, routing, null);
-                case MALFORMED -> new Result(Status.AUTHENTICATED_INVALID_STRUCTURE, routing, null);
+                case OPAQUE_ROUTABLE_TOKEN -> new Result(Status.AUTHENTICATED_FUTURE_TOKEN, routing, null, null, id, null);
+                case OPAQUE_ROUTABLE_DEVICE -> new Result(Status.AUTHENTICATED_FUTURE_DEVICE, routing, null, null, id, null);
+                case OPAQUE_UNSCOPED -> new Result(Status.AUTHENTICATED_OPAQUE_UNSCOPED, routing, null, null, id, object);
+                case MALFORMED -> new Result(Status.AUTHENTICATED_INVALID_STRUCTURE, routing, null, null, id, null);
                 case SUPPORTED_V1_TOKEN, SUPPORTED_V1_DEVICE -> {
                     var parsed = V1PlaintextParser.parse(semantic);
                     yield new Result(parsed.status() == V1PlaintextParser.Status.STRUCTURALLY_VALID
                             ? Status.AUTHENTICATED_V1_STRUCTURE : Status.AUTHENTICATED_INVALID_STRUCTURE,
-                            routing, parsed.plaintext(), parsed.plaintext() == null ? null : semantic);
+                            routing, parsed.plaintext(), parsed.plaintext() == null ? null : semantic, id, null);
                 }
             };
         } catch (AEADBadTagException e) {
@@ -117,6 +135,6 @@ final class EnvelopeReader {
     }
 
     private static Result failure(Status status) {
-        return new Result(status, null, null);
+        return new Result(status, null, null, null, null, null);
     }
 }

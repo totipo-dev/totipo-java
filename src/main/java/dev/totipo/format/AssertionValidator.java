@@ -23,7 +23,7 @@ final class AssertionValidator {
         }
         byte[] semantic = authenticated.semanticBytes();
         try {
-            return new Result(Status.ASSERTION_VALID, new AssertionValidObject(value, semantic));
+            return new Result(Status.ASSERTION_VALID, new AssertionValidObject(value, semantic, authenticated.objectId()));
         } finally {
             Arrays.fill(semantic, (byte) 0);
         }
@@ -33,14 +33,17 @@ final class AssertionValidator {
     static final class AssertionValidObject {
         private final V1Plaintext plaintext;
         private final byte[] unsignedSemantic;
+        private final ObjectId objectId;
 
-        private AssertionValidObject(V1Plaintext plaintext, byte[] semantic) {
+        private AssertionValidObject(V1Plaintext plaintext, byte[] semantic, ObjectId objectId) {
             this.plaintext = plaintext;
+            this.objectId = objectId;
             // Structural grammar guarantees the final complete SIGNATURE TLV.
             unsignedSemantic = Arrays.copyOf(semantic, semantic.length - 4 - plaintext.signature().length);
         }
 
         V1Plaintext plaintext() { return plaintext; }
+        ObjectId objectId() { return objectId; }
         byte[] unsignedSemantic() { return unsignedSemantic.clone(); }
     }
 }
