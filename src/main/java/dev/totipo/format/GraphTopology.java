@@ -20,11 +20,14 @@ final class GraphTopology {
     private final Map<ObjectId, List<ObjectId>> resolvedParents;
     private final Map<Identity, Set<ObjectId>> heads;
     private final GraphIntegrityStatus integrity;
+    private final Map<ObjectId, DurableRecord> records;
 
     GraphTopology(DurableKnowledgeState state) { this(state.records()); }
 
     /** Trusted snapshot seam, also usable to validate independently loaded/corrupt records. */
     GraphTopology(Map<ObjectId, DurableRecord> records) {
+        this.records = Map.copyOf(records);
+        records = this.records;
         var ids = new HashMap<ObjectId, Identity>();
         var claims = new HashMap<ObjectId, List<ParentEdge>>();
         var parents = new HashMap<ObjectId, List<ObjectId>>();
@@ -65,6 +68,9 @@ final class GraphTopology {
     }
 
     GraphIntegrityStatus integrity() { return integrity; }
+
+    /** Immutable routing facts from the same snapshot that produced the heads. */
+    DurableRecord record(ObjectId id) { return records.get(id); }
 
     /** Diagnostics remain available even when a cycle prevents ordinary graph queries. */
     List<ParentEdge> parentEdges(ObjectId child) {
