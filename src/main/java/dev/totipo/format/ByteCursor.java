@@ -41,6 +41,19 @@ final class ByteCursor {
         return (u8() << 8) | u8();
     }
 
+    long u32be() throws TruncatedInput {
+        require(4);
+        return ((long) u16be() << 16) | u16be();
+    }
+
+    int remaining() {
+        return end - position;
+    }
+
+    int position() {
+        return position;
+    }
+
     BigInteger u64be() throws TruncatedInput {
         // Positive BigInteger preserves the whole unsigned range without date conversion.
         return new BigInteger(1, copy(8));

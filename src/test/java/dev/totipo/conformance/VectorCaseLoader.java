@@ -35,6 +35,14 @@ public final class VectorCaseLoader {
     }
 
     public static List<Case> routingCases() throws IOException {
+        return cases("routing");
+    }
+
+    public static List<Case> encodingCases() throws IOException {
+        return cases("encoding");
+    }
+
+    private static List<Case> cases(String category) throws IOException {
         Node manifest = resource("manifest.json");
         if (!manifest.field("format").string().equals("totipo-vector-manifest-v1")) {
             throw manifest.error("Unexpected manifest format");
@@ -42,13 +50,13 @@ public final class VectorCaseLoader {
         List<Case> cases = new ArrayList<>();
         var ids = new HashSet<String>();
         for (Node entry : manifest.field("cases").array()) {
-            if (!entry.field("category").string().equals("routing")) {
+            if (!entry.field("category").string().equals(category)) {
                 continue;
             }
             String id = entry.field("id").string();
             String path = entry.field("path").string();
-            if (!path.matches("cases/routing/[a-z0-9.-]+\\.json")) {
-                throw entry.error(id + ": unsafe routing path " + path);
+            if (!path.matches("cases/" + category + "/[a-z0-9.-]+\\.json")) {
+                throw entry.error(id + ": unsafe case path " + path);
             }
             if (!ids.add(id)) {
                 throw entry.error("Duplicate case ID " + id);

@@ -7,6 +7,24 @@ import org.junit.jupiter.api.Test;
 
 class ByteCursorTest {
     @Test
+    void unsignedU32ReadsAreBigEndianBoundedAndAtomicOnTruncation() throws Exception {
+        byte[] bytes = {9, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, 9};
+        var cursor = new ByteCursor(bytes, 1, 4);
+        assertEquals(1, cursor.position());
+        assertEquals(4, cursor.remaining());
+        assertEquals(4294967295L, cursor.u32be());
+        assertEquals(5, cursor.position());
+        assertEquals(0, cursor.remaining());
+        assertEquals(0x01020304L, new ByteCursor(new byte[]{1, 2, 3, 4}, 0, 4).u32be());
+        for (int length = 0; length < 4; length++) {
+            var shortSlice = new ByteCursor(bytes, 1, length);
+            assertThrows(ByteCursor.TruncatedInput.class, shortSlice::u32be);
+            assertEquals(1, shortSlice.position());
+            assertEquals(length, shortSlice.remaining());
+        }
+    }
+
+    @Test
     void invalidJavaSlicesAreProgrammerErrorsEvenWhenAdditionWouldOverflow() {
         byte[] bytes = new byte[8];
         for (int[] slice : new int[][]{{-1, 0}, {0, -1}, {9, 0}, {7, 2},

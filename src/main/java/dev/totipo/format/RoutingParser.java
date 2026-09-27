@@ -19,7 +19,9 @@ final class RoutingParser {
 
     enum Reason { NONE, UNKNOWN_TYPE, MALFORMED_PREFIX, TRUNCATED_PREFIX }
 
-    record Result(Outcome outcome, RoutingPrefix prefix, Reason reason) {}
+    // The consumed length lets supported-body parsing start at the proven boundary
+    // without duplicating the frozen layout or rereading its fields.
+    record Result(Outcome outcome, RoutingPrefix prefix, Reason reason, int prefixLength) {}
 
     static Result parse(byte[] semanticBytes) {
         return parse(semanticBytes, 0, semanticBytes.length);
@@ -39,7 +41,7 @@ final class RoutingParser {
             int type = bytes.u8();
             if (type != 1 && type != 2) {
                 // No known family grammar or identity scope may be guessed from the tail.
-                return new Result(Outcome.OPAQUE_UNSCOPED, null, Reason.UNKNOWN_TYPE);
+                return new Result(Outcome.OPAQUE_UNSCOPED, null, Reason.UNKNOWN_TYPE, 0);
             }
             if (!field(bytes, 0x0004, 2)) {
                 return malformed(version, Reason.MALFORMED_PREFIX);
@@ -83,7 +85,7 @@ final class RoutingParser {
             Outcome outcome = version == 1
                     ? (type == 1 ? Outcome.SUPPORTED_V1_TOKEN : Outcome.SUPPORTED_V1_DEVICE)
                     : (type == 1 ? Outcome.OPAQUE_ROUTABLE_TOKEN : Outcome.OPAQUE_ROUTABLE_DEVICE);
-            return new Result(outcome, prefix, Reason.NONE);
+            return new Result(outcome, prefix, Reason.NONE, bytes.position() - offset);
         } catch (ByteCursor.TruncatedInput e) {
             return malformed(version, Reason.TRUNCATED_PREFIX);
         }
@@ -92,7 +94,7 @@ final class RoutingParser {
     private static Result malformed(int version, Reason reason) {
         // Incompatible unsupported semantics are unscoped, not supported-invalid (§12.4).
         return new Result(version >= 0 && version != 1 ? Outcome.OPAQUE_UNSCOPED : Outcome.MALFORMED,
-                null, reason);
+                null, reason, 0);
     }
 
     /** Exact frozen field framing only; deliberately not a general TLV reader. */
