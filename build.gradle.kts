@@ -33,7 +33,8 @@ tasks.withType<Javadoc>().configureEach {
 }
 
 dependencies {
-    // Protocol code has no production dependencies.
+    // BC is used only for lightweight Argon2id; existing crypto stays on JDK providers.
+    implementation(libs.bcprov)
     testImplementation(libs.jackson.core)
     testImplementation(platform(libs.junit.bom))
     testImplementation(libs.junit.jupiter)

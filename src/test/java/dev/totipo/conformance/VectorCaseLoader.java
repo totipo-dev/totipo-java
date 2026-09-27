@@ -49,6 +49,7 @@ public final class VectorCaseLoader {
     public static List<Case> provenanceCases() throws IOException { return cases("provenance"); }
 
     public static List<Case> deviceCases() throws IOException { return cases("device"); }
+    public static List<Case> bootstrapCases() throws IOException { return cases("bootstrap"); }
 
     private static List<Case> cases(String category) throws IOException {
         Node manifest = resource("manifest.json");
@@ -82,6 +83,7 @@ public final class VectorCaseLoader {
                     || !data.field("format").string().equals("totipo-case-v1")
                     || !(data.field("operation").string().equals("dispatch")
                         || (category.equals("crypto") && data.field("operation").string().equals("crypto"))
+                        || (category.equals("bootstrap") && data.field("operation").string().equals("bootstrap"))
                         || (category.equals("device") && data.field("operation").string().equals("graph"))
                         || (category.equals("provenance") && java.util.Set.of("provenance", "publication",
                             "signature-context", "late-provenance").contains(data.field("operation").string())))) {
