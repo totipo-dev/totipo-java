@@ -3,13 +3,14 @@ package dev.totipo.format;
 import java.io.IOException;
 import java.util.Arrays;
 
-/** Thread-confined synchronous semantic owner. After any ambiguous write failure,
+/** Thread-confined synchronous semantic owner. After any ambiguous journal write failure,
  * reopen/replay is required. This class proves ordering, not disk durability. */
 final class SecurityMemorySession {
     private final SecurityMemoryStorage storage;
     private SecurityMemoryJournal.Replay head;
     private DurableKnowledgeState knowledge;
     private boolean writeFailed;
+    private final TokenPublicationFence tokenPublicationFence = new TokenPublicationFence();
 
     private SecurityMemorySession(SecurityMemoryStorage storage, SecurityMemoryJournal.Replay replay) {
         this.storage = storage; this.head = replay;
@@ -29,6 +30,7 @@ final class SecurityMemorySession {
     DurableKnowledgeState knowledge() { return knowledge; }
     SecurityMemoryJournal.Replay head() { return head; }
     LocalEstablishment establishment() { return head.establishment(); }
+    TokenPublicationFence tokenPublicationFence() { return tokenPublicationFence; }
 
     boolean persistPending(byte[] binding) { return establish(LocalEstablishment.Phase.PENDING, binding, false); }
     boolean establishFromPending(byte[] binding) { return establish(LocalEstablishment.Phase.ESTABLISHED, binding, false); }

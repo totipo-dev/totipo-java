@@ -24,12 +24,13 @@ class TokenOperationPolicyVectorTest {
         var selected = Set.of("v1.graph.sequential.001", "v1.graph.equal-concurrent.001",
                 "v1.graph.conflicting-concurrent.001", "v1.graph.missing-current-value.001",
                 "v1.timestamp.equal-value-different-times.001", "v1.timestamp.fold-common-time.001",
-                "v1.candidate.opaque-current.001");
+                "v1.candidate.opaque-current.001", "v1.candidate.conflict-a.001",
+                "v1.candidate.current-peer-missing.001", "v1.candidate.historical-current-missing.001");
         var all = new ArrayList<>(VectorCaseLoader.graphCases());
         all.addAll(VectorCaseLoader.timestampCases()); all.addAll(VectorCaseLoader.candidateCases());
         var cases = all.stream().filter(c -> selected.contains(c.id())).toList();
         assertEquals(selected, cases.stream().map(Case::id).collect(Collectors.toSet()));
-        return cases.stream().map(c -> DynamicTest.dynamicTest(c.id() + " [M3.2b PARTIAL writer extension]", () -> {
+        return cases.stream().map(c -> DynamicTest.dynamicTest(c.id() + " [M3.2c PARTIAL symbolic writer extension]", () -> {
             var steps = c.data().field("graph").field("steps").array();
             var adapter = new CurrentTokenValueVectorTest.AuthenticatedSymbols(steps);
             try (var h = new InitialDeviceAdvertisementTest.Harness()) {
@@ -66,7 +67,23 @@ class TokenOperationPolicyVectorTest {
                             assertEquals(expected, result.status());
                             if (result.receipt() == null) {
                                 assertEquals(0, h.keys.signs); assertEquals(0, h.store.calls); assertEquals(appends, h.memory.appends);
-                            } else {
+                                var preparation = TokenResolutionConfirmation.prepare(h.root, snapshot, h.identity,
+                                        token, desired, TokenUpdatePublication.Intent.ORDINARY);
+                                if (view.opaqueHeadIds().isEmpty()) {
+                                    assertTrue(step.field("expect").field("author").bool());
+                                    assertEquals(InitialTokenPublication.Status.CONFIRMATION_PREPARED, preparation.status());
+                                    assertEquals(view, preparation.current());
+                                    assertEquals(0, h.keys.signs); assertEquals(0, h.store.calls); assertEquals(appends, h.memory.appends);
+                                    result = TokenUpdatePublication.publishConfirmed(h.root, context, h.identity, token,
+                                            desired, new byte[8], TokenUpdatePublication.Intent.ORDINARY,
+                                            preparation.confirmation(), h.store, List.of());
+                                    assertEquals(InitialTokenPublication.Status.PUBLISHED_AND_REMEMBERED_DEVICE_REQUIRED, result.status());
+                                } else {
+                                    assertEquals(InitialTokenPublication.Status.CURRENT_OPAQUE_BLOCKED, preparation.status());
+                                    assertNull(preparation.confirmation());
+                                }
+                            }
+                            if (result.receipt() != null) {
                                 assertEquals(1, h.keys.signs);
                                 var node = (KnownTokenNode) h.session.knowledge().record(result.receipt().objectId());
                                 assertEquals(DeviceWriter.canonicalParents(view.currentHeadIds()), node.parents());

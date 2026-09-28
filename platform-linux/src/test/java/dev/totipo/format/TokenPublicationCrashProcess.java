@@ -17,6 +17,10 @@ public final class TokenPublicationCrashProcess {
         var identity = DeviceIdentityLifecycle.loadExisting(session.head(), keys);
         var publisher = NioV1ObjectPublicationStore.open(sync, LinuxDurability.open());
         var discovery = DiscoveryCoordinator.discover(new NioDiscoverySource(sync), ROOT, session);
+        if (mode.equals("confirmed")) {
+            confirmed(session, identity, publisher, sync);
+            throw new AssertionError("Expected halt after confirmed publication");
+        }
         var value = new TokenValue(1, "", "", new TokenValue.Credential(1, 6, 30, new SecurityBytes(new byte[]{1}, 1)));
         InitialTokenPublication.Receipt initial = mode.equals("update") ? InitialTokenPublication.publish(ROOT,
                 () -> new InitialDeviceAdvertisement.Context(session, discovery.discoveryState(), 0),
@@ -48,5 +52,39 @@ public final class TokenPublicationCrashProcess {
         if (result.status() != InitialTokenPublication.Status.PUBLISHED_AND_REMEMBERED_DEVICE_REQUIRED)
             throw new AssertionError(result.status());
         Runtime.getRuntime().halt(0);
+    }
+
+    private static void confirmed(SecurityMemorySession session, DeviceIdentityResult identity,
+            V1ObjectPublicationStore publisher, Path sync) throws Exception {
+        var graph = new GraphTopology(session.knowledge());
+        var values = new java.util.ArrayList<ReadableTokenValue>();
+        SecurityBytes token = null;
+        for (var record : session.knowledge().records().values()) {
+            if (record instanceof KnownTokenNode n) {
+                token = n.tokenId();
+                var bytes = java.nio.file.Files.readAllBytes(sync.resolve("objects-v1").resolve(n.objectId().filename()));
+                values.add(ReadableTokenValue.supported(AssertionValidator.validate(
+                        EnvelopeReader.open(n.objectId().filename(), bytes, ROOT)).object()));
+            }
+        }
+        var context = new TokenUpdatePublication.Context(new InitialDeviceAdvertisement.Context(session,
+                DiscoveryState.READY, 0), graph, new CurrentReadableValues(graph, values));
+        var desired = values.get(0).value();
+        var confirmation = TokenResolutionConfirmation.prepare(ROOT, context, identity, token, desired,
+                TokenUpdatePublication.Intent.ORDINARY).confirmation();
+        if (confirmation == null) throw new AssertionError("Expected confirmation");
+        var knowledge = session.knowledge();
+        var store = new V1ObjectPublicationStore() {
+            public PublicationResult publishDurably(ObjectId id, byte[] bytes) throws IOException {
+                if (session.knowledge() != knowledge) throw new AssertionError("Graph before publication");
+                publisher.publishDurably(id, bytes);
+                System.out.println(id.filename()); System.out.flush();
+                Runtime.getRuntime().halt(0);
+                throw new AssertionError("Expected halt");
+            }
+            public void close() {}
+        };
+        TokenUpdatePublication.publishConfirmed(ROOT, () -> context, identity, token, desired, new byte[8],
+                TokenUpdatePublication.Intent.ORDINARY, confirmation, store, List.of());
     }
 }

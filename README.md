@@ -171,10 +171,13 @@ BC 1.86 remains the only external production dependency. Portable initial TOKEN 
 and ordinary existing TOKEN updates are available internally. Updates parent the exact
 known current frontier and write complete values. Whole-state edits, credential rotation,
 delete, explicit restoration and reaffirmation/convergence require complete, unambiguous
-supported current state. Rotation and deletion do not erase immutable historical secrets.
+supported current state. Supported conflicting or unavailable current state can instead
+be resolved through explicit complete-value confirmation, bound to the exact context and
+session-local freshness epoch. Opaque current heads remain non-confirmable. Confirmation
+is a writer precondition, with no durable or wire receipt. Rotation and deletion do not erase immutable historical secrets.
 TOKEN publication may precede DEVICE advertisement; reporting
 success waits for the matching valid, verified, durably remembered DEVICE advertisement.
-Conflicting/unavailable-state confirmation, capacity folds, DEVICE rename/fold, alternate-bootstrap recovery
+Capacity folds, DEVICE rename/fold, alternate-bootstrap recovery
 and fingerprint/rollback detection remain deferred. This is not yet an application API.
 
 The single r14 snapshot lives in `core/src/test/resources/totipo-spec`; `SPEC_PIN.md`
