@@ -92,8 +92,20 @@ artifacts downloaded during bootstrap.
   Core authenticates the staged inode and reopens canonical before establishing the
   local binding. Publication errors may leave canonical present for pending recovery.
   Close storage/staged handles explicitly; streams own separate descriptors and callers
-  close them. Password replacement, alternate-bootstrap recovery and bootstrap
-  fingerprint/rollback detection are not implemented.
+  close them. Password replacement uses the same unnamed staging and adds a private
+  hard link followed by `renameat2(RENAME_EXCHANGE)`, inode checks, file fsync and
+  directory fsync. It requires Linux amd64/JDK 25, procfs, O_TMPFILE, hard links/linkat,
+  libc/filesystem exchange support, and a local filesystem honoring these barriers.
+  Both exchange names must exist; replacement never falls back to creating absent
+  canonical. Core authenticates the result with the new password and unchanged
+  root/binding, without modifying local security memory or semantic objects.
+  The published inode has mode 0600. Interrupted/failed replacement can leave
+  `.totipo-vault-rewrap-*.tmp` residue; only exact `vault` is authoritative.
+  Residue can expose old/new offline password verifiers. Cleanup is best-effort:
+  identity checking and unlinkat are separate syscalls, so a concurrent namespace
+  actor can substitute the entry between them. Password rewrap cannot revoke
+  historical copies retained by sync history, backups, hard links or copied files.
+  Alternate-bootstrap recovery and fingerprint/rollback detection remain unimplemented.
 
 The single r13 snapshot lives in `core/src/test/resources/totipo-spec`; `SPEC_PIN.md`
 remains the repository-wide authority. Production JARs contain no test corpus.

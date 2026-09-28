@@ -11,12 +11,20 @@ import java.nio.charset.StandardCharsets;
 /** Small instance-owned binding; constructing it is restricted, loading this class is not. */
 final class LinuxLibc {
     private final MethodHandle open, openat, openatMode, statx, read, write, linkat, close, fsync;
+    private final SymbolLookup replacementSymbols;
+    private MethodHandle renameat2, unlinkat;
+    static final FunctionDescriptor EXCHANGE_DESCRIPTOR = FunctionDescriptor.of(ValueLayout.JAVA_INT,
+            ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.JAVA_INT);
+    static final FunctionDescriptor UNLINK_DESCRIPTOR = FunctionDescriptor.of(ValueLayout.JAVA_INT,
+            ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.JAVA_INT);
     private final MemoryLayout state = Linker.Option.captureStateLayout();
     private final long errnoOffset = state.byteOffset(MemoryLayout.PathElement.groupElement("errno"));
     static final int MAX_ATTEMPTS = 8;
 
-    LinuxLibc() {
+    LinuxLibc() { this(null); }
+    LinuxLibc(SymbolLookup replacementSymbols) {
         var linker = Linker.nativeLinker();
+        this.replacementSymbols = replacementSymbols == null ? linker.defaultLookup() : replacementSymbols;
         var c = linker.canonicalLayouts();
         var i = c.get("int"); var p = c.get("void*");
         var l = c.get("long"); var size = c.get("size_t");
@@ -35,6 +43,22 @@ final class LinuxLibc {
         linkat = bind(linker, "linkat", FunctionDescriptor.of(i, i, p, i, p, i), -1);
         close = bind(linker, "close", FunctionDescriptor.of(i, i), -1);
         fsync = bind(linker, "fsync", FunctionDescriptor.of(i, i), -1);
+    }
+    @SuppressWarnings("restricted")
+    void prepareReplacement() throws IOException {
+        if (renameat2 != null && unlinkat != null) return;
+        try {
+            var linker = Linker.nativeLinker();
+            var capture = Linker.Option.captureCallState("errno");
+            var renameSymbol = replacementSymbols.find("renameat2")
+                    .orElseThrow(() -> new UnsatisfiedLinkError("renameat2"));
+            var unlinkSymbol = replacementSymbols.find("unlinkat")
+                    .orElseThrow(() -> new UnsatisfiedLinkError("unlinkat"));
+            renameat2 = linker.downcallHandle(renameSymbol, EXCHANGE_DESCRIPTOR, capture);
+            unlinkat = linker.downcallHandle(unlinkSymbol, UNLINK_DESCRIPTOR, capture);
+        } catch (UnsatisfiedLinkError | UnsupportedOperationException e) {
+            throw new IOException("VAULT_REPLACEMENT_UNSUPPORTED", e);
+        }
     }
     @SuppressWarnings("restricted") // Reviewed descriptors; permission checked before lazy construction.
     private static MethodHandle bind(Linker linker, String name, FunctionDescriptor descriptor, int variadic) {
@@ -57,7 +81,7 @@ final class LinuxLibc {
     static final class NativeFailure extends IOException {
         private static final long serialVersionUID = 1L;
         final int errno;
-        NativeFailure(int errno) { super("NATIVE_IO_UNAVAILABLE"); this.errno = errno; }
+        NativeFailure(int errno) { super("NATIVE_IO_UNAVAILABLE errno=" + errno); this.errno = errno; }
     }
     private static IOException invocation(Throwable e) {
         if (e instanceof Error error) { throw error; }
@@ -127,15 +151,40 @@ final class LinuxLibc {
         }
     }
     void linkInitial(LinuxFd stage, LinuxFd root) throws IOException {
+        link(stage, root, "vault");
+    }
+    void link(LinuxFd stage, LinuxFd root, String destination) throws IOException {
         try (var arena = Arena.ofConfined()) {
             var from = arena.allocateFrom(stage.procPath().toString());
-            var to = arena.allocateFrom("vault"); var error = arena.allocate(state);
+            var to = arena.allocateFrom(destination); var error = arena.allocate(state);
             // A failed publication is not retried: its outcome may be ambiguous.
             int result;
             try { result = (int) linkat.invokeExact(error, LinuxAbi.AT_FDCWD, from,
                     root.number(), to, LinuxAbi.AT_SYMLINK_FOLLOW); }
             catch (Throwable e) { throw invocation(e); }
             if (result < 0) { throw failure(error); }
+        }
+    }
+    void exchange(LinuxFd root, String privateName) throws IOException {
+        prepareReplacement();
+        try (var arena = Arena.ofConfined()) {
+            var from = arena.allocateFrom(privateName); var to = arena.allocateFrom("vault");
+            var error = arena.allocate(state);
+            int result;
+            try { result = (int) renameat2.invokeExact(error, root.number(), from,
+                    root.number(), to, LinuxAbi.RENAME_EXCHANGE); }
+            catch (Throwable e) { throw invocation(e); }
+            if (result < 0) throw failure(error); // Never retry an exchange, including EINTR.
+        }
+    }
+    void unlink(LinuxFd root, String privateName) throws IOException {
+        prepareReplacement();
+        try (var arena = Arena.ofConfined()) {
+            var name = arena.allocateFrom(privateName); var error = arena.allocate(state);
+            int result;
+            try { result = (int) unlinkat.invokeExact(error, root.number(), name, 0); }
+            catch (Throwable e) { throw invocation(e); }
+            if (result < 0) throw failure(error); // No blind retry of destructive pathname operations.
         }
     }
     int read(LinuxFd fd, ByteBuffer dst) throws IOException {

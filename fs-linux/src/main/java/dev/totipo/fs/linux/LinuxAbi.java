@@ -13,5 +13,7 @@ final class LinuxAbi {
     // Installed Linux 7.2 UAPI asm-generic/fcntl.h and linux/fcntl.h (amd64).
     static final int O_RDWR = 2, O_TMPFILE = 020000000 | O_DIRECTORY;
     static final int AT_FDCWD = -100, AT_SYMLINK_FOLLOW = 0x400;
-    static final int EEXIST = 17, EOPNOTSUPP = 95;
+    static final int EEXIST = 17, EINVAL = 22, EOPNOTSUPP = 95;
+    // Installed linux-headers-7.2/include/linux/fs.h: RENAME_EXCHANGE (1 << 1).
+    static final int RENAME_EXCHANGE = 2;
 }
