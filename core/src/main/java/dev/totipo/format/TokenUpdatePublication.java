@@ -62,12 +62,54 @@ final class TokenUpdatePublication {
         }
         try { TokenWriter.requireCapacity(desired, 0); }
         catch (IllegalArgumentException e) { return InitialTokenPublication.failure(INVALID_VALUE); }
-        try { TokenWriter.requireCapacity(desired, view.currentHeadIds().size()); }
-        catch (IllegalArgumentException e) { return InitialTokenPublication.failure(FOLD_REQUIRED); }
+        if (view.currentHeadIds().size() > TokenWriter.parentCapacity(desired)) {
+            return fold(root, current, start, identity, tokenId, desired, authorTime, intent,
+                    confirmation, view.currentHeadIds(), store, evidence, beforePublication);
+        }
         return InitialTokenPublication.publishValue(root, start.owner().session(), identity, tokenId, desired, authorTime,
                 DeviceWriter.canonicalParents(view.currentHeadIds()), store, evidence, () -> {
                     beforePublication.run();
                     return confirmation == null || confirmation.fresh(current.get(), tokenId, desired, intent);
                 });
+    }
+
+    /** §47 linear carry; sorted original consumption is our deterministic choice. */
+    private static InitialTokenPublication.Result fold(byte[] root, Supplier<Context> current, Context start,
+            DeviceIdentityResult identity, SecurityBytes tokenId, TokenValue desired, byte[] authorTime,
+            Intent intent, TokenResolutionConfirmation confirmation, Collection<ObjectId> heads,
+            V1ObjectPublicationStore store,
+            Collection<TokenPublicationSuccessGate.VerifiedDeviceAdvertisement> evidence, Runnable beforePublication) {
+        var originals = heads.stream().sorted(java.util.Comparator.comparing(ObjectId::filename)).toList();
+        int capacity = TokenWriter.parentCapacity(desired);
+        byte[] time = authorTime.clone(), exactRoot = root.clone();
+        var session = start.owner().session();
+        try {
+            beforePublication.run();
+            if (confirmation != null && !confirmation.fresh(current.get(), tokenId, desired, intent)) {
+                return InitialTokenPublication.failure(CONFIRMATION_STALE);
+            }
+            long expectedGeneration = session.generation(tokenId);
+            ObjectId carry = null;
+            InitialTokenPublication.Result result = null;
+            for (int consumed = 0; consumed < originals.size();) {
+                final long stageGeneration = expectedGeneration;
+                java.util.function.BooleanSupplier fresh = () -> confirmation == null
+                        || current.get().owner().session() == session && session.generation(tokenId) == stageGeneration;
+                if (!fresh.getAsBoolean()) { return InitialTokenPublication.failure(CONFIRMATION_STALE); }
+                var parents = new java.util.ArrayList<ObjectId>(capacity);
+                if (carry != null) { parents.add(carry); }
+                int end = Math.min(originals.size(), consumed + capacity - parents.size());
+                parents.addAll(originals.subList(consumed, end));
+                result = InitialTokenPublication.publishValue(exactRoot, session, identity, tokenId, desired, time,
+                        DeviceWriter.canonicalParents(parents), store, evidence, fresh, false);
+                if (result.receipt() == null) { return result; }
+                carry = result.receipt().objectId();
+                consumed = end;
+                // Exempt only our one acknowledged acceptance, never external events during publication.
+                expectedGeneration = Math.incrementExact(stageGeneration);
+            }
+            return new InitialTokenPublication.Result(TokenPublicationSuccessGate.allows(session, result.receipt(),
+                    identity.publicKeyX963(), evidence) ? PUBLISHED_SUCCESS_READY : PUBLISHED_DEVICE_REQUIRED, result.receipt());
+        } finally { java.util.Arrays.fill(exactRoot, (byte) 0); }
     }
 }

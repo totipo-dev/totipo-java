@@ -16,7 +16,7 @@ final class InitialTokenPublication {
         DEVICE_IDENTITY_UNAVAILABLE, DEVICE_IDENTITY_BINDING_MISMATCH, TOKEN_ID_COLLISION, INVALID_VALUE,
         SIGNING_FAILED, LOCAL_VALIDATION_FAILED, PUBLICATION_INCOMPLETE,
         NO_EXISTING_TOKEN, CURRENT_OPAQUE_BLOCKED, CONFIRMATION_REQUIRED_CONFLICT, RESTORATION_INTENT_REQUIRED,
-        INVALID_UPDATE_INTENT, FOLD_REQUIRED, CONFIRMATION_PREPARED, CONFIRMATION_NOT_REQUIRED, CONFIRMATION_STALE
+        INVALID_UPDATE_INTENT, CONFIRMATION_PREPARED, CONFIRMATION_NOT_REQUIRED, CONFIRMATION_STALE
     }
     record Receipt(SecurityBytes tokenId, ObjectId objectId, SecurityBytes authorDeviceId) {}
     record Result(Status status, Receipt receipt) {}
@@ -47,6 +47,12 @@ final class InitialTokenPublication {
             SecurityBytes tokenId, TokenValue value, byte[] authorTime, List<ObjectId> parents,
             V1ObjectPublicationStore store, Collection<TokenPublicationSuccessGate.VerifiedDeviceAdvertisement> evidence,
             java.util.function.BooleanSupplier consentFresh) {
+        return publishValue(root, session, identity, tokenId, value, authorTime, parents, store, evidence, consentFresh, true);
+    }
+    static Result publishValue(byte[] root, SnapshotSession session, DeviceIdentityResult identity,
+            SecurityBytes tokenId, TokenValue value, byte[] authorTime, List<ObjectId> parents,
+            V1ObjectPublicationStore store, Collection<TokenPublicationSuccessGate.VerifiedDeviceAdvertisement> evidence,
+            java.util.function.BooleanSupplier consentFresh, boolean evaluateSetup) {
         byte[] exactRoot = root.clone(), time = authorTime.clone();
         byte[] semantic = null;
         try {
@@ -55,11 +61,13 @@ final class InitialTokenPublication {
             try { TokenWriter.requireCapacity(value, 0); }
             catch (IllegalArgumentException e) { return failure(Status.INVALID_VALUE); }
             try { TokenWriter.requireCapacity(value, parents.size()); }
-            catch (IllegalArgumentException e) { return failure(Status.FOLD_REQUIRED); }
+            catch (IllegalArgumentException e) { return failure(Status.LOCAL_VALIDATION_FAILED); }
             try { semantic = TokenWriter.signed(exactRoot, identity, tokenId.bytes(), value, time, parents); }
             catch (GeneralSecurityException e) { return failure(Status.SIGNING_FAILED); }
             catch (IllegalStateException e) { return failure(Status.LOCAL_VALIDATION_FAILED); }
-            var object = V1EnvelopeWriter.seal(exactRoot, semantic);
+            V1EnvelopeWriter.ObjectBytes object;
+            try { object = V1EnvelopeWriter.seal(exactRoot, semantic); }
+            catch (IllegalArgumentException | IllegalStateException e) { return failure(Status.LOCAL_VALIDATION_FAILED); }
             var author = new SecurityBytes(identity.deviceId(), 32);
             var node = new AcceptedToken(object.id(), 1, SemanticStatus.SUPPORTED_VALID, tokenId, parents,
                     author, new BigInteger(1, time), value);
@@ -69,7 +77,7 @@ final class InitialTokenPublication {
             } catch (IOException | RuntimeException e) { return failure(Status.PUBLICATION_INCOMPLETE); }
             session.accept(node);
             var receipt = new Receipt(tokenId, object.id(), author);
-            return new Result(TokenPublicationSuccessGate.allows(session, receipt, identity.publicKeyX963(), evidence)
+            return new Result(!evaluateSetup || TokenPublicationSuccessGate.allows(session, receipt, identity.publicKeyX963(), evidence)
                     ? Status.PUBLISHED_SUCCESS_READY : Status.PUBLISHED_DEVICE_REQUIRED, receipt);
         } finally {
             Arrays.fill(exactRoot, (byte) 0);

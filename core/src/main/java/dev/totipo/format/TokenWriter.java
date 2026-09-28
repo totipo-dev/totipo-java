@@ -11,6 +11,13 @@ final class TokenWriter {
     private TokenWriter() {}
 
     static void requireCapacity(TokenValue value, int parents) {
+        if (parents < 0 || parents > parentCapacity(value)) {
+            throw new IllegalArgumentException("TOKEN capacity exceeded");
+        }
+    }
+
+    /** §45: reserve 72 signature bytes before signing, independent of actual DER. */
+    static int parentCapacity(TokenValue value) {
         int issuer = DeviceWriter.displayName(value.issuer()).length;
         int account = DeviceWriter.displayName(value.account()).length;
         var c = value.credential();
@@ -19,10 +26,10 @@ final class TokenWriter {
                 || c.secret().size() < 1 || c.secret().size() > 128) {
             throw new IllegalArgumentException("Invalid TOKEN value");
         }
-        if (parents < 0 || parents > 32 || 215 + issuer + account + c.secret().size() + 36 * parents
-                > EnvelopeReader.SEMANTIC_CAPACITY) {
-            throw new IllegalArgumentException("TOKEN capacity exceeded");
-        }
+        int capacity = Math.min(32, (EnvelopeReader.SEMANTIC_CAPACITY
+                - 215 - issuer - account - c.secret().size()) / 36);
+        if (capacity < 2) { throw new IllegalStateException("TOKEN fold cannot progress"); }
+        return capacity;
     }
 
     static byte[] signed(byte[] root, DeviceIdentityResult identity, byte[] tokenId, TokenValue value,

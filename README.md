@@ -8,7 +8,7 @@ documented in [SPEC_PIN.md](SPEC_PIN.md). Java implements the r15 baseline state
 no optional `advisory-history` capability is claimed. The corpus contains 105 cases:
 93 baseline and 12 conditional advisory-history cases. All remain hash-verified;
 conditional cases are excluded from baseline consumers without JUnit skips.
-Wide-frontier fold construction and application CRUD APIs remain deferred.
+Existing TOKEN wide-frontier folds are implemented. DEVICE rename/fold and application CRUD APIs remain deferred.
 
 ## Toolchain
 
@@ -147,8 +147,11 @@ tests exercise restart behavior, not physical power loss.
 
 ## Remaining boundaries
 
-BC 1.86 is the only external production dependency. Folds return `FOLD_REQUIRED` when the
-exact planning frontier cannot fit; fold construction is the next milestone. DEVICE rename
+BC 1.86 is the only external production dependency. Existing TOKEN wide-frontier folds use
+ordinary immutable TOKEN stages with one complete value and common AUTHOR_TIME. They reduce
+frontier width without deleting or compacting history. Ordinary folds retain their planning
+snapshot; confirmed folds require renewed confirmation for new TOKEN-relevant information
+under r15 §47.4. Interrupted stages remain ordinary history, with no journal or rollback. DEVICE rename/fold
 orchestration, full DEVICE presentation, alternate-bootstrap recovery, Android platform
 integration and application APIs remain deferred. DEVICE graph topology and current key
 material are implemented. Cross-run advisory history and rollback/regression warnings are

@@ -47,7 +47,8 @@ class R15SnapshotTest {
             var consent=TokenResolutionConfirmation.prepare(ROOT,context(session),identity,token,chosen,TokenUpdatePublication.Intent.ORDINARY);
             var store=new FakeV1ObjectPublicationStore();
             var result=TokenUpdatePublication.publishConfirmed(ROOT,()->context(session),identity,token,chosen,new byte[8],TokenUpdatePublication.Intent.ORDINARY,consent.confirmation(),store,List.of());
-            assertEquals(FOLD_REQUIRED,result.status());assertEquals(0,store.calls);assertEquals(33,session.snapshot().topology().currentTokenHeads(token).size());
+            assertEquals(PUBLISHED_DEVICE_REQUIRED,result.status());assertEquals(2,store.calls);
+            assertEquals(Set.of(result.receipt().objectId()),session.snapshot().topology().currentTokenHeads(token));
         }
     }
     @Test void discoveryIncompleteAndUnscopedAreCurrentDiagnosticsOnly() throws Exception {
