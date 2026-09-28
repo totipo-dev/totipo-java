@@ -11,11 +11,11 @@ routing, structural parsing, and cryptographic surfaces; it does not claim full 
 
 - Gradle 9.8.0, pinned by the checked-in Gradle Wrapper.
 - JDK 25 is the default Nix shell and compiler toolchain JDK; Gradle runs on it.
-- Core production Java is compiled with `--release 17` so the reusable library can
+- Core and storage-nio production Java is compiled with `--release 17` so the reusable library can
   remain compatible with Java 17 consumers, including the planned Android
   implementation boundary.
 - Nix/direnv provide the local development environment.
-- `fs-linux` explicitly uses the JDK 25 toolchain and `--release 25`.
+- `platform-linux` explicitly uses the JDK 25 toolchain and `--release 25`.
 - BC 1.86 is core's only external runtime dependency. JUnit and Jackson Core are test-only.
 
 ## Build
@@ -44,7 +44,8 @@ Gradle toolchain auto-download is disabled; Nix/local JDK 25 supplies both compi
 ```sh
 ./gradlew clean test                              # whole build
 ./gradlew :core:clean :core:test                   # portable core only
-./gradlew :fs-linux:test                          # filesystem integration
+./gradlew :storage-nio:test                       # portable NIO, no native access
+./gradlew :platform-linux:test                    # Linux integration
 ./gradlew --offline --no-daemon --no-build-cache --rerun-tasks clean test
 ```
 
@@ -67,14 +68,26 @@ artifacts downloaded during bootstrap.
 
 ## Repository shape and storage boundary
 
-- `core` produces `totipo-core`: portable protocol, state, discovery and journal
-  semantics, compiled for Java 17.
-- `fs-linux` produces `totipo-fs-linux`: Java 25 filesystem adapters, depending on core.
-  Java NIO handles ordinary filesystem access and synchronized-state robustness.
-  A minimal Linux native durability helper remains where the JDK lacks a documented
-  containing-directory fsync primitive required by crash-safety semantics. It also
-  explicitly fsyncs an existing journal before replay and exact-existing objects before
-  acknowledging writer publication durability.
+- `core` produces `totipo-core`: protocol/crypto/state only, Java 17, no filesystem.
+- `storage-nio` produces `totipo-storage-nio`: portable synchronized-storage mechanics
+  using Java 17 NIO, depending on core. No FFM, OS detection, native access, procfs or
+  mandatory POSIX permissions. The configured provider must support required operations,
+  including hard links and atomic replacement; unsupported operations fail without fallback.
+- `platform-linux` produces `totipo-platform-linux`: Java 25 Linux durability and
+  app-local security memory/private-key custody. It depends on storage-nio → core.
+  Its native symbols are only `open`, `fsync`, and `close`.
+
+Linux native code is not part of synchronized object parsing/discovery/publication logic;
+it is a small platform durability/local-custody adapter.
+
+Applications explicitly compose `NioVaultBootstrapStorage.open(root, LinuxDurability.open())`
+and `NioV1ObjectPublicationStore.open(root, LinuxDurability.open())`. `StorageDurability`
+has only `syncDirectory(Path)` and `syncExistingFile(Path)`. Newly written temporary
+files are forced through their existing `FileChannel`. The injected capability handles
+containing-directory durability and explicit fsync of pre-existing bytes, where
+`FileChannel.force()` cannot supply the required contract. There is no default no-op,
+provider registry, ServiceLoader or automatic platform selection. Discovery needs no
+capability. Capability lifetime belongs to the caller; stores do not close it.
 
 Under r14, synchronized contents may be malformed, stale, conflicting, missing,
 replayed, replaced or withheld. The local OS, filesystem implementation,
@@ -97,12 +110,14 @@ journals cross explicit file and directory fsync barriers before replay. All pro
 must cooperate with locking. Whole-journal rollback to an older valid copy remains
 potentially undetectable (r14 §34.2).
 
-`LinuxVaultBootstrapStorage.open(Path)` reads only exact canonical `vault`, bounded
-to 88 bytes. Initial publication writes a complete owner-only same-directory named
+`NioVaultBootstrapStorage.open(Path, StorageDurability)` reads only exact canonical `vault`, bounded
+to 88 bytes. Initial publication writes a complete same-directory named
 temp, forces it, and lets core authenticate it before `Files.createLink` installs the
 canonical name without overwrite. Password rewrap uses `Files.move` with
 `ATOMIC_MOVE` and `REPLACE_EXISTING`, after an ordinary regular-file precheck.
-Both paths fsync the containing directory before core reopens/authenticates canonical.
+The existing-destination behavior of `ATOMIC_MOVE` is provider-specific; this backend
+requires and test-validates that capability on the host provider. No non-atomic fallback
+is allowed. Both paths sync the containing directory before core reopens/authenticates canonical.
 Only the unchanged intended root and binding can produce success. Rewrap does not
 revoke historical copies in provider history, backups or previously retained files.
 
@@ -112,7 +127,7 @@ a private named temp, reparses/self-tests it, installs via no-replace hard link,
 again, syncs the directory and reloads the fixed file. Group/other permissions are
 rejected on load. This is exportable filesystem custody, not hardware-backed storage.
 
-`LinuxV1ObjectPublicationStore.open(Path)` publishes exactly 1024 bytes to
+`NioV1ObjectPublicationStore.open(Path, StorageDurability)` publishes exactly 1024 bytes to
 `objects-v1`. Newly created namespaces cause a synchronization-root fsync. Complete
 forced named temps are installed using no-overwrite hard links, forced again and
 followed by containing-directory fsync. `ALREADY_PRESENT_EXACT` requires a bounded exact
@@ -128,18 +143,33 @@ adopted. Custody temps contain sensitive private material and are created owner-
 Native durability currently supports reviewed Linux amd64/x86-64 libc with only
 `open`, `fsync` and `close` bindings. Applications requiring writes grant native access
 with `--enable-native-access=ALL-UNNAMED` (or a future selective module grant).
-Tests also set `--illegal-native-access=deny`; core needs no native access. Unsupported
+Tests also set `--illegal-native-access=deny`; core and storage-nio need no native access.
+`LinuxDurability.open()` is lazy: creating the capability does not require native access.
+Each barrier checks availability and fails with IOException when access is denied.
+A failed barrier can leave installed bytes, but cannot acknowledge durable success. Unsupported
 hard links or atomic moves fail without an overwrite fallback. Crash durability requires
 local filesystems/devices honoring force/fsync; arbitrary remote FUSE, NFS, cloud mounts
 and broken hardware caches are outside that guarantee. Process-halt tests exercise
 restart recovery, not physical power loss.
 
-This cleanup reduces the native ABI, Linux-specific code, syscall bindings, platform
-test matrix and audit surface, and avoids duplicating unnecessary machinery in future
-Android/iOS backends. No external runtime dependencies were added: BC 1.86 remains the
-only one. TOKEN authoring, DEVICE rename/fold, alternate-bootstrap recovery and
-fingerprint/rollback detection remain deferred. The intentional first-DEVICE-before-TOKEN
-conformance skip remains.
+The synchronized-storage implementation now depends only on Java 17-compatible NIO/core
+APIs and has no Linux-native dependency. Android compatibility still requires verification
+against the chosen Android API/desugaring baseline and an Android-specific durability/local-custody
+adapter. A future Android application can reuse core and supported storage-nio operations,
+with Android durability facilities, app-private security memory, and Android Keystore
+provenance custody. File-backed key custody is intentionally not generalized; core's
+`DeviceProvenanceKeyStore` is already the portable boundary.
+
+A future `totipo-desktop` Linux build assembles core, storage-nio, platform-linux, and
+the desktop UI. Windows/macOS builds can reuse core/storage-nio with their own small
+platform adapter. No platform-common or permission framework is introduced ahead of a
+second concrete platform. Security-memory mechanics may eventually justify shared NIO
+code with a local-private-storage policy, but Linux permissions/locking/durability remain
+in platform-linux for now.
+
+BC 1.86 remains the only external production dependency. TOKEN authoring, DEVICE
+rename/fold, alternate-bootstrap recovery and fingerprint/rollback detection remain
+deferred. The intentional first-DEVICE-before-TOKEN conformance skip remains.
 
 The single r14 snapshot lives in `core/src/test/resources/totipo-spec`; `SPEC_PIN.md`
 is the repository-wide pin authority. Production JARs contain no test corpus.

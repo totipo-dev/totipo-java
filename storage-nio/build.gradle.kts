@@ -2,18 +2,19 @@ import java.io.DataInputStream
 
 plugins {
     `java-library`
+    `java-test-fixtures`
 }
 
-description = "Portable Totipo protocol, state, and discovery semantics"
-base.archivesName.set("totipo-core")
+description = "Portable NIO synchronized storage for Totipo"
+base.archivesName.set("totipo-storage-nio")
 
 tasks.withType<JavaCompile>().configureEach {
     options.release.set(17)
 }
 
 dependencies {
-    // BC is used only for lightweight Argon2id; existing crypto stays on JDK providers.
-    implementation(libs.bcprov)
+    api(project(":core"))
+    testFixturesImplementation(libs.jackson.core)
     testImplementation(libs.jackson.core)
     testImplementation(platform(libs.junit.bom))
     testImplementation(libs.junit.jupiter)
@@ -24,12 +25,12 @@ dependencies {
 val mainClasses = sourceSets.main.map { it.output.classesDirs }
 val verifyJava17Bytecode = tasks.register("verifyJava17Bytecode") {
     group = "verification"
-    description = "Verify all core production classes use Java 17 bytecode"
+    description = "Verify all storage-nio production classes use Java 17 bytecode"
     dependsOn(tasks.compileJava)
     inputs.files(mainClasses)
     doLast {
         val classes = inputs.files.asFileTree.matching { include("**/*.class") }.files
-        check(classes.isNotEmpty()) { "No core classes to verify" }
+        check(classes.isNotEmpty()) { "No storage-nio classes to verify" }
         classes.forEach { file ->
             DataInputStream(file.inputStream()).use { input ->
                 check(input.readInt() == 0xCAFEBABE.toInt()) { "Invalid class: $file" }
@@ -41,3 +42,10 @@ val verifyJava17Bytecode = tasks.register("verifyJava17Bytecode") {
 }
 tasks.check { dependsOn(verifyJava17Bytecode) }
 tasks.test { dependsOn(verifyJava17Bytecode) }
+
+val snapshot = rootProject.layout.projectDirectory.dir("core/src/test/resources/totipo-spec/v1-pre-rc")
+tasks.test {
+    jvmArgs("--illegal-native-access=deny")
+    inputs.dir(snapshot)
+    systemProperty("totipo.test.snapshot", snapshot.asFile.absolutePath)
+}
