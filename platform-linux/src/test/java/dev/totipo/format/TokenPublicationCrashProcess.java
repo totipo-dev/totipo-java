@@ -17,17 +17,31 @@ public final class TokenPublicationCrashProcess {
         var identity = DeviceIdentityLifecycle.loadExisting(session.head(), keys);
         var publisher = NioV1ObjectPublicationStore.open(sync, LinuxDurability.open());
         var discovery = DiscoveryCoordinator.discover(new NioDiscoverySource(sync), ROOT, session);
+        var value = new TokenValue(1, "", "", new TokenValue.Credential(1, 6, 30, new SecurityBytes(new byte[]{1}, 1)));
+        InitialTokenPublication.Receipt initial = mode.equals("update") ? InitialTokenPublication.publish(ROOT,
+                () -> new InitialDeviceAdvertisement.Context(session, discovery.discoveryState(), 0),
+                identity, value, new byte[8], publisher, List.of()).receipt() : null;
+        int expectedKnowledge = initial == null ? 0 : 1;
         var store = new V1ObjectPublicationStore() {
             public PublicationResult publishDurably(ObjectId id, byte[] bytes) throws IOException {
-                if (session.knowledge().size() != 0) throw new AssertionError("graph before publication");
+                if (session.knowledge().size() != expectedKnowledge) throw new AssertionError("graph before publication");
                 var result = publisher.publishDurably(id, bytes);
                 System.out.println(id.filename()); System.out.flush();
-                if (mode.equals("pregraph")) Runtime.getRuntime().halt(0);
+                if (mode.equals("pregraph") || mode.equals("update")) Runtime.getRuntime().halt(0);
                 return result;
             }
             public void close() throws IOException { publisher.close(); }
         };
-        var value = new TokenValue(1, "", "", new TokenValue.Credential(1, 6, 30, new SecurityBytes(new byte[]{1}, 1)));
+        if (initial != null) {
+            var graph = new GraphTopology(session.knowledge());
+            var bytes = java.nio.file.Files.readAllBytes(sync.resolve("objects-v1").resolve(initial.objectId().filename()));
+            var readable = new CurrentReadableValues(graph, List.of(ReadableTokenValue.supported(AssertionValidator.validate(
+                    EnvelopeReader.open(initial.objectId().filename(), bytes, ROOT)).object())));
+            TokenUpdatePublication.publish(ROOT, () -> new TokenUpdatePublication.Context(
+                    new InitialDeviceAdvertisement.Context(session, discovery.discoveryState(), 0), graph, readable),
+                    identity, initial.tokenId(), value, new byte[8], TokenUpdatePublication.Intent.ORDINARY, store, List.of());
+            throw new AssertionError("Expected halt after update publication");
+        }
         var result = InitialTokenPublication.publish(ROOT,
                 () -> new InitialDeviceAdvertisement.Context(session, discovery.discoveryState(), 0),
                 identity, value, new byte[8], store, List.of());

@@ -18,6 +18,70 @@ import org.junit.jupiter.api.TestFactory;
 
 /** Graph contract author=true is fully-confirmed feasibility, not publication permission. */
 class TokenOperationPolicyVectorTest {
+    /** Symbolic predecessor IDs are materialized; only the new child uses the real local writer. */
+    @TestFactory
+    List<DynamicTest> ordinaryUpdatePublication() throws Exception {
+        var selected = Set.of("v1.graph.sequential.001", "v1.graph.equal-concurrent.001",
+                "v1.graph.conflicting-concurrent.001", "v1.graph.missing-current-value.001",
+                "v1.timestamp.equal-value-different-times.001", "v1.timestamp.fold-common-time.001",
+                "v1.candidate.opaque-current.001");
+        var all = new ArrayList<>(VectorCaseLoader.graphCases());
+        all.addAll(VectorCaseLoader.timestampCases()); all.addAll(VectorCaseLoader.candidateCases());
+        var cases = all.stream().filter(c -> selected.contains(c.id())).toList();
+        assertEquals(selected, cases.stream().map(Case::id).collect(Collectors.toSet()));
+        return cases.stream().map(c -> DynamicTest.dynamicTest(c.id() + " [M3.2b PARTIAL writer extension]", () -> {
+            var steps = c.data().field("graph").field("steps").array();
+            var adapter = new CurrentTokenValueVectorTest.AuthenticatedSymbols(steps);
+            try (var h = new InitialDeviceAdvertisementTest.Harness()) {
+                var available = new HashMap<ObjectId, ReadableTokenValue>();
+                for (var step : steps) {
+                    switch (step.field("action").string()) {
+                        case "learn" -> {
+                            var material = adapter.materialize(step.field("node").field("id").string());
+                            h.session.commit(material.observation());
+                            if (material.readable() != null) available.put(material.id(), material.readable());
+                        }
+                        case "disappear" -> available.remove(adapter.materialize(step.field("id").string()).id());
+                        case "query" -> {
+                            var token = new SecurityBytes(symbolId(step.field("query").field("identity").string()).bytes(), 32);
+                            java.util.function.Supplier<TokenUpdatePublication.Context> context = () -> {
+                                var g = new GraphTopology(h.session.knowledge());
+                                return new TokenUpdatePublication.Context(h.context(), g, new CurrentReadableValues(g, available.values()));
+                            };
+                            var snapshot = context.get();
+                            var view = CurrentTokenValueEvaluator.evaluate(snapshot.graph(), token, snapshot.readable());
+                            assertEquals(adapter.ids(step.field("expect").field("heads")), view.currentHeadIds());
+                            var desired = view.distinctReadableValues().isEmpty() ? InitialTokenPublicationTest.value()
+                                    : view.distinctReadableValues().iterator().next();
+                            int appends = h.memory.appends;
+                            var result = TokenUpdatePublication.publish(h.root, context, h.identity, token, desired,
+                                    new byte[8], TokenUpdatePublication.Intent.ORDINARY, h.store, List.of());
+                            var expected = switch (view.state()) {
+                                case SEMANTICALLY_UNAMBIGUOUS -> InitialTokenPublication.Status.PUBLISHED_AND_REMEMBERED_DEVICE_REQUIRED;
+                                case WHOLE_STATE_CONFLICT -> InitialTokenPublication.Status.CONFIRMATION_REQUIRED_CONFLICT;
+                                case VALUE_INCOMPLETE_UNAVAILABLE -> InitialTokenPublication.Status.CONFIRMATION_REQUIRED_UNAVAILABLE;
+                                case VALUE_INCOMPLETE_OPAQUE -> InitialTokenPublication.Status.CURRENT_OPAQUE_BLOCKED;
+                                default -> throw new AssertionError("Unexpected vector state");
+                            };
+                            assertEquals(expected, result.status());
+                            if (result.receipt() == null) {
+                                assertEquals(0, h.keys.signs); assertEquals(0, h.store.calls); assertEquals(appends, h.memory.appends);
+                            } else {
+                                assertEquals(1, h.keys.signs);
+                                var node = (KnownTokenNode) h.session.knowledge().record(result.receipt().objectId());
+                                assertEquals(DeviceWriter.canonicalParents(view.currentHeadIds()), node.parents());
+                                assertEquals(Set.of(node.objectId()), new GraphTopology(h.session.knowledge()).currentTokenHeads(token));
+                                var parsed = EnvelopeReader.open(node.objectId().filename(), h.store.get(node.objectId()), h.root).plaintext();
+                                assertEquals(desired, TokenValue.from(parsed.token()));
+                            }
+                        }
+                        default -> fail("Unhandled selected vector action");
+                    }
+                }
+            }
+        })).toList();
+    }
+
     @TestFactory
     List<DynamicTest> exactUnscopedRetentionReadiness() throws Exception {
         var c = VectorCaseLoader.futureCases().stream()

@@ -94,7 +94,7 @@ class LinuxTokenPublicationIntegrationTest {
             assertEquals(session.knowledge().record(tokenId), SecurityMemorySession.open(memory).knowledge().record(tokenId));
         }
     }
-    @ParameterizedTest @ValueSource(strings = {"pregraph", "pending"})
+    @ParameterizedTest @ValueSource(strings = {"pregraph", "pending", "update"})
     void processHaltAndRecoverSameToken(String mode) throws Exception {
         establish();
         byte[] vault = Files.readAllBytes(sync.resolve("vault")), custody = Files.readAllBytes(local.resolve("device-provenance-v1.bin"));
@@ -119,6 +119,12 @@ class LinuxTokenPublicationIntegrationTest {
             assertEquals(mode.equals("pending"), session.knowledge().record(id) != null);
             assertEquals(DiscoveryState.READY, DiscoveryCoordinator.discover(new NioDiscoverySource(sync), ROOT, session).discoveryState());
             var node = (KnownTokenNode) session.knowledge().record(id);
+            if (mode.equals("update")) {
+                assertEquals(1, node.parents().size());
+                var graph = new GraphTopology(session.knowledge());
+                assertTrue(graph.ancestor(node.parents().get(0), id));
+                assertEquals(Set.of(id), graph.currentTokenHeads(node.tokenId()));
+            }
             var receipt = new InitialTokenPublication.Receipt(node.tokenId(), id, node.authorDeviceId());
             try (var identity = DeviceIdentityLifecycle.loadExisting(session.head(), keys)) {
                 assertFalse(TokenPublicationSuccessGate.allows(session, receipt, identity.publicKeyX963(), List.of()));

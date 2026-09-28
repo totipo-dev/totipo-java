@@ -167,10 +167,14 @@ second concrete platform. Security-memory mechanics may eventually justify share
 code with a local-private-storage policy, but Linux permissions/locking/durability remain
 in platform-linux for now.
 
-BC 1.86 remains the only external production dependency. Portable initial TOKEN authoring
-is available internally. TOKEN publication may precede DEVICE advertisement; reporting
+BC 1.86 remains the only external production dependency. Portable initial TOKEN creation
+and ordinary existing TOKEN updates are available internally. Updates parent the exact
+known current frontier and write complete values. Whole-state edits, credential rotation,
+delete, explicit restoration and reaffirmation/convergence require complete, unambiguous
+supported current state. Rotation and deletion do not erase immutable historical secrets.
+TOKEN publication may precede DEVICE advertisement; reporting
 success waits for the matching valid, verified, durably remembered DEVICE advertisement.
-General TOKEN edits/conflict handling, DEVICE rename/fold, alternate-bootstrap recovery
+Conflicting/unavailable-state confirmation, capacity folds, DEVICE rename/fold, alternate-bootstrap recovery
 and fingerprint/rollback detection remain deferred. This is not yet an application API.
 
 The single r14 snapshot lives in `core/src/test/resources/totipo-spec`; `SPEC_PIN.md`

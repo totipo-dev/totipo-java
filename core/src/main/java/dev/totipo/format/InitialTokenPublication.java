@@ -16,7 +16,10 @@ final class InitialTokenPublication {
         AUTHORSHIP_NOT_READY, LOCAL_STATE_NOT_ESTABLISHED, DEVICE_IDENTITY_UNAVAILABLE,
         DEVICE_IDENTITY_BINDING_MISMATCH, TOKEN_ID_COLLISION, INVALID_VALUE,
         SIGNING_FAILED, LOCAL_VALIDATION_FAILED, OPERATION_STALE,
-        PUBLICATION_INCOMPLETE, KNOWLEDGE_PERSISTENCE_FAILED
+        PUBLICATION_INCOMPLETE, KNOWLEDGE_PERSISTENCE_FAILED,
+        NO_EXISTING_TOKEN, CURRENT_OPAQUE_BLOCKED, CONFIRMATION_REQUIRED_CONFLICT,
+        CONFIRMATION_REQUIRED_UNAVAILABLE, RESTORATION_INTENT_REQUIRED,
+        INVALID_UPDATE_INTENT, FOLD_REQUIRED
     }
     record Receipt(SecurityBytes tokenId, ObjectId objectId, SecurityBytes authorDeviceId) {}
     record Result(Status status, Receipt receipt) {}
@@ -103,7 +106,7 @@ final class InitialTokenPublication {
                 .anyMatch(r -> r instanceof KnownTokenNode t && t.tokenId().equals(id));
     }
 
-    private static Status gate(InitialDeviceAdvertisement.Context context, byte[] root, DeviceIdentityResult identity) {
+    static Status gate(InitialDeviceAdvertisement.Context context, byte[] root, DeviceIdentityResult identity) {
         var session = context.session();
         if (session.head().status() != SecurityMemoryJournal.Status.CLEAN
                 || session.establishment().phase() != LocalEstablishment.Phase.ESTABLISHED) {
