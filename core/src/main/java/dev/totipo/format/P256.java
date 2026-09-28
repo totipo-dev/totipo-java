@@ -43,6 +43,38 @@ final class P256 {
         }
     }
 
+    /** Canonical writer encoding; reuses the reader point validator. */
+    static byte[] encode(ECPublicKey key) {
+        java.util.Objects.requireNonNull(key);
+        try {
+            var parameters = AlgorithmParameters.getInstance("EC");
+            parameters.init(new ECGenParameterSpec("secp256r1"));
+            var expected = parameters.getParameterSpec(ECParameterSpec.class);
+            var actual = key.getParams();
+            if (actual == null || !expected.getCurve().equals(actual.getCurve())
+                    || !expected.getGenerator().equals(actual.getGenerator())
+                    || !expected.getOrder().equals(actual.getOrder())
+                    || expected.getCofactor() != actual.getCofactor()) {
+                throw new IllegalArgumentException("Expected secp256r1");
+            }
+            byte[] result = new byte[65];
+            result[0] = 4;
+            coordinate(key.getW().getAffineX(), result, 1);
+            coordinate(key.getW().getAffineY(), result, 33);
+            decode(result);
+            return result;
+        } catch (GeneralSecurityException e) { throw CryptoSupport.unavailable(); }
+    }
+
+    private static void coordinate(BigInteger value, byte[] output, int offset) {
+        if (value == null || value.signum() < 0 || value.bitLength() > 256) {
+            throw new IllegalArgumentException("Invalid P-256 coordinate");
+        }
+        byte[] bytes = value.toByteArray();
+        int length = Math.min(bytes.length, 32); // discard only positive sign octet
+        System.arraycopy(bytes, bytes.length - length, output, offset + 32 - length, length);
+    }
+
     /** Identity covers the exact structural protocol bytes, independently of point validity (§21). */
     static byte[] deviceId(byte[] protocolKey) {
         if (protocolKey.length != 65) {

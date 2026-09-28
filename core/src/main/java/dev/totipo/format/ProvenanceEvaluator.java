@@ -8,6 +8,24 @@ import dev.totipo.format.AssertionValidator.AssertionValidObject;
 final class ProvenanceEvaluator {
     private ProvenanceEvaluator() {}
 
+    /** Reevaluate currently readable known assertions when local key material arrives.
+     * Returns only attribution, in input order; never mutates assertions or durable state.
+     * Caller supplies the current established vault's root and existing candidate material.
+     * Unreadable assertions must be evaluated when their exact bytes become available. */
+    static java.util.List<ProvenanceStatus> withLocalIdentity(
+            java.util.List<AssertionValidObject> readable, byte[] vaultRoot,
+            VerificationKeyMaterial material, DeviceIdentityResult local) {
+        if (vaultRoot.length != 32) { throw new IllegalArgumentException("Root key must be 32 bytes"); }
+        byte[] binding = CryptoSupport.hmac(vaultRoot, CryptoSupport.ascii("totipo/v1/local-vault-binding"));
+        if (!java.security.MessageDigest.isEqual(binding, local.vaultBinding())) {
+            throw new IllegalArgumentException("Local identity belongs to another vault");
+        }
+        var candidates = new java.util.ArrayList<>(material.candidates());
+        candidates.add(local.verificationCandidate());
+        var combined = VerificationKeyMaterial.available(candidates);
+        return readable.stream().map(a -> evaluate(a, vaultRoot, combined)).toList();
+    }
+
     static ProvenanceStatus evaluate(AssertionValidObject assertion, byte[] vaultRoot,
                                      VerificationKeyMaterial material) {
         if (vaultRoot.length != 32) { throw new IllegalArgumentException("Root key must be 32 bytes"); }
