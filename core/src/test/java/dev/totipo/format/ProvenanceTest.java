@@ -15,7 +15,6 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
-import org.junit.jupiter.api.Assumptions;
 
 class ProvenanceTest {
     static Case fixture(String id) throws Exception {
@@ -77,17 +76,7 @@ class ProvenanceTest {
                             }
                             case "late-provenance" -> late(c);
                             case "signature-context" -> crossVault(c);
-                            case "publication" -> {
-                                // This case contains only symbolic writer gate events, no reader trial.
-                                var events = c.data().field("publication").field("events").array();
-                                assertFalse(events.isEmpty());
-                                assertTrue(events.stream().allMatch(e -> Set.of("report-success", "advertise",
-                                        "publish-token", "restart-workflow").contains(e.field("action").string())));
-                                System.out.println(c.id() + " expected=PASS writer durable/report-success gate; "
-                                        + "actual=DEFERRED; M3.1a DEVICE prerequisite exists; TOKEN writer absent");
-                                Assumptions.assumeTrue(false, "DEFERRED: TOKEN publication/report-success gate; "
-                                        + "portable DEVICE authoring and abstract publication exist");
-                            }
+                            case "publication" -> InitialTokenPublicationTest.vector(c);
                             default -> fail("Unhandled provenance operation");
                         }
                     } catch (AssertionError failure) {

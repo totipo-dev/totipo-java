@@ -167,9 +167,11 @@ second concrete platform. Security-memory mechanics may eventually justify share
 code with a local-private-storage policy, but Linux permissions/locking/durability remain
 in platform-linux for now.
 
-BC 1.86 remains the only external production dependency. TOKEN authoring, DEVICE
-rename/fold, alternate-bootstrap recovery and fingerprint/rollback detection remain
-deferred. The intentional first-DEVICE-before-TOKEN conformance skip remains.
+BC 1.86 remains the only external production dependency. Portable initial TOKEN authoring
+is available internally. TOKEN publication may precede DEVICE advertisement; reporting
+success waits for the matching valid, verified, durably remembered DEVICE advertisement.
+General TOKEN edits/conflict handling, DEVICE rename/fold, alternate-bootstrap recovery
+and fingerprint/rollback detection remain deferred. This is not yet an application API.
 
 The single r14 snapshot lives in `core/src/test/resources/totipo-spec`; `SPEC_PIN.md`
 is the repository-wide pin authority. Production JARs contain no test corpus.
