@@ -29,6 +29,7 @@ class DevicePublicKeyTest {
             assertTrue(decoded.getW().getAffineX().toByteArray().length < 32
                     || decoded.getW().getAffineY().toByteArray().length < 32);
             assertArrayEquals(expected, P256.encode(decoded));
+            assertArrayEquals(P256.encode(decoded), DeviceProvenancePublicKey.encodeX963(decoded));
             assertArrayEquals(HexFormat.of().parseHex(vector[1]), P256.deviceId(expected));
         }
     }
@@ -37,6 +38,7 @@ class DevicePublicKeyTest {
         generator.initialize(new ECGenParameterSpec("secp384r1"));
         var other = (ECPublicKey) generator.generateKeyPair().getPublic();
         assertThrows(IllegalArgumentException.class, () -> P256.encode(other));
+        assertThrows(IllegalArgumentException.class, () -> DeviceProvenancePublicKey.encodeX963(other));
         var good = (ECPublicKey) FakeDeviceKeyStore.generate().getPublic();
         for (var point : new ECPoint[]{ECPoint.POINT_INFINITY, new ECPoint(BigInteger.valueOf(-1), BigInteger.ONE),
                 new ECPoint(BigInteger.ONE.shiftLeft(256), BigInteger.ONE),

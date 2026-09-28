@@ -25,12 +25,18 @@ class EcdsaDerSignatureTest {
                 "30800201010201010000", // indefinite
                 "3009020101020101020101" // third INTEGER
         ).stream().map(hex -> DynamicTest.dynamicTest(hex, () ->
-                assertFalse(EcdsaDerSignature.isCanonical(ProvenanceTest.hex(hex))))).toList();
+                {
+                    byte[] bytes = ProvenanceTest.hex(hex);
+                    assertFalse(EcdsaDerSignature.isCanonical(bytes));
+                    assertThrows(java.security.GeneralSecurityException.class,
+                            () -> DeviceProvenanceSignature.validateCanonicalDer(bytes));
+                })).toList();
     }
 
     @Test
     void canonicalEncodingIsSeparateFromMathematicsAndAllowsAllScalarWidths() {
         assertTrue(EcdsaDerSignature.isCanonical(ProvenanceTest.hex("3006020100020100")));
+        assertDoesNotThrow(() -> DeviceProvenanceSignature.validateCanonicalDer(ProvenanceTest.hex("3006020100020100")));
         assertTrue(EcdsaDerSignature.isCanonical(ProvenanceTest.hex("300702020080020101")));
         for (int r = 1; r <= 33; r++) {
             for (int s = 1; s <= 33; s++) {
@@ -40,8 +46,16 @@ class EcdsaDerSignatureTest {
                 if (r == 33) { der[4] = 0; der[5] = (byte) 0x80; }
                 if (s == 33) { der[6 + r] = 0; der[7 + r] = (byte) 0x80; }
                 assertTrue(EcdsaDerSignature.isCanonical(der), "r=" + r + ", s=" + s);
+                byte[] before = der.clone();
+                assertDoesNotThrow(() -> DeviceProvenanceSignature.validateCanonicalDer(der));
+                assertArrayEquals(before, der);
             }
         }
         assertFalse(EcdsaDerSignature.isCanonical(new byte[73]));
+    }
+    @Test void publicBridgeRejectsNullAndBoundsDeterministically() {
+        assertThrows(NullPointerException.class, () -> DeviceProvenanceSignature.validateCanonicalDer(null));
+        for (int length : new int[]{0, 73}) assertThrows(java.security.GeneralSecurityException.class,
+                () -> DeviceProvenanceSignature.validateCanonicalDer(new byte[length]));
     }
 }

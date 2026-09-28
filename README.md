@@ -83,6 +83,12 @@ artifacts downloaded during bootstrap.
   vault directory**. Durability requires a suitable local Linux filesystem/device honoring
   force/fsync; all processes must cooperate with advisory locking. Whole-journal rollback
   to an older valid copy remains potentially undetectable (pinned r13 §34.2).
+  `LinuxDeviceProvenanceKeyStore.open(Path)` provides durable P-256 provenance-key
+  custody in an explicit, pre-existing app-local per-vault directory. Its owner-only
+  immutable key file is never synchronized; atomic no-replace creation needs no lock
+  file. This is exportable filesystem custody, not hardware-backed protection.
+  Core's provider-neutral SPI also permits future Android/non-exportable backends.
+  Key availability does not advertise a DEVICE or enable TOKEN authoring.
   `LinuxVaultBootstrapStorage.open(Path)` binds an explicit existing synchronized root
   and reads only exact canonical `vault`. Initial publication uses an unnamed owner-only
   `O_TMPFILE`, pre-link file fsync, no-replace procfd `linkat`, post-link inode fsync,

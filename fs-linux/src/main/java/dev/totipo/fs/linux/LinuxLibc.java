@@ -111,7 +111,7 @@ final class LinuxLibc {
             var buffer = arena.allocate(LinuxStatx.SIZE, LinuxStatx.ALIGN);
             int result;
             try { result = (int) statx.invokeExact(error, fd.number(), empty, LinuxAbi.AT_EMPTY_PATH,
-                    LinuxAbi.STATX_TYPE | LinuxAbi.STATX_INO, buffer); }
+                    LinuxAbi.STATX_TYPE | LinuxAbi.STATX_MODE | LinuxAbi.STATX_INO, buffer); }
             catch (Throwable e) { throw invocation(e); }
             if (result < 0) { throw failure(error); }
             return LinuxStatx.decode(buffer);
@@ -136,18 +136,20 @@ final class LinuxLibc {
         try (var arena = Arena.ofConfined()) {
             long count = Math.min(src.remaining(), 8192);
             var buffer = arena.allocate(count); var error = arena.allocate(state);
-            buffer.asByteBuffer().put(src.slice(src.position(), (int) count));
-            for (int attempt = 0; ; attempt++) {
-                long result;
-                try { result = (long) write.invokeExact(error, fd.number(), buffer, count); }
-                catch (Throwable e) { throw invocation(e); }
-                if (result >= 0 && result <= count) {
-                    src.position(src.position() + (int) result); return (int) result;
+            try {
+                buffer.asByteBuffer().put(src.slice(src.position(), (int) count));
+                for (int attempt = 0; ; attempt++) {
+                    long result;
+                    try { result = (long) write.invokeExact(error, fd.number(), buffer, count); }
+                    catch (Throwable e) { throw invocation(e); }
+                    if (result >= 0 && result <= count) {
+                        src.position(src.position() + (int) result); return (int) result;
+                    }
+                    if (result > count) { throw new IOException("INVALID_NATIVE_WRITE_COUNT"); }
+                    var failure = failure(error);
+                    if (!retry(failure.errno, attempt)) { throw failure; }
                 }
-                if (result > count) { throw new IOException("INVALID_NATIVE_WRITE_COUNT"); }
-                var failure = failure(error);
-                if (!retry(failure.errno, attempt)) { throw failure; }
-            }
+            } finally { buffer.fill((byte) 0); }
         }
     }
     void linkInitial(LinuxFd stage, LinuxFd root) throws IOException {
@@ -193,19 +195,21 @@ final class LinuxLibc {
         try (var arena = Arena.ofConfined()) {
             long count = Math.min(dst.remaining(), 8192);
             var buffer = arena.allocate(count); var error = arena.allocate(state);
-            for (int attempt = 0; ; attempt++) {
-                long result;
-                try { result = (long) read.invokeExact(error, fd.number(), buffer, count); }
-                catch (Throwable e) { throw invocation(e); }
-                if (result == 0) { return -1; }
-                if (result > 0 && result <= count) {
-                    dst.put(buffer.asSlice(0, result).asByteBuffer()); return (int) result;
+            try {
+                for (int attempt = 0; ; attempt++) {
+                    long result;
+                    try { result = (long) read.invokeExact(error, fd.number(), buffer, count); }
+                    catch (Throwable e) { throw invocation(e); }
+                    if (result == 0) { return -1; }
+                    if (result > 0 && result <= count) {
+                        dst.put(buffer.asSlice(0, result).asByteBuffer()); return (int) result;
+                    }
+                    if (result > count) { throw new IOException("INVALID_NATIVE_READ_COUNT"); }
+                    var failure = failure(error);
+                    // EAGAIN (also EWOULDBLOCK on Linux amd64) and all other errors fail immediately.
+                    if (!retry(failure.errno, attempt)) { throw failure; }
                 }
-                if (result > count) { throw new IOException("INVALID_NATIVE_READ_COUNT"); }
-                var failure = failure(error);
-                // EAGAIN (also EWOULDBLOCK on Linux amd64) and all other errors fail immediately.
-                if (!retry(failure.errno, attempt)) { throw failure; }
-            }
+            } finally { buffer.fill((byte) 0); }
         }
     }
     void fsync(LinuxFd fd) throws IOException {
