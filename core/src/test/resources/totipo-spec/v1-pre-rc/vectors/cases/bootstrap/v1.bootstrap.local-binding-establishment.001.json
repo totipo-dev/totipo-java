@@ -1,0 +1,52 @@
+{
+  "format": "totipo-case-v1",
+  "id": "v1.bootstrap.local-binding-establishment.001",
+  "operation": "local",
+  "expected": "PASS",
+  "local": {
+    "trials": [
+      {
+        "operation": "binding",
+        "existing": "absent",
+        "acknowledged": true,
+        "authenticated": true,
+        "expected": "ESTABLISHED"
+      },
+      {
+        "operation": "binding",
+        "existing": "absent",
+        "acknowledged": false,
+        "authenticated": true,
+        "expected": "INCOMPLETE"
+      },
+      {
+        "operation": "binding",
+        "existing": "absent",
+        "acknowledged": true,
+        "authenticated": false,
+        "expected": "REJECTED"
+      },
+      {
+        "operation": "binding",
+        "existing": "corrupt",
+        "acknowledged": true,
+        "authenticated": true,
+        "expected": "ANCHOR_FAILURE"
+      },
+      {
+        "operation": "binding",
+        "existing": "different",
+        "acknowledged": true,
+        "authenticated": true,
+        "expected": "REJECTED"
+      },
+      {
+        "operation": "binding",
+        "existing": "exact",
+        "acknowledged": false,
+        "authenticated": true,
+        "expected": "ESTABLISHED"
+      }
+    ]
+  }
+}

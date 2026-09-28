@@ -5,12 +5,11 @@ import java.util.Arrays;
 import java.util.Objects;
 
 /** Thread-confined owned capability. Status is immutable; close/anomaly revokes use.
- * No raw signer escapes. Identity availability does not imply writer readiness. */
+ * No raw signer escapes. Operations separately check identity binding. */
 final class DeviceIdentityResult implements AutoCloseable {
     enum Status {
         AVAILABLE_BOUND, CREATED_BOUND, ABSENT,
-        LOCAL_SECURITY_MEMORY_MISSING, LOCAL_SECURITY_MEMORY_INVALID,
-        LOCAL_TAIL_REPAIR_REQUIRED, LOCAL_STATE_NOT_ESTABLISHED,
+        LOCAL_BINDING_ABSENT, LOCAL_BINDING_CORRUPT,
         KEY_STORAGE_UNAVAILABLE, KEY_BINDING_MISMATCH, KEY_MATERIAL_INVALID,
         KEY_ALREADY_EXISTS, KEY_CREATION_INCOMPLETE
     }

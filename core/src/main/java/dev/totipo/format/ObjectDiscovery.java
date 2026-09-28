@@ -8,7 +8,7 @@ final class ObjectDiscovery {
     enum Detail { NONE, WRONG_LENGTH, AEAD, PADDING, OBJECT_ID, SEMANTIC, IO_UNAVAILABLE, UNSUPPORTED_SAFE_OPEN }
 
     record Observation(ObjectId id, Classification classification, Detail detail,
-                       AuthenticatedObservation authenticated, ReadableTokenValue readable) {
+                       AuthenticatedObservation authenticated) {
         @Override public String toString() {
             return "Observation[" + id.filename() + ", " + classification + ", " + detail + "]";
         }
@@ -35,21 +35,19 @@ final class ObjectDiscovery {
             case AUTHENTICATED_FUTURE_TOKEN, AUTHENTICATED_FUTURE_DEVICE, AUTHENTICATED_OPAQUE_UNSCOPED ->
                 new Observation(id, envelope.status() == EnvelopeReader.Status.AUTHENTICATED_OPAQUE_UNSCOPED
                         ? Classification.OPAQUE_UNSCOPED : Classification.OPAQUE_ROUTABLE,
-                        Detail.NONE, AuthenticatedObservation.opaque(envelope).orElseThrow(), null);
+                        Detail.NONE, AuthenticatedObservation.opaque(envelope).orElseThrow());
             case AUTHENTICATED_V1_STRUCTURE -> {
                 var assertion = AssertionValidator.validate(envelope);
                 if (assertion.status() != AssertionValidator.Status.ASSERTION_VALID) {
                     yield failure(id, Classification.INVALID, Detail.SEMANTIC);
                 }
                 yield new Observation(id, Classification.SUPPORTED_VALID, Detail.NONE,
-                        AuthenticatedObservation.supported(assertion.object()),
-                        assertion.object().plaintext().token() == null ? null
-                                : ReadableTokenValue.supported(assertion.object()));
+                        AuthenticatedObservation.supported(assertion.object()));
             }
         };
     }
 
     static Observation failure(ObjectId id, Classification classification, Detail detail) {
-        return new Observation(id, classification, detail, null, null);
+        return new Observation(id, classification, detail, null);
     }
 }

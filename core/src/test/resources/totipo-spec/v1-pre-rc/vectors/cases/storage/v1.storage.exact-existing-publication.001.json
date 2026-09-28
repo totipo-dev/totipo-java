@@ -1,0 +1,45 @@
+{
+  "format": "totipo-case-v1",
+  "id": "v1.storage.exact-existing-publication.001",
+  "operation": "local",
+  "expected": "PASS",
+  "local": {
+    "trials": [
+      {
+        "operation": "install",
+        "existing": "exact",
+        "acknowledged": false,
+        "authenticated": true,
+        "expected": "ALREADY_PRESENT_EXACT"
+      },
+      {
+        "operation": "install",
+        "existing": "different",
+        "acknowledged": true,
+        "authenticated": true,
+        "expected": "FAILED"
+      },
+      {
+        "operation": "install",
+        "existing": "symlink",
+        "acknowledged": true,
+        "authenticated": true,
+        "expected": "FAILED"
+      },
+      {
+        "operation": "install",
+        "existing": "absent",
+        "acknowledged": true,
+        "authenticated": true,
+        "expected": "PUBLISHED_NEW"
+      },
+      {
+        "operation": "install",
+        "existing": "absent",
+        "acknowledged": false,
+        "authenticated": true,
+        "expected": "UNKNOWN"
+      }
+    ]
+  }
+}

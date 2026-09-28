@@ -46,25 +46,18 @@ final class TokenValueFixtures {
         return out.toByteArray();
     }
 
-    static ReadableTokenValue readable(int nonce, TokenValue value, ObjectId... parents) throws Exception {
+    static AcceptedToken readable(int nonce, TokenValue value, ObjectId... parents) throws Exception {
         return readable(nonce, TOKEN, value, parents);
     }
-    static ReadableTokenValue readable(int nonce, SecurityBytes token, TokenValue value,
+    static AcceptedToken readable(int nonce, SecurityBytes token, TokenValue value,
                                        ObjectId... parents) throws Exception {
-        return ReadableTokenValue.supported(ProvenanceTest.valid(semantic(1, token, List.of(parents),
-                GraphTopologyTest.identity(99), BigInteger.valueOf(nonce), new byte[0], value), ROOT));
+        return (AcceptedToken) AuthenticatedObservation.supported(ProvenanceTest.valid(semantic(1, token, List.of(parents),
+                GraphTopologyTest.identity(99), BigInteger.valueOf(nonce), new byte[0], value), ROOT)).record();
     }
-    static KnownTokenNode opaque(int nonce, ObjectId... parents) throws Exception {
+    static AcceptedToken opaque(int nonce, ObjectId... parents) throws Exception {
         var opened = ProvenanceTest.authenticate(semantic(2, TOKEN, List.of(parents),
                 GraphTopologyTest.identity(99), BigInteger.valueOf(nonce), new byte[0], null), ROOT);
         assertEquals(EnvelopeReader.Status.AUTHENTICATED_FUTURE_TOKEN, opened.status());
-        return (KnownTokenNode) AuthenticatedObservation.opaque(opened).orElseThrow().record();
-    }
-    static GraphTopology graph(ReadableTokenValue... values) {
-        return new GraphTopology(GraphTopologyTest.state(java.util.Arrays.stream(values)
-                .map(ReadableTokenValue::routing).toArray(DurableRecord[]::new)));
-    }
-    static CurrentTokenValueView evaluate(GraphTopology graph, ReadableTokenValue... values) {
-        return CurrentTokenValueEvaluator.evaluate(graph, TOKEN, new CurrentReadableValues(graph, List.of(values)));
+        return (AcceptedToken) AuthenticatedObservation.opaque(opened).orElseThrow().record();
     }
 }

@@ -21,7 +21,7 @@ final class FakeV1ObjectPublicationStore implements V1ObjectPublicationStore {
         objects.forEach((id, bytes) -> result.put(id, bytes.clone()));
         return result;
     }
-    @Override public PublicationResult publishDurably(ObjectId id, byte[] bytes) throws IOException {
+    @Override public PublicationResult publish(ObjectId id, byte[] bytes) throws IOException {
         Objects.requireNonNull(id); Objects.requireNonNull(bytes);
         if (closed) { throw new IOException("Closed"); }
         if (bytes.length != 1024) { throw new IllegalArgumentException("Object width"); }

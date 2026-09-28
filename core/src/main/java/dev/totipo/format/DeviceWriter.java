@@ -1,7 +1,5 @@
 package dev.totipo.format;
 
-import java.math.BigInteger;
-import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.util.Arrays;
 import java.util.Collection;
@@ -56,15 +54,7 @@ final class DeviceWriter {
         byte[] input = signatureInput(root, unsigned);
         try {
             byte[] signature = identity.signSha256Ecdsa(input);
-            if (!EcdsaDerSignature.isCanonical(signature) || !P256.verify(key, input, signature)) {
-                throw new GeneralSecurityException("DEVICE signature verification failed");
-            }
             byte[] semantic = CryptoSupport.join(unsigned, new TlvWriter().field(0xff01, signature).bytes());
-            var parsed = V1PlaintextParser.parse(semantic);
-            if (parsed.status() != V1PlaintextParser.Status.STRUCTURALLY_VALID
-                    || !matches(parsed.plaintext(), key, display, time, ordered)) {
-                throw new IllegalStateException("DEVICE semantic round trip failed");
-            }
             return semantic;
         } finally { Arrays.fill(input, (byte) 0); }
     }
@@ -81,14 +71,4 @@ final class DeviceWriter {
         return P256.signatureInput(root, 2, unsigned);
     }
 
-    static boolean matches(V1Plaintext value, byte[] key, byte[] display, byte[] time, List<ObjectId> parents) {
-        if (value == null || value.device() == null) { return false; }
-        var routing = value.routing();
-        return routing.version() == 1 && routing.objectType() == 2
-                && Arrays.equals(routing.identity(), P256.deviceId(key))
-                && Arrays.equals(value.device().publicKey(), key)
-                && Arrays.equals(value.device().displayName().getBytes(StandardCharsets.UTF_8), display)
-                && routing.authorTime().equals(new BigInteger(1, time))
-                && routing.parents().stream().map(ObjectId::new).toList().equals(parents);
-    }
 }

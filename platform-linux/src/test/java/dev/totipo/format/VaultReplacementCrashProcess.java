@@ -16,7 +16,7 @@ public final class VaultReplacementCrashProcess {
         String mode = args[0]; Path sync = Path.of(args[1]), local = Path.of(args[2]);
         var faults = new ReplacementStorageFaults(LinuxDurability.open());
         var backend = faults.open(sync);
-        var memory = LinuxSecurityMemoryStorage.open(local);
+        var memory = LinuxVaultBindingStore.open(local);
         var vault = new VaultBootstrapReplacementStorage() {
             @Override public InputStream openCanonicalRead() throws IOException { return backend.openCanonicalRead(); }
             @Override public StagedBootstrap stageInitial(byte[] bytes) throws IOException { return backend.stageInitial(bytes); }

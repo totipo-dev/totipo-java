@@ -10,6 +10,4 @@ import java.nio.file.Path;
 public interface StorageDurability {
     /** Persist the containing directory's namespace changes. */
     void syncDirectory(Path directory) throws IOException;
-    /** Persist pre-existing file bytes before adopting them as durable. */
-    void syncExistingFile(Path file) throws IOException;
 }

@@ -1,4 +1,4 @@
 package dev.totipo.format;
 
-/** Cycle validity only; other causes of lost continuity remain on DurableKnowledgeState. */
-enum GraphIntegrityStatus { ACYCLIC, RESOLVED_CYCLE }
+/** Concrete integrity of the current accepted evidence only. */
+enum GraphIntegrityStatus { ACYCLIC, RESOLVED_CYCLE, CONFLICTING_OBJECT_ID }

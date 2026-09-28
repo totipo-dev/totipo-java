@@ -27,7 +27,7 @@ class DeviceWriterTest {
         int calls;
         byte[] fixedSignature;
         Runnable afterCapture = () -> {};
-        @Override public byte[] vaultBinding() { return DeviceIdentityLifecycleTest.binding(root()); }
+        @Override public byte[] vaultBinding() { return CryptoSupport.hmac(root(), CryptoSupport.ascii("totipo/v1/local-vault-binding")); }
         @Override public byte[] publicKeyX963() { return KEY.clone(); }
         @Override public byte[] signSha256Ecdsa(byte[] input) throws java.security.GeneralSecurityException {
             message = input.clone(); calls++;
@@ -88,7 +88,7 @@ class DeviceWriterTest {
         var read = EnvelopeReader.open(object.id().filename(), object.bytes(), root());
         assertEquals(EnvelopeReader.Status.AUTHENTICATED_V1_STRUCTURE, read.status());
         assertArrayEquals(semantic, read.semanticBytes());
-        assertTrue(DeviceWriter.matches(read.plaintext(), KEY, DeviceWriter.displayName("é\u0000"), time, List.of()));
+        assertTrue(DeviceWriterTest.matches(read.plaintext(), KEY, DeviceWriter.displayName("é\u0000"), time, List.of()));
         var assertion = AssertionValidator.validate(read);
         assertEquals(AssertionValidator.Status.ASSERTION_VALID, assertion.status());
         assertEquals(ProvenanceStatus.VERIFIED, ProvenanceEvaluator.evaluate(assertion.object(), root(), VerificationKeyMaterial.keys()));
@@ -127,7 +127,7 @@ class DeviceWriterTest {
         var expected = DeviceWriter.canonicalParents(parents);
         key.afterCapture = () -> { Arrays.fill(name, (byte) 0); Arrays.fill(time, (byte) 0); parents.clear(); };
         byte[] semantic = DeviceWriter.signed(root(), key.identity(), name, time, parents);
-        assertTrue(DeviceWriter.matches(V1PlaintextParser.parse(semantic).plaintext(), KEY,
+        assertTrue(DeviceWriterTest.matches(V1PlaintextParser.parse(semantic).plaintext(), KEY,
                 DeviceWriter.displayName("owned"), hex("ffffffffffffffff"), expected));
         key.afterCapture = () -> {};
         for (int width : new int[]{0, 7, 9}) {
@@ -204,5 +204,15 @@ class DeviceWriterTest {
         assertThrows(IllegalArgumentException.class, () -> DeviceWriter.signed(root(), identity,
                 "x".repeat(256), new byte[8], parents(15)));
         assertEquals(1, key.calls);
+    }
+    static boolean matches(V1Plaintext value, byte[] key, byte[] display, byte[] time, List<ObjectId> parents) {
+        if (value == null || value.device() == null) { return false; }
+        var routing = value.routing();
+        return routing.version() == 1 && routing.objectType() == 2
+                && Arrays.equals(routing.identity(), P256.deviceId(key))
+                && Arrays.equals(value.device().publicKey(), key)
+                && Arrays.equals(value.device().displayName().getBytes(java.nio.charset.StandardCharsets.UTF_8), display)
+                && routing.authorTime().equals(new java.math.BigInteger(1, time))
+                && routing.parents().stream().map(ObjectId::new).toList().equals(parents);
     }
 }

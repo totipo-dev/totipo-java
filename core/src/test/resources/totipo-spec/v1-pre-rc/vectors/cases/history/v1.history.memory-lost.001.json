@@ -1,0 +1,93 @@
+{
+  "format": "totipo-case-v1",
+  "id": "v1.history.memory-lost.001",
+  "operation": "graph",
+  "expected": "PASS",
+  "graph": {
+    "notes": "Replaces prepared v1.history.absent-cache.001: previously retained/expected advisory history is detectably lost. HISTORY_MEMORY_LOST permits ordinary use and publication; intentional absence of the feature is not this scenario.",
+    "steps": [
+      {
+        "action": "learn",
+        "node": {
+          "id": "a",
+          "version": 1,
+          "type": "TOKEN",
+          "identity": "T",
+          "class": "SUPPORTED_VALID",
+          "parents": [],
+          "author_time": 0,
+          "semantic_digest": "bytes-a"
+        },
+        "value": {
+          "status": "LIVE",
+          "issuer": "Example",
+          "account": "alice",
+          "algorithm": 1,
+          "digits": 6,
+          "period": 30,
+          "secret_hex": "3132333435"
+        }
+      },
+      {
+        "action": "remember"
+      },
+      {
+        "action": "history-lost"
+      },
+      {
+        "action": "query",
+        "query": {
+          "identity": "T",
+          "candidate": "a"
+        },
+        "expect": {
+          "heads": [
+            "a"
+          ],
+          "value_state": "UNAMBIGUOUS",
+          "ordinary": true,
+          "author": true,
+          "candidate": true,
+          "candidate_warning": true,
+          "integrity_failure": false,
+          "warnings": [
+            "HISTORY_MEMORY_LOST"
+          ]
+        }
+      },
+      {
+        "action": "plan",
+        "node": {
+          "id": "b",
+          "version": 1,
+          "type": "TOKEN",
+          "identity": "T",
+          "class": "SUPPORTED_VALID",
+          "parents": [],
+          "author_time": 0,
+          "semantic_digest": "bytes-b"
+        },
+        "value": {
+          "status": "LIVE",
+          "issuer": "Example",
+          "account": "bob",
+          "algorithm": 1,
+          "digits": 6,
+          "period": 30,
+          "secret_hex": "3132333435"
+        },
+        "intent": "edit",
+        "flag": false,
+        "success": true,
+        "parents": [
+          "a"
+        ]
+      },
+      {
+        "action": "publish",
+        "flag": true,
+        "success": true
+      }
+    ]
+  }
+}

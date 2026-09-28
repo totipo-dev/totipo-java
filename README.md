@@ -2,10 +2,13 @@
 
 Java implementation of the Totipo vault protocol.
 
-This repository targets **Totipo Vault Format v1**, design revision **r14**.
+This repository targets **Totipo Vault Format v1**, design revision **r15**.
 Development currently uses an exact pinned snapshot of the moving `v1-pre-rc` profile,
-documented in [SPEC_PIN.md](SPEC_PIN.md). The implementation covers the M1.1–M1.3
-routing, structural parsing, and cryptographic surfaces; it does not claim full protocol conformance.
+documented in [SPEC_PIN.md](SPEC_PIN.md). Java implements the r15 baseline state model;
+no optional `advisory-history` capability is claimed. The corpus contains 105 cases:
+93 baseline and 12 conditional advisory-history cases. All remain hash-verified;
+conditional cases are excluded from baseline consumers without JUnit skips.
+Wide-frontier fold construction and application CRUD APIs remain deferred.
 
 ## Toolchain
 
@@ -66,119 +69,92 @@ Review any generated changes before committing, especially
 `gradle/verification-metadata.xml`: newly recorded checksums come from the
 artifacts downloaded during bootstrap.
 
-## Repository shape and storage boundary
+## Architecture and capabilities
 
-- `core` produces `totipo-core`: protocol/crypto/state only, Java 17, no filesystem.
-- `storage-nio` produces `totipo-storage-nio`: portable synchronized-storage mechanics
-  using Java 17 NIO, depending on core. No FFM, OS detection, native access, procfs or
-  mandatory POSIX permissions. The configured provider must support required operations,
-  including hard links and atomic replacement; unsupported operations fail without fallback.
-- `platform-linux` produces `totipo-platform-linux`: Java 25 Linux durability and
-  app-local security memory/private-key custody. It depends on storage-nio → core.
-  Its native symbols are only `open`, `fsync`, and `close`.
+- `core`: Java 17 wire/crypto/readers, immutable accepted snapshots, derived graph topology,
+  complete TOKEN value evaluation, candidate/TOTP policy, provenance, snapshot-based writers,
+  TOKEN-specific conflict confirmation, and filesystem-free binding/key-custody SPIs.
+- `storage-nio`: Java 17 discovery, immutable synchronized-object publication, and strong
+  VAULT creation/password replacement. Depends on core.
+- `platform-linux`: Java 25 directory fsync, authoritative local VAULT binding, and private
+  P-256 key custody. Depends on storage-nio → core. Native symbols: `open`, `fsync`, `close`.
 
-Linux native code is not part of synchronized object parsing/discovery/publication logic;
-it is a small platform durability/local-custody adapter.
+Each discovery pass builds a fresh `AcceptedSnapshot`. An accepted supported TOKEN owns
+its complete value. Disappeared or unauthenticatable objects are absent; missing parents
+cannot supply ancestry. Restart reconstructs current evidence from synchronized objects.
+Incomplete discovery and currently visible unscoped future evidence are diagnostics.
+Ordinary use and authorship apply per-TOKEN checks; a routable opaque current TOKEN head
+blocks the affected TOKEN. Equal-valued concurrent heads are unambiguous. Different
+complete values require visible conflict confirmation; values are never field-merged.
 
-Applications explicitly compose `NioVaultBootstrapStorage.open(root, LinuxDurability.open())`
-and `NioV1ObjectPublicationStore.open(root, LinuxDurability.open())`. `StorageDurability`
-has only `syncDirectory(Path)` and `syncExistingFile(Path)`. Newly written temporary
-files are forced through their existing `FileChannel`. The injected capability handles
-containing-directory durability and explicit fsync of pre-existing bytes, where
-`FileChannel.force()` cannot supply the required contract. There is no default no-op,
-provider registry, ServiceLoader or automatic platform selection. Discovery needs no
-capability. Capability lifetime belongs to the caller; stores do not close it.
+Ordinary TOKEN authorship uses exactly the current heads in its selected accepted snapshot.
+Later arrivals create normal concurrency and do not reparent, re-sign, or invalidate the
+planned object. Conflict confirmation binds TOKEN identity, supported heads, complete
+alternatives, desired value, and typed intent. A process-local per-TOKEN semantic observation
+generation preserves sensitivity to relevant information learned then removed. Unrelated
+TOKENs, DEVICE presentation, provenance, and diagnostics do not stale confirmation.
+Unambiguous TOMBSTONE-to-LIVE restoration requires explicit restoration intent.
 
-Under r14, synchronized contents may be malformed, stale, conflicting, missing,
-replayed, replaced or withheld. The local OS, filesystem implementation,
-mount/process namespace and same-privilege local processes are trusted for baseline
-operation. Ordinary synchronization churn can make an operation unavailable or
-incomplete; callers rescan, reopen or retry. Observed symlinks and special files are
-excluded, reads remain bounded, and cryptographic authentication remains mandatory.
+Writers validate typed inputs, encode canonically, sign once, encrypt, compute OBJECT_ID,
+and publish. The signing boundary checks canonical DER and verifies the returned signature.
+Writer-reader round trips are conformance tests. Acknowledged publication adds typed evidence
+to the in-memory snapshot; ambiguous failure does not. Discovery or a later retry remains
+permitted. First-TOKEN setup success requires matching valid self-signed DEVICE and TOKEN
+publication acknowledgements; no advertised/success bit is persisted.
 
-`NioDiscoverySource` enumerates only exact direct-child object filenames in
-`objects-v1`. An absent namespace is empty; an observed non-directory is incomplete.
-Observed regular candidates are read through NIO, at most 1025 bytes, then authenticated
-by core. Discovery and canonical/key reads require no native-access permission.
+## Storage and durability
 
-`LinuxSecurityMemoryStorage.open(Path)` holds a lifetime advisory `FileLock` in a
-pre-existing app-local per-vault directory independent of synchronized storage.
-New lock/journal files have owner-only permissions; existing modes are preserved.
-Initialization forces the journal and syncs its directory. Append/truncate force
-before acknowledgement; ambiguous mutation poisons the handle until reopen. Existing
-journals cross explicit file and directory fsync barriers before replay. All processes
-must cooperate with locking. Whole-journal rollback to an older valid copy remains
-potentially undetectable (r14 §34.2).
+Synchronized storage is unreliable transport: contents may be malformed, stale, conflicting,
+missing, replaced, or withheld. Local execution and same-privilege processes are trusted.
+`NioDiscoverySource` reads exact direct-child names in `objects-v1`, bounded to 1025 bytes.
+Observed symlinks and special files are excluded. Discovery needs no native access.
 
-`NioVaultBootstrapStorage.open(Path, StorageDurability)` reads only exact canonical `vault`, bounded
-to 88 bytes. Initial publication writes a complete same-directory named
-temp, forces it, and lets core authenticate it before `Files.createLink` installs the
-canonical name without overwrite. Password rewrap uses `Files.move` with
-`ATOMIC_MOVE` and `REPLACE_EXISTING`, after an ordinary regular-file precheck.
-The existing-destination behavior of `ATOMIC_MOVE` is provider-specific; this backend
-requires and test-validates that capability on the host provider. No non-atomic fallback
-is allowed. Both paths sync the containing directory before core reopens/authenticates canonical.
-Only the unchanged intended root and binding can produce success. Rewrap does not
-revoke historical copies in provider history, backups or previously retained files.
+`V1ObjectPublicationStore.publish` never overwrites an existing object. An ordinary regular
+canonical target containing exactly the intended 1024 bytes returns `ALREADY_PRESENT_EXACT`
+without existing-file fsync, directory fsync, or a second read. New objects use a complete
+same-directory named temp, file force, no-replace hard link, and directory fsync as reliability
+hardening. Acknowledgement makes no global synchronization durability claim.
 
-`LinuxDeviceProvenanceKeyStore.open(Path)` keeps an immutable owner-only P-256 record
-in an explicit app-local directory outside synchronized storage. It writes and forces
-a private named temp, reparses/self-tests it, installs via no-replace hard link, forces
-again, syncs the directory and reloads the fixed file. Group/other permissions are
-rejected on load. This is exportable filesystem custody, not hardware-backed storage.
+`StorageDurability` exposes only `syncDirectory(Path)`. Applications explicitly compose
+`NioVaultBootstrapStorage.open(root, LinuxDurability.open())` and
+`NioV1ObjectPublicationStore.open(root, LinuxDurability.open())`. There is no default no-op
+capability, provider registry, or automatic platform selection.
 
-`NioV1ObjectPublicationStore.open(Path, StorageDurability)` publishes exactly 1024 bytes to
-`objects-v1`. Newly created namespaces cause a synchronization-root fsync. Complete
-forced named temps are installed using no-overwrite hard links, forced again and
-followed by containing-directory fsync. `ALREADY_PRESENT_EXACT` requires a bounded exact
-read of an observed regular target, explicit file fsync, objects-directory fsync and an
-exact reread. Only then may the writer proceed to durable graph insertion. Ordinary
-discovery still learns authenticated current bytes without fsyncing synchronized objects.
-Orphan objects remain recoverable through discovery.
+VAULT identity and private-key custody retain strong local durability. Canonical VAULT
+creation and password rewrap use complete forced staging, atomic install/replace, and
+containing-directory fsync. Core authenticates staged and final bootstrap bytes and requires
+the same root. Password rewrap does not revoke older bootstrap copies.
 
-Temps use implementation-private names that cannot match object filenames or canonical
-`vault`. Cleanup is best effort. A crash may leave temps; they are never automatically
-adopted. Custody temps contain sensitive private material and are created owner-only.
+`LinuxVaultBindingStore` stores exactly 32 bytes in `vault-binding-v1.bin`, independently of
+synchronized storage. After canonical VAULT authentication, absent binding is durably created;
+a present binding must match exactly. Malformed data is an explicit corrupt anchor, never
+absence. Creation forces an owner-only temporary file, installs without replacement, and
+syncs its directory. There is no intermediate establishment transaction or graph journal.
+This is a development-format break: r14 local journal migration is intentionally unsupported.
+Synchronized protocol bytes are unchanged.
 
-Native durability currently supports reviewed Linux amd64/x86-64 libc with only
-`open`, `fsync` and `close` bindings. Applications requiring writes grant native access
-with `--enable-native-access=ALL-UNNAMED` (or a future selective module grant).
-Tests also set `--illegal-native-access=deny`; core and storage-nio need no native access.
-`LinuxDurability.open()` is lazy: creating the capability does not require native access.
-Each barrier checks availability and fails with IOException when access is denied.
-A failed barrier can leave installed bytes, but cannot acknowledge durable success. Unsupported
-hard links or atomic moves fail without an overwrite fallback. Crash durability requires
-local filesystems/devices honoring force/fsync; arbitrary remote FUSE, NFS, cloud mounts
-and broken hardware caches are outside that guarantee. Process-halt tests exercise
-restart recovery, not physical power loss.
+`LinuxDeviceProvenanceKeyStore` keeps an immutable owner-only P-256 record outside
+synchronized storage. Private staging, force, no-replace installation, directory fsync,
+exact vault binding and key validation remain. Group/other permissions are rejected.
+Custody is exportable filesystem storage, not hardware-backed storage.
 
-The synchronized-storage implementation now depends only on Java 17-compatible NIO/core
-APIs and has no Linux-native dependency. Android compatibility still requires verification
-against the chosen Android API/desugaring baseline and an Android-specific durability/local-custody
-adapter. A future Android application can reuse core and supported storage-nio operations,
-with Android durability facilities, app-private security memory, and Android Keystore
-provenance custody. File-backed key custody is intentionally not generalized; core's
-`DeviceProvenanceKeyStore` is already the portable boundary.
+Temporary names are nonauthoritative; cleanup is best effort and a crash can leave residue.
+Native durability supports reviewed Linux amd64/x86-64 libc. Writers grant native access
+with `--enable-native-access=ALL-UNNAMED`; tests additionally deny implicit native access.
+Core and storage-nio need no native access. Unsupported hard links/atomic moves fail without
+fallback. Local crash durability requires filesystems/devices honoring force/fsync; process-halt
+tests exercise restart behavior, not physical power loss.
 
-A future `totipo-desktop` Linux build assembles core, storage-nio, platform-linux, and
-the desktop UI. Windows/macOS builds can reuse core/storage-nio with their own small
-platform adapter. No platform-common or permission framework is introduced ahead of a
-second concrete platform. Security-memory mechanics may eventually justify shared NIO
-code with a local-private-storage policy, but Linux permissions/locking/durability remain
-in platform-linux for now.
+## Remaining boundaries
 
-BC 1.86 remains the only external production dependency. Portable initial TOKEN creation
-and ordinary existing TOKEN updates are available internally. Updates parent the exact
-known current frontier and write complete values. Whole-state edits, credential rotation,
-delete, explicit restoration and reaffirmation/convergence require complete, unambiguous
-supported current state. Supported conflicting or unavailable current state can instead
-be resolved through explicit complete-value confirmation, bound to the exact context and
-session-local freshness epoch. Opaque current heads remain non-confirmable. Confirmation
-is a writer precondition, with no durable or wire receipt. Rotation and deletion do not erase immutable historical secrets.
-TOKEN publication may precede DEVICE advertisement; reporting
-success waits for the matching valid, verified, durably remembered DEVICE advertisement.
-Capacity folds, DEVICE rename/fold, alternate-bootstrap recovery
-and fingerprint/rollback detection remain deferred. This is not yet an application API.
+BC 1.86 is the only external production dependency. Folds return `FOLD_REQUIRED` when the
+exact planning frontier cannot fit; fold construction is the next milestone. DEVICE rename
+orchestration, full DEVICE presentation, alternate-bootstrap recovery, Android platform
+integration and application APIs remain deferred. DEVICE graph topology and current key
+material are implemented. Cross-run advisory history and rollback/regression warnings are
+not implemented or required by baseline r15. No cross-run TOKEN/DEVICE/head/opaque cache exists.
 
-The single r14 snapshot lives in `core/src/test/resources/totipo-spec`; `SPEC_PIN.md`
-is the repository-wide pin authority. Production JARs contain no test corpus.
+The single r15 corpus is under `core/src/test/resources/totipo-spec`; production JARs contain
+no corpus. `SPEC_PIN.md` is the repository-wide pin authority. Some DEVICE presentation and
+rename vector expectations have lower-layer topology coverage only; no full end-to-end
+conformance claim is made for those deferred surfaces.

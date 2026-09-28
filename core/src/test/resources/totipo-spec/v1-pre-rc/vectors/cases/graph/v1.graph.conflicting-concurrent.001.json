@@ -62,12 +62,14 @@
           ],
           "value_state": "CONFLICT",
           "ordinary": false,
-          "author": true,
+          "author": false,
           "candidate": true,
           "candidate_warning": true,
-          "integrity_failure": false
+          "integrity_failure": false,
+          "requires_confirmation": true
         }
       }
-    ]
+    ],
+    "notes": "r15: evaluate accepted current objects; retained history supplies warnings only. Ordinary authorship requires one value; visible conflict requires confirmation."
   }
 }

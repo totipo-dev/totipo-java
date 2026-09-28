@@ -43,7 +43,7 @@ class LinuxSpecialPublicationTest {
                 case "fifo" -> StaticFiles.fifo(target);
                 case "socket" -> socket.bind(UnixDomainSocketAddress.of(target));
             }
-            assertThrows(IOException.class, () -> store.publishDurably(ID, new byte[1024]));
+            assertThrows(IOException.class, () -> store.publish(ID, new byte[1024]));
             assertTrue(Files.exists(target, LinkOption.NOFOLLOW_LINKS));
         } finally { Files.deleteIfExists(target); Files.delete(directory); Files.delete(shortRoot); }
     }
@@ -56,7 +56,7 @@ class LinuxSpecialPublicationTest {
             case "fifo" -> StaticFiles.fifo(namespace);
         }
         try (var store = NioV1ObjectPublicationStore.open(root, LinuxDurability.open())) {
-            assertThrows(IOException.class, () -> store.publishDurably(ID, new byte[1024]));
+            assertThrows(IOException.class, () -> store.publish(ID, new byte[1024]));
         }
     }
 }

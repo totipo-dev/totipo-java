@@ -67,11 +67,6 @@ final class DiscoveryFixtures implements DiscoverySource {
                 EnvelopeReader.aad(id), CryptoVectorTest.padded(semantic)), root);
     }
 
-    static DiscoveryResult run(DiscoverySource source, byte[] root, DurableKnowledgeState state) {
-        // COMMITTED here MODELS an external durable commit. This fake has no crash durability.
-        return DiscoveryCoordinator.discover(source, root, state, o -> DurableKnowledgeState.PersistenceResult.COMMITTED);
-    }
-
     static DiscoveryFixtures vector(VectorCaseLoader.Node storage) throws IOException {
         var source = new DiscoveryFixtures();
         source.namespace = storage.field("namespace_kind").string();

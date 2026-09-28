@@ -27,13 +27,12 @@ public final class NioV1ObjectPublicationStore implements V1ObjectPublicationSto
         int write(FileChannel channel, ByteBuffer bytes) throws IOException { return channel.write(bytes); }
         void force(FileChannel channel, String point) throws IOException { at(point); channel.force(true); }
         void sync(Path directory, String point) throws IOException { at(point); durability.syncDirectory(directory); }
-        void syncExisting(Path target) throws IOException { at("existing-file-sync"); durability.syncExistingFile(target); }
         byte[] readExisting(Path target, String point) throws IOException { at(point); return NioFiles.read(target, 1025); }
         void link(Path target, Path temp) throws IOException {
             at("before-link"); Files.createLink(target, temp); at("after-link");
         }
     }
-    @Override public PublicationResult publishDurably(ObjectId id, byte[] exactObjectBytes) throws IOException {
+    @Override public PublicationResult publish(ObjectId id, byte[] exactObjectBytes) throws IOException {
         if (closed) throw new IOException("STORE_CLOSED");
         Objects.requireNonNull(id); Objects.requireNonNull(exactObjectBytes);
         if (exactObjectBytes.length != 1024) throw new IllegalArgumentException("EXACT_1024_BYTES_REQUIRED");
@@ -44,18 +43,19 @@ public final class NioV1ObjectPublicationStore implements V1ObjectPublicationSto
         catch (FileAlreadyExistsException exists) { NioFiles.directory(directory); }
         // Retain a failed creation barrier for retry on this instance.
         if (rootSyncPending) { operations.sync(root, "root-sync"); rootSyncPending = false; }
+        Path target = directory.resolve(id.filename());
+        if (Files.exists(target, LinkOption.NOFOLLOW_LINKS)) {
+            if (!Arrays.equals(owned, operations.readExisting(target, "existing-read"))) throw new IOException("OBJECT_BYTES_MISMATCH");
+            return PublicationResult.ALREADY_PRESENT_EXACT;
+        }
         operations.at("temporary");
         Path temp = NioFiles.temporary(directory, ".totipo-object-");
         try (var channel = FileChannel.open(temp, StandardOpenOption.WRITE)) {
             NioFiles.write(channel, owned, operations::write);
             operations.force(channel, "stage-sync");
-            Path target = directory.resolve(id.filename());
             try { operations.link(target, temp); }
             catch (FileAlreadyExistsException exists) {
                 if (!Arrays.equals(owned, operations.readExisting(target, "existing-read"))) throw new IOException("OBJECT_BYTES_MISMATCH");
-                operations.syncExisting(target);
-                operations.sync(directory, "existing-directory-sync");
-                if (!Arrays.equals(owned, operations.readExisting(target, "existing-reread"))) throw new IOException("OBJECT_BYTES_MISMATCH");
                 return PublicationResult.ALREADY_PRESENT_EXACT;
             }
             operations.force(channel, "post-link-sync");

@@ -16,7 +16,7 @@ import org.junit.jupiter.api.io.TempDir;
 import static org.junit.jupiter.api.Assertions.*;
 import static dev.totipo.format.VaultStorageCrashProcess.*;
 import static dev.totipo.format.VaultReplacementCrashProcess.NEW_PASSWORD;
-import static dev.totipo.format.LinuxVaultLifecycleIntegrationTest.replay;
+
 import static dev.totipo.format.VaultLifecycleResult.Status.*;
 import static dev.totipo.format.PasswordChangeStatus.*;
 
@@ -24,13 +24,13 @@ import static dev.totipo.format.PasswordChangeStatus.*;
 class LinuxPasswordReplacementIntegrationTest {
     @TempDir(factory = LocalStorageTempDirectory.class) Path dir;
     Path directory(String name) throws IOException { return Files.createDirectory(dir.resolve(name)); }
-    static VaultLifecycle changing(VaultBootstrapStorage vault, SecurityMemoryStorage memory, DiscoverySource source, int seed) {
+    static VaultLifecycle changing(VaultBootstrapStorage vault, VaultBindingStore memory, DiscoverySource source, int seed) {
         return new VaultLifecycle(vault, memory, source, bytes -> Arrays.fill(bytes, (byte) seed),
                 new VaultBootstrapWriter(), new VaultUnlocker());
     }
     static void create(Path sync, Path local) throws Exception { create(sync, local, ROOT); }
     static void create(Path sync, Path local, byte[] root) throws Exception {
-        try (var memory = LinuxSecurityMemoryStorage.open(local); var vault = NioVaultBootstrapStorage.open(sync, LinuxDurability.open())) {
+        try (var memory = LinuxVaultBindingStore.open(local); var vault = NioVaultBootstrapStorage.open(sync, LinuxDurability.open())) {
             var lifecycle = new VaultLifecycle(vault, memory, new NioDiscoverySource(sync), bytes -> {
                 if (bytes.length == 32) System.arraycopy(root, 0, bytes, 0, 32); else Arrays.fill(bytes, (byte) 37);
             }, new VaultBootstrapWriter(), new VaultUnlocker());
@@ -39,19 +39,14 @@ class LinuxPasswordReplacementIntegrationTest {
             }
         }
     }
-    static byte[] journal(Path local) throws IOException { return Files.readAllBytes(local.resolve("security-memory-v1.bin")); }
-    record Remembered(byte[] bytes, byte[] hash, SecurityMemoryJournal.Replay state) {
-        static Remembered capture(Path local, SecurityMemoryStorage memory) throws IOException {
-            byte[] b = journal(local); return new Remembered(b, SecurityMemoryJournal.hash(b), replay(memory));
+    static byte[] journal(Path local) throws IOException { return Files.readAllBytes(local.resolve("vault-binding-v1.bin")); }
+    record Remembered(byte[] bytes) {
+        static Remembered capture(Path local, VaultBindingStore memory) throws IOException {
+            return new Remembered(memory.read().bytes());
         }
-        void unchanged(Path local, SecurityMemoryStorage memory) throws IOException {
-            byte[] after = journal(local); assertArrayEquals(bytes, after); assertArrayEquals(hash, SecurityMemoryJournal.hash(after));
-            var next = replay(memory); assertEquals(SecurityMemoryJournal.Status.CLEAN, next.status());
-            assertEquals(LocalEstablishment.Phase.ESTABLISHED, next.establishment().phase());
-            assertEquals(state.sequence(), next.sequence()); assertEquals(state.digest(), next.digest());
-            assertArrayEquals(state.establishment().binding().bytes(), next.establishment().binding().bytes());
-            assertEquals(state.knowledge().records(), next.knowledge().records());
-            assertEquals(state.knowledge().continuity(), next.knowledge().continuity());
+        void unchanged(Path local, VaultBindingStore memory) throws IOException {
+            assertArrayEquals(bytes,memory.read().bytes());
+            assertArrayEquals(bytes,journal(local));
         }
     }
     static void authenticates(byte[] representation, byte[] password, byte[] root) {
@@ -69,7 +64,7 @@ class LinuxPasswordReplacementIntegrationTest {
         var result = new TreeMap<String, String>();
         try (var paths = Files.list(sync.resolve("objects-v1"))) {
             for (Path p : paths.toList()) result.put(p.getFileName().toString(),
-                    Files.readAttributes(p, BasicFileAttributes.class).fileKey() + ":" + HexFormat.of().formatHex(SecurityMemoryJournal.hash(Files.readAllBytes(p))));
+                    Files.readAttributes(p, BasicFileAttributes.class).fileKey() + ":" + HexFormat.of().formatHex(CryptoSupport.sha256(Files.readAllBytes(p))));
         }
         return result;
     }
@@ -78,15 +73,15 @@ class LinuxPasswordReplacementIntegrationTest {
         var fixture = NioTestFixtures.fixture(NioTestFixtures.TOKEN); byte[] root = fixture.root();
         create(sync, local, root);
         Files.write(Files.createDirectory(sync.resolve("objects-v1")).resolve(fixture.id().filename()), fixture.bytes());
-        try (var memory = LinuxSecurityMemoryStorage.open(local); var vault = NioVaultBootstrapStorage.open(sync, LinuxDurability.open());
+        try (var memory = LinuxVaultBindingStore.open(local); var vault = NioVaultBootstrapStorage.open(sync, LinuxDurability.open());
              var opened = lifecycle(vault, memory, new NioDiscoverySource(sync)).openConfigured(PASSWORD)) {
-            assertEquals(OPENED_ESTABLISHED, opened.status()); assertEquals(1, replay(memory).knowledge().size());
+            assertEquals(OPENED_ESTABLISHED, opened.status()); assertEquals(1, opened.discovery().snapshot().objects().size());
         }
         byte[] old = Files.readAllBytes(sync.resolve("vault"));
         Files.createLink(sync.resolve("historical"), sync.resolve("vault"));
         Object inode = Files.readAttributes(sync.resolve("vault"), BasicFileAttributes.class).fileKey();
         Map<String, String> objects = objects(sync);
-        try (var memory = LinuxSecurityMemoryStorage.open(local); var vault = NioVaultBootstrapStorage.open(sync, LinuxDurability.open())) {
+        try (var memory = LinuxVaultBindingStore.open(local); var vault = NioVaultBootstrapStorage.open(sync, LinuxDurability.open())) {
             var before = Remembered.capture(local, memory);
             var source = new LinuxVaultLifecycleIntegrationTest.ObservedDiscovery(sync, memory);
             assertEquals(SUCCESS, changing(vault, memory, source, 41).changePassword(PASSWORD, NEW_PASSWORD));
@@ -98,7 +93,7 @@ class LinuxPasswordReplacementIntegrationTest {
             try (var result = new VaultUnlocker().unlock(current, PASSWORD)) { assertEquals(VaultUnlockResult.Status.AUTHENTICATION_FAILED, result.status()); }
             authenticates(old, PASSWORD, root); authenticates(Files.readAllBytes(sync.resolve("historical")), PASSWORD, root);
         }
-        try (var memory = LinuxSecurityMemoryStorage.open(local); var vault = NioVaultBootstrapStorage.open(sync, LinuxDurability.open());
+        try (var memory = LinuxVaultBindingStore.open(local); var vault = NioVaultBootstrapStorage.open(sync, LinuxDurability.open());
              var result = lifecycle(vault, memory, new NioDiscoverySource(sync)).openConfigured(NEW_PASSWORD)) {
             assertEquals(OPENED_ESTABLISHED, result.status()); assertArrayEquals(root, result.root());
         }
@@ -107,7 +102,7 @@ class LinuxPasswordReplacementIntegrationTest {
         for (byte[] next : List.of(PASSWORD, new byte[0])) {
             Path sync = directory("sync" + next.length), local = directory("local" + next.length); create(sync, local);
             byte[] old = Files.readAllBytes(sync.resolve("vault"));
-            try (var memory = LinuxSecurityMemoryStorage.open(local); var vault = NioVaultBootstrapStorage.open(sync, LinuxDurability.open())) {
+            try (var memory = LinuxVaultBindingStore.open(local); var vault = NioVaultBootstrapStorage.open(sync, LinuxDurability.open())) {
                 var before = Remembered.capture(local, memory); var source = new LinuxVaultLifecycleIntegrationTest.ObservedDiscovery(sync, memory);
                 assertEquals(SUCCESS, changing(vault, memory, source, 41).changePassword(PASSWORD, next));
                 byte[] current = Files.readAllBytes(sync.resolve("vault")); assertFalse(Arrays.equals(old, current));
@@ -123,7 +118,7 @@ class LinuxPasswordReplacementIntegrationTest {
             var faults = new ReplacementStorageFaults(LinuxDurability.open()); faults.fail = failure;
             faults.unsupported = failure.equals("unsupported");
             if (failure.equals("delete")) faults.beforeMove = () -> Files.delete(sync.resolve("vault"));
-            try (var memory = LinuxSecurityMemoryStorage.open(local); var vault = faults.open(sync)) {
+            try (var memory = LinuxVaultBindingStore.open(local); var vault = faults.open(sync)) {
                 var before = Remembered.capture(local, memory);
                 assertEquals(failure.equals("delete") ? SUCCESS : REWRAP_INCOMPLETE,
                         changing(vault, memory, () -> { throw new AssertionError("discovery"); }, 41).changePassword(PASSWORD, NEW_PASSWORD));
@@ -139,7 +134,7 @@ class LinuxPasswordReplacementIntegrationTest {
             byte[] otherRoot = ROOT.clone(); if (!same) otherRoot[0] ^= 1;
             byte[] alternate = new VaultBootstrapWriter().encode(NEW_PASSWORD, otherRoot, new byte[16], new byte[12]);
             var faults = new ReplacementStorageFaults(LinuxDurability.open()); faults.afterDirectory = () -> atomicActor(sync, alternate);
-            try (var memory = LinuxSecurityMemoryStorage.open(local); var vault = faults.open(sync)) {
+            try (var memory = LinuxVaultBindingStore.open(local); var vault = faults.open(sync)) {
                 var before = Remembered.capture(local, memory); var source = new LinuxVaultLifecycleIntegrationTest.ObservedDiscovery(sync, memory);
                 assertEquals(same ? SUCCESS : REWRAP_INCOMPLETE, changing(vault, memory, source, 41).changePassword(PASSWORD, NEW_PASSWORD));
                 assertArrayEquals(alternate, Files.readAllBytes(sync.resolve("vault"))); before.unchanged(local, memory);
@@ -156,7 +151,7 @@ class LinuxPasswordReplacementIntegrationTest {
         for (boolean samePassword : new boolean[]{false, true}) {
             Path sync = directory("sync" + samePassword), firstLocal = directory("first" + samePassword), secondLocal = directory("second" + samePassword);
             create(sync, firstLocal);
-            try (var memory = LinuxSecurityMemoryStorage.open(secondLocal); var vault = NioVaultBootstrapStorage.open(sync, LinuxDurability.open());
+            try (var memory = LinuxVaultBindingStore.open(secondLocal); var vault = NioVaultBootstrapStorage.open(sync, LinuxDurability.open());
                  var result = lifecycle(vault, memory, new NioDiscoverySource(sync)).configureExisting(PASSWORD)) {
                 assertEquals(OPENED_ESTABLISHED, result.status());
             }
@@ -177,7 +172,7 @@ class LinuxPasswordReplacementIntegrationTest {
                             if (index == 0) { firstDurable.countDown(); await(secondDurable); }
                             else secondDurable.countDown();
                         };
-                        try (var memory = LinuxSecurityMemoryStorage.open(local); var vault = faults.open(sync)) {
+                        try (var memory = LinuxVaultBindingStore.open(local); var vault = faults.open(sync)) {
                             var before = Remembered.capture(local, memory); var source = new LinuxVaultLifecycleIntegrationTest.ObservedDiscovery(sync, memory);
                             var result = changing(vault, memory, source, 41 + index).changePassword(PASSWORD, index == 0 ? NEW_PASSWORD : secondPassword);
                             before.unchanged(local, memory); assertEquals(1, faults.moves);
@@ -210,7 +205,7 @@ class LinuxPasswordReplacementIntegrationTest {
         for (String mode : List.of("stage", "backend", "full")) {
             Path sync = directory("sync-" + mode), local = directory("local-" + mode); create(sync, local);
             byte[] journal = journal(local), old = Files.readAllBytes(sync.resolve("vault")); halt(mode, sync, local);
-            assertArrayEquals(journal, journal(local)); assertArrayEquals(SecurityMemoryJournal.hash(journal), SecurityMemoryJournal.hash(journal(local)));
+            assertArrayEquals(journal, journal(local)); assertArrayEquals(CryptoSupport.sha256(journal), CryptoSupport.sha256(journal(local)));
             boolean exchanged = List.of("backend", "full").contains(mode);
             byte[] password = exchanged ? NEW_PASSWORD : PASSWORD;
             authenticates(Files.readAllBytes(sync.resolve("vault")), password, ROOT);
@@ -219,7 +214,7 @@ class LinuxPasswordReplacementIntegrationTest {
             assertEquals(mode.equals("stage") ? 1 : 0, residue.size());
             if (!residue.isEmpty()) authenticates(Files.readAllBytes(residue.getFirst()), NEW_PASSWORD, ROOT);
             if (!exchanged) assertArrayEquals(old, Files.readAllBytes(sync.resolve("vault")));
-            try (var memory = LinuxSecurityMemoryStorage.open(local); var vault = NioVaultBootstrapStorage.open(sync, LinuxDurability.open())) {
+            try (var memory = LinuxVaultBindingStore.open(local); var vault = NioVaultBootstrapStorage.open(sync, LinuxDurability.open())) {
                 var before = Remembered.capture(local, memory);
                 try (var result = lifecycle(vault, memory, new NioDiscoverySource(sync)).openConfigured(password)) {
                     assertEquals(OPENED_ESTABLISHED, result.status()); assertArrayEquals(ROOT, result.root());

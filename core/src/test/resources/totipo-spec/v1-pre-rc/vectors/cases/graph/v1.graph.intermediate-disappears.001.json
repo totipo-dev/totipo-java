@@ -87,16 +87,19 @@
         },
         "expect": {
           "heads": [
+            "a",
             "c"
           ],
-          "value_state": "UNAMBIGUOUS",
-          "ordinary": true,
-          "author": true,
+          "value_state": "CONFLICT",
+          "ordinary": false,
+          "author": false,
           "candidate": true,
           "candidate_warning": true,
-          "integrity_failure": false
+          "integrity_failure": false,
+          "requires_confirmation": true
         }
       }
-    ]
+    ],
+    "notes": "Baseline missing intermediate cannot supply current ancestry; accepted A/C are concurrent and conflict without any advisory cache."
   }
 }

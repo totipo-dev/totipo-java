@@ -57,7 +57,15 @@ public final class VectorCaseLoader {
     public static List<Case> candidateCases() throws IOException { return cases("candidate"); }
     public static List<Case> storageCases() throws IOException { return cases("storage"); }
 
-    private static List<Case> cases(String category) throws IOException {
+    public static List<Case> cases(String category) throws IOException {
+        return selected(category, "baseline");
+    }
+
+    public static List<Case> allCases() throws IOException { return selected(null, null); }
+    public static List<Case> baselineCases() throws IOException { return selected(null, "baseline"); }
+    public static List<Case> advisoryCases() throws IOException { return selected(null, "conditional"); }
+
+    private static List<Case> selected(String category, String kind) throws IOException {
         Node manifest = resource("manifest.json");
         if (!manifest.field("format").string().equals("totipo-vector-manifest-v1")) {
             throw manifest.error("Unexpected manifest format");
@@ -65,12 +73,19 @@ public final class VectorCaseLoader {
         List<Case> cases = new ArrayList<>();
         var ids = new HashSet<String>();
         for (Node entry : manifest.field("cases").array()) {
-            if (!entry.field("category").string().equals(category)) {
+            var applicability = entry.field("applicability");
+            String applicabilityKind = applicability.field("kind").string();
+            if (!java.util.Set.of("baseline", "conditional").contains(applicabilityKind)
+                    || applicabilityKind.equals("conditional") && !applicability.field("capability").string().equals("advisory-history")) {
+                throw entry.error("Unsupported applicability");
+            }
+            if (kind != null && !kind.equals(applicabilityKind)) { continue; }
+            if (category != null && !entry.field("category").string().equals(category)) {
                 continue;
             }
             String id = entry.field("id").string();
             String path = entry.field("path").string();
-            if (!path.matches("cases/" + category + "/[a-z0-9.-]+\\.json")) {
+            if (!path.matches("cases/" + entry.field("category").string() + "/[a-z0-9.-]+\\.json")) {
                 throw entry.error(id + ": unsafe case path " + path);
             }
             if (!ids.add(id)) {
@@ -87,20 +102,7 @@ public final class VectorCaseLoader {
             if (!data.field("id").string().equals(id)
                     || !entry.field("expected").string().equals(expected)
                     || !data.field("format").string().equals("totipo-case-v1")
-                    || !(data.field("operation").string().equals("dispatch")
-                        || (category.equals("crypto") && data.field("operation").string().equals("crypto"))
-                        || (category.equals("bootstrap") && data.field("operation").string().equals("bootstrap"))
-                        || (category.equals("totp") && data.field("operation").string().equals("totp"))
-                        || (category.equals("device") && data.field("operation").string().equals("graph"))
-                        || (category.equals("graph") && data.field("operation").string().equals("graph"))
-                        || (category.equals("storage") && data.field("operation").string().equals("storage"))
-                        || (category.equals("candidate") && data.field("operation").string().equals("graph"))
-                        || (category.equals("timestamp") && java.util.Set.of("graph", "dispatch")
-                            .contains(data.field("operation").string()))
-                        || (category.equals("future") && java.util.Set.of("graph", "opaque-retention", "storage")
-                            .contains(data.field("operation").string()))
-                        || (category.equals("provenance") && java.util.Set.of("provenance", "publication",
-                            "signature-context", "late-provenance").contains(data.field("operation").string())))) {
+) {
                 throw data.error("Manifest/case identity, expected value, or format mismatch");
             }
             cases.add(new Case(id, path, expected, data));

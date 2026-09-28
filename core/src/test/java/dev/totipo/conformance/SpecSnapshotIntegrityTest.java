@@ -25,24 +25,24 @@ class SpecSnapshotIntegrityTest {
     private static final Path ROOT = Path.of("src/test/resources/totipo-spec/v1-pre-rc");
     private static final String CHECKSUMS = "SNAPSHOT.sha256";
     private static final String PROFILE_HASH =
-            "e6f11dfd93f64589a88b373009710dad50133d412702c305ad6c20dfc2682895";
+            "756cb4cf2ec642c597928bca896c895098f79d3870e1a493ae95e71e5e51ec81";
     private static final Map<String, String> PINNED = Map.of(
             "spec/totipo-vault-format-v1.md",
-            "a60cf63a742b4855b5742e5280ac15cdf6a08e60c81b1a6242b1dea10a1630fb",
+            "f62022718044b172092ec321b48ddd14c83c7b791587050cc0ae4678cdefec35",
             "vectors/manifest.json",
-            "2776ed6a8c62609384f0f5e34747b4ce80359fb1abc956137cc64e1ad92def41",
+            "2ddf067d119e3512fa033bd4736a1a9f64042985b8a23968ff89778eb4ce5512",
             "vectors/manifest.schema.json",
-            "59bdc9165b1c7e940031c447c2da640185774a6e4fd52fa0fee0b245061e0440",
+            "b670c263ab89387e24763e725317cce7ea1c7905ecefd05b00483f4625e0a4a5",
             "vectors/case.schema.json",
-            "79e33b68bf948dcc332075827b791c8eb8e54d9cb27634dd59c0c6ac1fd95fd5",
+            "e9adccef5aac91e23bcff56c8fda914620757b71d0b88c28adb1eb41a5d2a16d",
             "requirements/v1-pre-rc.json", PROFILE_HASH);
     private static final Pattern RECORD = Pattern.compile("([0-9a-f]{64})  ([A-Za-z0-9_./-]+)");
 
     @Test
     void snapshotMatchesChecksumsAndIndependentPins() throws Exception {
         Set<String> paths = verify(ROOT);
-        assertEquals(97, paths.size(), "Upstream file count");
-        assertEquals(90L, paths.stream().filter(p -> p.startsWith("vectors/cases/")).count());
+        assertEquals(112, paths.size(), "Upstream file count");
+        assertEquals(105L, paths.stream().filter(p -> p.startsWith("vectors/cases/")).count());
         for (var pin : PINNED.entrySet()) {
             assertTrue(paths.contains(pin.getKey()), pin.getKey());
             assertEquals(pin.getValue(), sha256(ROOT.resolve(pin.getKey())), pin.getKey());

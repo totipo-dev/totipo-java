@@ -71,6 +71,7 @@
           "integrity_failure": false
         }
       }
-    ]
+    ],
+    "notes": "Baseline normal reappearance restores authenticated current evidence; no prior-observation cache is involved."
   }
 }

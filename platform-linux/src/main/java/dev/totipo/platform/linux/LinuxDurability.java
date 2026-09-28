@@ -6,14 +6,13 @@ import java.lang.foreign.*;
 import java.lang.invoke.MethodHandle;
 import java.nio.file.Path;
 
-/** Linux durability only: directory metadata and adoption of pre-existing file bytes.
+/** Linux directory metadata durability.
  * Requires native access and a local filesystem/device honoring fsync. */
 public final class LinuxDurability implements StorageDurability {
     private LinuxDurability() {}
     /** Create a capability; native availability is checked at each durability operation. */
     public static LinuxDurability open() { return new LinuxDurability(); }
     @Override public void syncDirectory(Path directory) throws IOException { sync(directory, O_DIRECTORY); }
-    @Override public void syncExistingFile(Path file) throws IOException { sync(file, 0); }
 
     private static final int O_DIRECTORY = 0200000, O_NOFOLLOW = 0400000, O_CLOEXEC = 02000000;
     private static final int EINTR = 4;

@@ -30,8 +30,8 @@
         "storage",
         "signature-context",
         "publication",
-        "opaque-retention",
-        "late-provenance"
+        "late-provenance",
+        "local"
       ]
     },
     "expected": {
@@ -307,20 +307,19 @@
               "action": {
                 "enum": [
                   "learn",
-                  "persist-fails",
+                  "cache-write-fails",
                   "disappear",
-                  "discovery-incomplete",
-                  "continuity-unknown",
-                  "query",
                   "remote-unavailable",
-                  "local-security-corruption",
-                  "reset-begin",
-                  "baseline-learn",
-                  "reset-complete",
-                  "reclassify",
+                  "history-lost",
+                  "remember",
                   "rename",
                   "state-query",
-                  "reset-complete-scan"
+                  "discovery-incomplete",
+                  "query",
+                  "plan",
+                  "publish",
+                  "history-clear",
+                  "optional-cache-failure"
                 ]
               },
               "node": {
@@ -479,8 +478,7 @@
                       "EMPTY",
                       "UNAMBIGUOUS",
                       "CONFLICT",
-                      "VALUE_INCOMPLETE_OPAQUE",
-                      "VALUE_INCOMPLETE_UNAVAILABLE"
+                      "VALUE_INCOMPLETE_OPAQUE"
                     ]
                   },
                   "ordinary": {
@@ -505,6 +503,21 @@
                       "VERIFIED",
                       "CONFLICT"
                     ]
+                  },
+                  "warnings": {
+                    "type": "array",
+                    "items": {
+                      "enum": [
+                        "HISTORY_MEMORY_LOST",
+                        "HISTORY_REGRESSION",
+                        "HISTORY_CACHE_WRITE_FAILED",
+                        "PROCESSING_INCOMPLETE",
+                        "UNKNOWN_FUTURE_EVIDENCE"
+                      ]
+                    }
+                  },
+                  "requires_confirmation": {
+                    "type": "boolean"
                   }
                 },
                 "required": [
@@ -555,10 +568,7 @@
                       "type": "string"
                     }
                   },
-                  "authoritative": {
-                    "type": "boolean"
-                  },
-                  "continuity_unknown": {
+                  "integrity_ok": {
                     "type": "boolean"
                   }
                 },
@@ -566,38 +576,17 @@
                   "known",
                   "device_heads",
                   "parents",
-                  "authoritative",
-                  "continuity_unknown"
+                  "integrity_ok"
                 ]
               },
-              "scan": {
+              "intent": {
+                "type": "string",
+                "minLength": 1
+              },
+              "parents": {
                 "type": "array",
-                "minItems": 1,
                 "items": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "id": {
-                      "type": "string",
-                      "minLength": 1
-                    },
-                    "classification": {
-                      "enum": [
-                        "SUPPORTED_VALID",
-                        "OPAQUE_ROUTABLE",
-                        "OPAQUE_UNSCOPED",
-                        "INVALID",
-                        "INVALID_STORAGE",
-                        "UNCLASSIFIED",
-                        "RESOURCE_EXHAUSTED",
-                        "BYTES_UNAVAILABLE"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "classification"
-                  ]
+                  "type": "string"
                 }
               }
             },
@@ -611,7 +600,9 @@
                     "action": {
                       "enum": [
                         "learn",
-                        "persist-fails"
+                        "cache-write-fails",
+                        "rename",
+                        "plan"
                       ]
                     }
                   }
@@ -655,13 +646,30 @@
                 "if": {
                   "properties": {
                     "action": {
-                      "const": "reset-complete-scan"
+                      "const": "plan"
                     }
                   }
                 },
                 "then": {
                   "required": [
-                    "scan",
+                    "node",
+                    "value",
+                    "intent",
+                    "parents",
+                    "success"
+                  ]
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "action": {
+                      "const": "publish"
+                    }
+                  }
+                },
+                "then": {
+                  "required": [
                     "flag",
                     "success"
                   ]
@@ -917,7 +925,7 @@
             "observations",
             "learned_ids",
             "opaque_unscoped_ids",
-            "authoritative",
+            "integrity_ok",
             "view"
           ],
           "properties": {
@@ -961,9 +969,6 @@
                 "pattern": "^[0-9a-f]{64}$"
               }
             },
-            "authoritative": {
-              "type": "boolean"
-            },
             "view": {
               "type": "object",
               "additionalProperties": false,
@@ -979,8 +984,7 @@
                     "EMPTY",
                     "UNAMBIGUOUS",
                     "CONFLICT",
-                    "VALUE_INCOMPLETE_OPAQUE",
-                    "VALUE_INCOMPLETE_UNAVAILABLE"
+                    "VALUE_INCOMPLETE_OPAQUE"
                   ]
                 },
                 "ordinary": {
@@ -1005,6 +1009,21 @@
                     "VERIFIED",
                     "CONFLICT"
                   ]
+                },
+                "warnings": {
+                  "type": "array",
+                  "items": {
+                    "enum": [
+                      "HISTORY_MEMORY_LOST",
+                      "HISTORY_REGRESSION",
+                      "HISTORY_CACHE_WRITE_FAILED",
+                      "PROCESSING_INCOMPLETE",
+                      "UNKNOWN_FUTURE_EVIDENCE"
+                    ]
+                  }
+                },
+                "requires_confirmation": {
+                  "type": "boolean"
                 }
               },
               "required": [
@@ -1016,6 +1035,9 @@
                 "candidate_warning",
                 "integrity_failure"
               ]
+            },
+            "integrity_ok": {
+              "type": "boolean"
             }
           }
         }
@@ -1089,10 +1111,10 @@
               "verified": {
                 "type": "boolean"
               },
-              "durable": {
+              "success": {
                 "type": "boolean"
               },
-              "success": {
+              "acknowledged": {
                 "type": "boolean"
               }
             },
@@ -1106,80 +1128,6 @@
         "device_id",
         "public_key",
         "events"
-      ]
-    },
-    "retention": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "fixture_case": {
-          "type": "string",
-          "minLength": 1
-        },
-        "notes": {
-          "type": "string",
-          "minLength": 1
-        },
-        "trials": {
-          "type": "array",
-          "minItems": 1,
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "persist": {
-                "type": "boolean"
-              },
-              "reclassify": {
-                "enum": [
-                  "SUPPORTED_VALID",
-                  "OPAQUE_ROUTABLE"
-                ]
-              },
-              "reclassify_persist": {
-                "type": "boolean"
-              },
-              "expect": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "retained_exact": {
-                    "type": "boolean"
-                  },
-                  "persistence_blocked": {
-                    "type": "boolean"
-                  },
-                  "authoritative": {
-                    "type": "boolean"
-                  },
-                  "class": {
-                    "enum": [
-                      "",
-                      "OPAQUE_UNSCOPED",
-                      "SUPPORTED_VALID",
-                      "OPAQUE_ROUTABLE"
-                    ]
-                  }
-                },
-                "required": [
-                  "retained_exact",
-                  "persistence_blocked",
-                  "authoritative",
-                  "class"
-                ]
-              }
-            },
-            "required": [
-              "persist",
-              "expect"
-            ]
-          }
-        }
-      },
-      "required": [
-        "fixture_case",
-        "notes",
-        "trials"
       ]
     },
     "late_provenance": {
@@ -1231,6 +1179,65 @@
         "notes",
         "trials"
       ]
+    },
+    "local": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "trials"
+      ],
+      "properties": {
+        "trials": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "operation",
+              "existing",
+              "acknowledged",
+              "authenticated",
+              "expected"
+            ],
+            "properties": {
+              "operation": {
+                "enum": [
+                  "install",
+                  "binding"
+                ]
+              },
+              "existing": {
+                "enum": [
+                  "absent",
+                  "exact",
+                  "different",
+                  "symlink",
+                  "corrupt"
+                ]
+              },
+              "acknowledged": {
+                "type": "boolean"
+              },
+              "authenticated": {
+                "type": "boolean"
+              },
+              "expected": {
+                "enum": [
+                  "PUBLISHED_NEW",
+                  "ALREADY_PRESENT_EXACT",
+                  "FAILED",
+                  "UNKNOWN",
+                  "ESTABLISHED",
+                  "ANCHOR_FAILURE",
+                  "REJECTED",
+                  "INCOMPLETE"
+                ]
+              }
+            }
+          }
+        }
+      }
     }
   },
   "allOf": [
@@ -1387,20 +1394,6 @@
       "if": {
         "properties": {
           "operation": {
-            "const": "opaque-retention"
-          }
-        }
-      },
-      "then": {
-        "required": [
-          "retention"
-        ]
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "operation": {
             "const": "late-provenance"
           }
         }
@@ -1408,6 +1401,20 @@
       "then": {
         "required": [
           "late_provenance"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "local"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "local"
         ]
       }
     }

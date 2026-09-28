@@ -29,17 +29,17 @@ class NioDiscoveryTest {
     @Test
     void safelyAbsentNamespaceIsEmptyAndReaderDoesNotCreateIt() throws Exception {
         var a = fixture(TOKEN);
-        var result = run(new NioDiscoverySource(root), a.root(), DurableKnowledgeState.establishedEmpty());
+        var result = run(new NioDiscoverySource(root), a.root());
         assertTrue(result.resourceComplete());
         assertEquals(DiscoveryState.READY, result.discoveryState());
         assertTrue(result.observations().isEmpty());
         assertFalse(Files.exists(root.resolve("objects-v1")));
-        assertEquals(0, result.knowledge().size());
+        assertEquals(0, result.snapshot().objects().size());
     }
 
     @Test void emptyNamespaceIsComplete() throws Exception {
         Files.createDirectory(root.resolve("objects-v1"));
-        var result = run(new NioDiscoverySource(root), new byte[32], DurableKnowledgeState.establishedEmpty());
+        var result = run(new NioDiscoverySource(root), new byte[32]);
         assertTrue(result.resourceComplete()); assertEquals(DiscoveryState.READY, result.discoveryState());
     }
 
@@ -54,7 +54,7 @@ class NioDiscoveryTest {
         symlink(namespace, target);
         assertUnsafePath();
         // The configured root itself also cannot be silently redirected by a symlink.
-        var redirected = run(new NioDiscoverySource(namespace), a.root(), DurableKnowledgeState.establishedEmpty());
+        var redirected = run(new NioDiscoverySource(namespace), a.root());
         assertEquals(DiscoverySource.SnapshotIssue.UNSAFE_NAMESPACE, redirected.snapshotIssue());
     }
 
@@ -78,7 +78,7 @@ class NioDiscoveryTest {
         var snapshot = boundSnapshot(namespace);
         assertEquals(List.of(a.id().filename(), b.id().filename()).stream().sorted().toList(),
                 snapshot.candidates().stream().map(c -> c.id().filename()).toList());
-        var result = run(() -> snapshot, a.root(), DurableKnowledgeState.establishedEmpty());
+        var result = run(() -> snapshot, a.root());
         assertTrue(result.resourceComplete());
         assertEquals(2, result.observations().size());
         assertTrue(result.observations().stream().allMatch(o -> o.classification() == ObjectDiscovery.Classification.SUPPORTED_VALID));
@@ -96,21 +96,21 @@ class NioDiscoveryTest {
         symlink(inner.resolve(a.id().filename()), inside);
         symlink(sync.resolve("objects-v2"), namespace);
         assertTrue(boundSnapshot(namespace).candidates().isEmpty());
-        var result = run(() -> boundSnapshot(inner), a.root(), DurableKnowledgeState.establishedEmpty());
+        var result = run(() -> boundSnapshot(inner), a.root());
         assertTrue(result.resourceComplete());
-        assertEquals(0, result.knowledge().size());
+        assertEquals(0, result.snapshot().objects().size());
     }
 
     @Test
     void controlledRealFilesExerciseEveryByteClassificationAndM23() throws Exception {
         Path namespace = Files.createDirectory(root.resolve("objects-v1"));
         var a = fixture(TOKEN); Files.write(namespace.resolve(a.id().filename()), a.bytes());
-        var one = run(controlledFiles(namespace), a.root(), DurableKnowledgeState.establishedEmpty());
+        var one = run(controlledFiles(namespace), a.root());
         assertEquals(DiscoveryState.READY, one.discoveryState());
-        assertTrue(policy(one, one.readable().get(a.id()).tokenId()).ordinaryUse().eligible());
+        assertTrue(policy(one, ((AcceptedToken) one.snapshot().object(a.id())).tokenId()).ordinaryUse().eligible());
         var b = fixture(CHILD); Files.write(namespace.resolve(b.id().filename()), b.bytes());
-        var two = run(controlledFiles(namespace), a.root(), one.knowledge());
-        assertEquals(2, two.readable().evidence().size());
+        var two = run(controlledFiles(namespace), a.root());
+        assertEquals(2, two.snapshot().objects().size());
         assertEquals(DiscoveryState.READY, two.discoveryState());
         var future = fixture(FUTURE); Files.write(namespace.resolve(future.id().filename()), future.bytes());
         var unscoped = fixture("v1.routing.unknown-type-unscoped.001");
@@ -118,14 +118,14 @@ class NioDiscoveryTest {
         Files.write(namespace.resolve("b".repeat(64)), new byte[12]);
         Files.write(namespace.resolve("c".repeat(64)), new byte[200_000]);
         Files.write(namespace.resolve("d".repeat(64)), new byte[1024]);
-        var result = run(controlledFiles(namespace), a.root(), two.knowledge());
+        var result = run(controlledFiles(namespace), a.root());
         assertEquals(7, result.observations().size());
-        assertEquals(4, result.knowledge().size());
+        assertEquals(4, result.snapshot().objects().size());
         assertTrue(result.resourceComplete());
         assertEquals(DiscoveryState.READY, result.discoveryState());
-        assertEquals(2, result.readable().evidence().size());
-        assertTrue(result.knowledge().record(unscoped.id()) instanceof OpaqueUnscopedRecord);
-        assertFalse(new VaultReadiness(result.knowledge(), result.discoveryState()).authoritativeVaultReady());
+        assertEquals(2, result.snapshot().objects().values().stream().filter(x -> x instanceof AcceptedToken t && t.value() != null).count());
+        assertTrue(result.snapshot().object(unscoped.id()) instanceof OpaqueUnscopedRecord);
+        assertTrue(result.snapshot().hasUnscopedEvidence());
 
     }
 
@@ -134,29 +134,29 @@ class NioDiscoveryTest {
         Path namespace = Files.createDirectory(root.resolve("objects-v1"));
         var a = fixture(TOKEN); Path path = namespace.resolve(a.id().filename());
         Files.write(path, a.bytes()); var timestamp = Files.getLastModifiedTime(path);
-        var first = run(controlledFiles(namespace), a.root(), DurableKnowledgeState.establishedEmpty());
+        var first = run(controlledFiles(namespace), a.root());
         Files.write(path, new byte[1024]); Files.setLastModifiedTime(path, timestamp);
-        var second = run(controlledFiles(namespace), a.root(), first.knowledge());
+        var second = run(controlledFiles(namespace), a.root());
         assertEquals(ObjectDiscovery.Detail.AEAD, second.observations().get(0).detail());
-        assertEquals(first.knowledge().records(), second.knowledge().records());
-        assertTrue(second.readable().evidence().isEmpty());
+        assertTrue(second.snapshot().objects().isEmpty());
+        assertTrue(second.snapshot().objects().isEmpty());
     }
 
     @Test
     void controlledActualFileDisappearingAfterSnapshotIsIncomplete() throws Exception {
         Path namespace = Files.createDirectory(root.resolve("objects-v1"));
         var a = fixture(TOKEN); Path path = namespace.resolve(a.id().filename()); Files.write(path, a.bytes());
-        var first = run(controlledFiles(namespace), a.root(), DurableKnowledgeState.establishedEmpty());
+        var first = run(controlledFiles(namespace), a.root());
         var source = controlledFiles(namespace);
-        var result = run(() -> { var fixed = source.snapshot(); Files.delete(path); return fixed; }, a.root(), first.knowledge());
+        var result = run(() -> { var fixed = source.snapshot(); Files.delete(path); return fixed; }, a.root());
         assertFalse(result.resourceComplete());
         assertEquals(DiscoveryState.PROCESSING_INCOMPLETE, result.discoveryState());
-        assertEquals(TokenOperationPolicy.Reason.DISCOVERY_INCOMPLETE,
-                policy(result, first.readable().get(a.id()).tokenId()).ordinaryUse().reason());
+        assertEquals(TokenOperationPolicy.Reason.NO_CURRENT_STATE,
+                policy(result, ((AcceptedToken) first.snapshot().object(a.id())).tokenId()).ordinaryUse().reason());
     }
 
     private void assertUnsafePath() {
-        var result = run(new NioDiscoverySource(root), new byte[32], DurableKnowledgeState.establishedEmpty());
+        var result = run(new NioDiscoverySource(root), new byte[32]);
         assertEquals(DiscoveryState.PROCESSING_INCOMPLETE, result.discoveryState());
         assertEquals(DiscoverySource.SnapshotIssue.UNSAFE_NAMESPACE, result.snapshotIssue());
         assertTrue(result.observations().isEmpty());

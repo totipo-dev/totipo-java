@@ -140,8 +140,7 @@
             "C"
           ],
           "parents": [],
-          "authoritative": true,
-          "continuity_unknown": false
+          "integrity_ok": true
         }
       },
       {
@@ -193,8 +192,7 @@
             "B",
             "C"
           ],
-          "authoritative": true,
-          "continuity_unknown": false
+          "integrity_ok": true
         }
       },
       {
@@ -278,8 +276,7 @@
             "O"
           ],
           "parents": [],
-          "authoritative": true,
-          "continuity_unknown": false
+          "integrity_ok": true
         }
       },
       {
@@ -302,6 +299,7 @@
           "presentation": "OPAQUE"
         }
       }
-    ]
+    ],
+    "notes": "r15: evaluate accepted current objects; retained history supplies warnings only. Ordinary authorship requires one value; visible conflict requires confirmation."
   }
 }

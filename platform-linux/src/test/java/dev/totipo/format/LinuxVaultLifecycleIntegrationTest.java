@@ -17,75 +17,72 @@ import org.junit.jupiter.api.io.TempDir;
 import static org.junit.jupiter.api.Assertions.*;
 import static dev.totipo.format.VaultStorageCrashProcess.*;
 import static dev.totipo.format.VaultLifecycleResult.Status.*;
-import static dev.totipo.format.LocalEstablishment.Phase.*;
+import static dev.totipo.format.VaultBindingStore.State.*;
 
 @Timeout(120)
 class LinuxVaultLifecycleIntegrationTest {
     @TempDir(factory = LocalStorageTempDirectory.class) Path dir;
     Path directory(String name) throws IOException { return Files.createDirectory(dir.resolve(name)); }
-    static SecurityMemoryJournal.Replay replay(SecurityMemoryStorage memory) throws IOException {
-        try (var read = memory.openRead()) { return SecurityMemoryJournal.replay(read); }
-    }
-    static void phase(SecurityMemoryStorage memory, LocalEstablishment.Phase expected) throws IOException {
-        var state = replay(memory); assertEquals(expected, state.establishment().phase());
-        if (expected != UNESTABLISHED) assertArrayEquals(binding(), state.establishment().binding().bytes());
+    static void phase(VaultBindingStore memory, VaultBindingStore.State expected) throws IOException {
+        assertEquals(expected,memory.read().state());
+        if (expected == PRESENT) assertArrayEquals(binding(),memory.read().bytes());
     }
     static void failed(VaultLifecycleResult result, VaultLifecycleResult.Status expected) {
         try (result) { assertEquals(expected, result.status()); assertNull(result.root()); assertNull(result.discovery()); }
     }
     static final class ObservedDiscovery implements DiscoverySource {
-        final NioDiscoverySource real; final SecurityMemoryStorage memory;
+        final NioDiscoverySource real; final VaultBindingStore memory;
         int snapshots, reads;
-        ObservedDiscovery(Path root, SecurityMemoryStorage memory) { real = new NioDiscoverySource(root); this.memory = memory; }
+        ObservedDiscovery(Path root, VaultBindingStore memory) { real = new NioDiscoverySource(root); this.memory = memory; }
         @Override public Snapshot snapshot() throws IOException {
             snapshots++; var snapshot = real.snapshot();
             return new Snapshot(snapshot.candidates().stream().map(c -> new Candidate(c.id(), () -> {
-                assertEquals(ESTABLISHED, replay(memory).establishment().phase()); reads++; return c.opener().open();
+                assertEquals(PRESENT, memory.read().state()); reads++; return c.opener().open();
             })).toList(), snapshot.issue(), snapshot);
         }
     }
     @Test void cleanRealCreationOrderingDiscoveryAndSubsequentReopen() throws Exception {
         Path sync = directory("sync"), local = directory("local"); var faults = new VaultStorageFaults(LinuxDurability.open());
-        try (var memory = LinuxSecurityMemoryStorage.open(local); var vault = faults.open(sync)) {
-            faults.beforeStage = () -> { phase(memory, PENDING); assertFalse(Files.exists(sync.resolve("vault"))); };
-            faults.beforeLink = () -> { phase(memory, PENDING); assertFalse(Files.exists(sync.resolve("vault"))); };
+        try (var memory = LinuxVaultBindingStore.open(local); var vault = faults.open(sync)) {
+            faults.beforeStage = () -> { phase(memory, ABSENT); assertFalse(Files.exists(sync.resolve("vault"))); };
+            faults.beforeLink = () -> { phase(memory, ABSENT); assertFalse(Files.exists(sync.resolve("vault"))); };
             // A candidate arrives after empty preflight. Classification must wait for durable ESTABLISHED.
             faults.afterDirectory = () -> Files.write(Files.createDirectory(sync.resolve("objects-v1")).resolve("a".repeat(64)), new byte[]{1});
             var source = new ObservedDiscovery(sync, memory);
             try (var result = lifecycle(vault, memory, source).createNew(PASSWORD)) {
                 assertEquals(CREATED_ESTABLISHED, result.status()); assertArrayEquals(ROOT, result.root());
                 assertEquals(DiscoveryState.READY, result.discovery().discoveryState());
-                assertTrue(new VaultReadiness(result.discovery().knowledge(), result.discovery().discoveryState()).authoritativeVaultReady());
+                assertTrue(result.discovery().resourceComplete());
             }
-            phase(memory, ESTABLISHED); assertEquals(2, source.snapshots); assertEquals(1, source.reads);
+            phase(memory, PRESENT); assertEquals(2, source.snapshots); assertEquals(1, source.reads);
             assertEquals(87, Files.size(sync.resolve("vault"))); assertArrayEquals(candidate(), Files.readAllBytes(sync.resolve("vault")));
         }
-        try (var memory = LinuxSecurityMemoryStorage.open(local); var vault = NioVaultBootstrapStorage.open(sync, LinuxDurability.open())) {
+        try (var memory = LinuxVaultBindingStore.open(local); var vault = NioVaultBootstrapStorage.open(sync, LinuxDurability.open())) {
             var source = new ObservedDiscovery(sync, memory);
             try (var result = lifecycle(vault, memory, source).openConfigured(PASSWORD)) {
                 assertEquals(OPENED_ESTABLISHED, result.status()); assertArrayEquals(ROOT, result.root());
             }
-            phase(memory, ESTABLISHED); assertEquals(1, source.snapshots); assertEquals(1, source.reads);
+            phase(memory, PRESENT); assertEquals(1, source.snapshots); assertEquals(1, source.reads);
         }
     }
     @Test void establishedWrongPasswordDifferentRootAndAbsentNeverDiscoverOrRewriteLocal() throws Exception {
         Path sync = directory("sync"), local = directory("local");
-        try (var memory = LinuxSecurityMemoryStorage.open(local); var vault = NioVaultBootstrapStorage.open(sync, LinuxDurability.open())) {
+        try (var memory = LinuxVaultBindingStore.open(local); var vault = NioVaultBootstrapStorage.open(sync, LinuxDurability.open())) {
             try (var result = lifecycle(vault, memory, new NioDiscoverySource(sync)).createNew(PASSWORD)) {
                 assertEquals(CREATED_ESTABLISHED, result.status());
             }
         }
-        byte[] before = Files.readAllBytes(local.resolve("security-memory-v1.bin"));
-        try (var memory = LinuxSecurityMemoryStorage.open(local); var vault = NioVaultBootstrapStorage.open(sync, LinuxDurability.open())) {
+        byte[] before = Files.readAllBytes(local.resolve("vault-binding-v1.bin"));
+        try (var memory = LinuxVaultBindingStore.open(local); var vault = NioVaultBootstrapStorage.open(sync, LinuxDurability.open())) {
             var source = new ObservedDiscovery(sync, memory); var lifecycle = lifecycle(vault, memory, source);
             failed(lifecycle.openConfigured(CryptoSupport.ascii("wrong")), AUTHENTICATION_FAILED);
             byte[] other = ROOT.clone(); other[0] ^= 1;
             Files.write(sync.resolve("vault"), new VaultBootstrapWriter().encode(PASSWORD, other, field(16), field(12)));
             failed(lifecycle.openConfigured(PASSWORD), ESTABLISHED_BINDING_MISMATCH);
             Files.delete(sync.resolve("vault")); failed(lifecycle.openConfigured(PASSWORD), CANONICAL_VAULT_ABSENT);
-            assertEquals(0, source.snapshots); phase(memory, ESTABLISHED);
+            assertEquals(0, source.snapshots); phase(memory, PRESENT);
         }
-        assertArrayEquals(before, Files.readAllBytes(local.resolve("security-memory-v1.bin")));
+        assertArrayEquals(before, Files.readAllBytes(local.resolve("vault-binding-v1.bin")));
     }
     @Test void realExistingCandidatesAndIncompletePreflightStopBeforeEntropyOrPending() throws Exception {
         for (boolean incomplete : new boolean[]{false, true}) {
@@ -93,12 +90,12 @@ class LinuxVaultLifecycleIntegrationTest {
             if (incomplete) Files.createSymbolicLink(sync.resolve("objects-v1"), local);
             else Files.write(Files.createDirectory(sync.resolve("objects-v1")).resolve("a".repeat(64)), new byte[]{1});
             var faults = new VaultStorageFaults(LinuxDurability.open());
-            try (var memory = LinuxSecurityMemoryStorage.open(local); var vault = faults.open(sync)) {
+            try (var memory = LinuxVaultBindingStore.open(local); var vault = faults.open(sync)) {
                 var source = new ObservedDiscovery(sync, memory);
                 var lifecycle = new VaultLifecycle(vault, memory, source, b -> { throw new AssertionError("entropy before preflight"); },
                         new VaultBootstrapWriter(), new VaultUnlocker());
                 failed(lifecycle.createNew(PASSWORD), incomplete ? CREATE_BLOCKED_DISCOVERY_INCOMPLETE : CREATE_BLOCKED_EXISTING_OBJECT_CANDIDATES);
-                assertEquals(SecurityMemoryJournal.Status.ABSENT, replay(memory).status()); assertEquals(0, source.reads);
+                assertEquals(ABSENT, memory.read().state()); assertEquals(0, source.reads);
                 assertTrue(faults.events.isEmpty()); assertFalse(Files.exists(sync.resolve("vault")));
             }
         }
@@ -107,32 +104,32 @@ class LinuxVaultLifecycleIntegrationTest {
         for (String failure : List.of("write", "stage-sync", "link", "directory-sync", "temporary")) {
             Path sync = directory("sync-" + failure), local = directory("local-" + failure);
             var faults = new VaultStorageFaults(LinuxDurability.open()); faults.fail = failure;
-            try (var memory = LinuxSecurityMemoryStorage.open(local); var vault = faults.open(sync)) {
+            try (var memory = LinuxVaultBindingStore.open(local); var vault = faults.open(sync)) {
                 var source = new ObservedDiscovery(sync, memory);
                 failed(lifecycle(vault, memory, source).createNew(PASSWORD), PUBLICATION_INCOMPLETE);
-                phase(memory, PENDING); assertEquals(1, source.snapshots); assertEquals(0, source.reads);
+                phase(memory, ABSENT); assertEquals(1, source.snapshots); assertEquals(0, source.reads);
             }
             boolean linked = failure.equals("directory-sync");
             try (var names = Files.list(sync)) { assertEquals(linked ? List.of("vault") : List.of(), names.map(p -> p.getFileName().toString()).toList()); }
-            try (var memory = LinuxSecurityMemoryStorage.open(local); var vault = NioVaultBootstrapStorage.open(sync, LinuxDurability.open())) {
-                phase(memory, PENDING); var source = new ObservedDiscovery(sync, memory);
+            try (var memory = LinuxVaultBindingStore.open(local); var vault = NioVaultBootstrapStorage.open(sync, LinuxDurability.open())) {
+                phase(memory, ABSENT); var source = new ObservedDiscovery(sync, memory);
                 try (var result = lifecycle(vault, memory, source).openConfigured(PASSWORD)) {
-                    assertEquals(linked ? OPENED_ESTABLISHED : PENDING_CANONICAL_ABSENT, result.status());
+                    assertEquals(linked ? OPENED_ESTABLISHED : CANONICAL_VAULT_ABSENT, result.status());
                 }
-                phase(memory, linked ? ESTABLISHED : PENDING); assertEquals(linked ? 1 : 0, source.snapshots);
+                phase(memory, linked ? PRESENT : ABSENT); assertEquals(linked ? 1 : 0, source.snapshots);
             }
         }
     }
     @Test void collisionDoesNotAdoptCanonicalInSameCreateCall() throws Exception {
         Path sync = directory("sync"), local = directory("local"); var faults = new VaultStorageFaults(LinuxDurability.open());
         byte[] existing = candidate(); faults.beforeLink = () -> Files.write(sync.resolve("vault"), existing);
-        try (var memory = LinuxSecurityMemoryStorage.open(local); var backend = faults.open(sync)) {
+        try (var memory = LinuxVaultBindingStore.open(local); var backend = faults.open(sync)) {
             int[] reads = {0};
             var vault = new Forwarding(backend) {
                 @Override public InputStream openCanonicalRead() throws IOException { reads[0]++; return super.openCanonicalRead(); }
             };
             failed(lifecycle(vault, memory, new NioDiscoverySource(sync)).createNew(PASSWORD), PUBLICATION_INCOMPLETE);
-            assertEquals(1, reads[0]); phase(memory, PENDING); assertArrayEquals(existing, Files.readAllBytes(sync.resolve("vault")));
+            assertEquals(1, reads[0]); phase(memory, ABSENT); assertArrayEquals(existing, Files.readAllBytes(sync.resolve("vault")));
         }
         try (var entries = Files.list(sync)) { assertEquals(1, entries.count()); }
     }
@@ -145,12 +142,12 @@ class LinuxVaultLifecycleIntegrationTest {
             installed[0] = true;
             Files.delete(sync.resolve("vault")); Files.write(sync.resolve("vault"), other);
         };
-        try (var memory = LinuxSecurityMemoryStorage.open(local); var vault = faults.open(sync)) {
+        try (var memory = LinuxVaultBindingStore.open(local); var vault = faults.open(sync)) {
             var source = new ObservedDiscovery(sync, memory);
             failed(lifecycle(vault, memory, source).createNew(PASSWORD), PUBLICATION_INCOMPLETE);
-            assertTrue(installed[0]); phase(memory, PENDING); assertEquals(1, source.snapshots);
-            failed(lifecycle(vault, memory, source).openConfigured(PASSWORD), PENDING_BINDING_MISMATCH);
-            assertEquals(1, source.snapshots);
+            assertTrue(installed[0]); phase(memory, ABSENT); assertEquals(1, source.snapshots);
+            try (var opened = lifecycle(vault, memory, source).openConfigured(PASSWORD)) { assertEquals(OPENED_ESTABLISHED,opened.status()); }
+            assertEquals(2, source.snapshots);
         }
     }
     static class Forwarding implements VaultBootstrapStorage {
@@ -165,8 +162,8 @@ class LinuxVaultLifecycleIntegrationTest {
         try (var file = FileChannel.open(sync.resolve("vault"), StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)) {
             file.write(ByteBuffer.wrap(candidate())); file.write(ByteBuffer.wrap(new byte[]{1}), 1L << 30);
         }
-        try (var memory = LinuxSecurityMemoryStorage.open(local); var backend = NioVaultBootstrapStorage.open(sync, LinuxDurability.open())) {
-            assertTrue(SecurityMemorySession.initializeNew(memory).persistPending(binding()));
+        try (var memory = LinuxVaultBindingStore.open(local); var backend = NioVaultBootstrapStorage.open(sync, LinuxDurability.open())) {
+
             int[] consumed = {0};
             var vault = new Forwarding(backend) {
                 @Override public InputStream openCanonicalRead() throws IOException {
@@ -180,7 +177,7 @@ class LinuxVaultLifecycleIntegrationTest {
             };
             var source = new ObservedDiscovery(sync, memory);
             failed(lifecycle(vault, memory, source).openConfigured(PASSWORD), INVALID_BOOTSTRAP);
-            assertEquals(88, consumed[0]); assertEquals(0, source.snapshots); phase(memory, PENDING);
+            assertEquals(88, consumed[0]); assertEquals(0, source.snapshots); phase(memory, ABSENT);
         }
     }
     Process child(String mode, Path sync, Path local) throws Exception {
@@ -202,10 +199,10 @@ class LinuxVaultLifecycleIntegrationTest {
     @Test void stageOnlyHaltLeavesPendingAbsentWithoutNamedResidue() throws Exception {
         Path sync = directory("sync"), local = directory("local"); halt("stage", sync, local);
         try (var entries = Files.list(sync)) { assertTrue(entries.allMatch(p -> p.getFileName().toString().startsWith(".totipo-vault-"))); }
-        try (var memory = LinuxSecurityMemoryStorage.open(local); var vault = NioVaultBootstrapStorage.open(sync, LinuxDurability.open())) {
-            phase(memory, PENDING); var source = new ObservedDiscovery(sync, memory);
-            failed(lifecycle(vault, memory, source).openConfigured(PASSWORD), PENDING_CANONICAL_ABSENT);
-            phase(memory, PENDING); assertEquals(0, source.snapshots);
+        try (var memory = LinuxVaultBindingStore.open(local); var vault = NioVaultBootstrapStorage.open(sync, LinuxDurability.open())) {
+            phase(memory, ABSENT); var source = new ObservedDiscovery(sync, memory);
+            failed(lifecycle(vault, memory, source).openConfigured(PASSWORD), CANONICAL_VAULT_ABSENT);
+            phase(memory, ABSENT); assertEquals(0, source.snapshots);
         }
     }
     @Test void successfulInstallThenHaltNeedsNoJavaCloseForCanonicalAuthentication() throws Exception {
@@ -219,14 +216,14 @@ class LinuxVaultLifecycleIntegrationTest {
     @Test void fullLifecycleHaltAndPublicationBeforeEstablishmentHaltRecover() throws Exception {
         for (String mode : List.of("full", "pending-published")) {
             Path sync = directory("sync-" + mode), local = directory("local-" + mode); halt(mode, sync, local);
-            try (var memory = LinuxSecurityMemoryStorage.open(local); var vault = NioVaultBootstrapStorage.open(sync, LinuxDurability.open())) {
-                phase(memory, mode.equals("full") ? ESTABLISHED : PENDING);
+            try (var memory = LinuxVaultBindingStore.open(local); var vault = NioVaultBootstrapStorage.open(sync, LinuxDurability.open())) {
+                phase(memory, mode.equals("full") ? PRESENT : ABSENT);
                 var source = new ObservedDiscovery(sync, memory);
                 try (var result = lifecycle(vault, memory, source).openConfigured(PASSWORD)) {
                     assertEquals(OPENED_ESTABLISHED, result.status()); assertArrayEquals(ROOT, result.root());
-                    assertTrue(new VaultReadiness(result.discovery().knowledge(), result.discovery().discoveryState()).authoritativeVaultReady());
+                    assertTrue(result.discovery().resourceComplete());
                 }
-                phase(memory, ESTABLISHED); assertEquals(1, source.snapshots);
+                phase(memory, PRESENT); assertEquals(1, source.snapshots);
             }
         }
     }
@@ -259,12 +256,12 @@ class LinuxVaultLifecycleIntegrationTest {
                         catch (InterruptedException e) { Thread.currentThread().interrupt(); throw new IOException(e); }
                         catch (BrokenBarrierException | TimeoutException e) { throw new IOException(e); }
                     };
-                    try (var memory = LinuxSecurityMemoryStorage.open(local); var vault = faults.open(sync)) {
+                    try (var memory = LinuxVaultBindingStore.open(local); var vault = faults.open(sync)) {
                         var lifecycle = new VaultLifecycle(vault, memory, new NioDiscoverySource(sync),
                                 bytes -> Arrays.fill(bytes, rootByte), new VaultBootstrapWriter(), new VaultUnlocker());
                         try (var result = lifecycle.createNew(PASSWORD)) {
-                            assertEquals(result.status() == CREATED_ESTABLISHED ? ESTABLISHED : PENDING,
-                                    replay(memory).establishment().phase());
+                            assertEquals(result.status() == CREATED_ESTABLISHED ? PRESENT : ABSENT,
+                                    memory.read().state());
                             return result.status();
                         }
                     }
@@ -274,7 +271,7 @@ class LinuxVaultLifecycleIntegrationTest {
                 try { return future.get(); } catch (Exception e) { throw new AssertionError(e); }
             }).toList();
             assertEquals(Set.of(CREATED_ESTABLISHED, PUBLICATION_INCOMPLETE), new HashSet<>(statuses));
-            try (var memory = LinuxSecurityMemoryStorage.open(dir.resolve("local" + statuses.indexOf(CREATED_ESTABLISHED)));
+            try (var memory = LinuxVaultBindingStore.open(dir.resolve("local" + statuses.indexOf(CREATED_ESTABLISHED)));
                  var vault = NioVaultBootstrapStorage.open(sync, LinuxDurability.open());
                  var result = lifecycle(vault, memory, new NioDiscoverySource(sync)).openConfigured(PASSWORD)) {
                 assertEquals(OPENED_ESTABLISHED, result.status());

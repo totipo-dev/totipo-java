@@ -40,7 +40,7 @@ class TokenWriterTest {
         var value = value(2, "", "", 3, 8, 0xffffffffL, 128);
         byte[] time = DeviceWriterTest.hex(hex);
         var semantic = write(new DeviceWriterTest.CapturingKey(), value, time, List.of());
-        assertTrue(TokenWriter.matches(V1PlaintextParser.parse(semantic).plaintext(), new byte[32], DeviceWriterTest.KEY, value, time, List.of()));
+        assertTrue(TokenWriterTest.matches(V1PlaintextParser.parse(semantic).plaintext(), new byte[32], DeviceWriterTest.KEY, value, time, List.of()));
     }
     @Test void capacityAndParents() throws Exception {
         var key = new DeviceWriterTest.CapturingKey();
@@ -119,5 +119,15 @@ class TokenWriterTest {
         assertThrows(IllegalArgumentException.class, () -> write(key,
                 value(1, "a".repeat(20), "b".repeat(30), 1, 6, 30, 22), new byte[8], DeviceWriterTest.parents(20)));
         assertEquals(2, key.calls);
+    }
+    static boolean matches(V1Plaintext parsed, byte[] id, byte[] key, TokenValue value,
+                           byte[] time, List<ObjectId> parents) {
+        if (parsed == null || parsed.token() == null) { return false; }
+        var r = parsed.routing();
+        return r.version() == 1 && r.objectType() == 1 && Arrays.equals(r.identity(), id)
+                && Arrays.equals(r.authorDeviceId(), P256.deviceId(key))
+                && r.authorTime().equals(new java.math.BigInteger(1, time))
+                && r.parents().stream().map(ObjectId::new).toList().equals(parents)
+                && TokenValue.from(parsed.token()).equals(value);
     }
 }

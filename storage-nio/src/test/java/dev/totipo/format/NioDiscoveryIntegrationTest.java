@@ -36,24 +36,21 @@ class NioDiscoveryIntegrationTest {
     }
     public static final class ReadOnlyProbe {
         public static void main(String[] args) {
-            int[] commits = {0};
             var result = DiscoveryCoordinator.discover(new NioDiscoverySource(Path.of(args[0])),
-                    java.util.HexFormat.of().parseHex(args[1]), DurableKnowledgeState.establishedEmpty(),
-                    observation -> { commits[0]++; return DurableKnowledgeState.PersistenceResult.COMMITTED; });
-            if (!result.resourceComplete() || commits[0] != 1
-                    || result.knowledge().record(ObjectId.fromFilename(args[2])) == null)
-                throw new AssertionError("Discovery must authenticate/learn without synchronized-file fsync");
+                    java.util.HexFormat.of().parseHex(args[1]));
+            if (!result.resourceComplete() || result.snapshot().object(ObjectId.fromFilename(args[2])) == null)
+                throw new AssertionError("Discovery must authenticate without persistence");
         }
     }
     @Test void nonemptyDiscoveryIsReadyAndComposesWithM23() throws Exception {
         var token = fixture(TOKEN); Path dir = Files.createDirectory(root.resolve("objects-v1"));
         Files.write(dir.resolve(token.id().filename()), token.bytes());
-        var result = run(new NioDiscoverySource(root), token.root(), DurableKnowledgeState.establishedEmpty());
+        var result = run(new NioDiscoverySource(root), token.root());
         assertTrue(result.resourceComplete()); assertEquals(DiscoveryState.READY, result.discoveryState());
-        assertEquals(1, result.knowledge().size());
+        assertEquals(1, result.snapshot().objects().size());
         assertNotNull(result.topology().record(token.id()));
-        assertNotNull(result.readable().get(token.id()));
-        assertTrue(policy(result, result.readable().get(token.id()).tokenId()).ordinaryUse().eligible());
+        assertNotNull(result.snapshot().object(token.id()));
+        assertTrue(policy(result, ((AcceptedToken) result.snapshot().object(token.id())).tokenId()).ordinaryUse().eligible());
     }
     @Test void opaqueClassificationAndPhysicalCreationOrderAreUnchanged() throws Exception {
         var token = fixture(TOKEN); var future = fixture(FUTURE);
@@ -68,14 +65,14 @@ class NioDiscoveryIntegrationTest {
             for (var object : ordered) {
                 Files.write(dir.resolve(object.id().filename()), object.bytes());
             }
-            var result = run(new NioDiscoverySource(sync), token.root(), DurableKnowledgeState.establishedEmpty());
-            assertEquals(DiscoveryState.READY, result.discoveryState()); assertEquals(3, result.knowledge().size());
-            assertTrue(result.knowledge().record(unscoped.id()) instanceof OpaqueUnscopedRecord);
+            var result = run(new NioDiscoverySource(sync), token.root());
+            assertEquals(DiscoveryState.READY, result.discoveryState()); assertEquals(3, result.snapshot().objects().size());
+            assertTrue(result.snapshot().object(unscoped.id()) instanceof OpaqueUnscopedRecord);
             assertEquals(List.of(ObjectDiscovery.Classification.SUPPORTED_VALID,
                     ObjectDiscovery.Classification.OPAQUE_ROUTABLE, ObjectDiscovery.Classification.OPAQUE_UNSCOPED).stream().sorted().toList(),
                     result.observations().stream().map(ObjectDiscovery.Observation::classification).sorted().toList());
             if (first != null) {
-                assertEquals(first.knowledge().records(), result.knowledge().records());
+                assertEquals(first.snapshot().objects(),result.snapshot().objects());
                 assertEquals(first.observations().stream().map(ObjectDiscovery.Observation::id).toList(),
                         result.observations().stream().map(ObjectDiscovery.Observation::id).toList());
             }
@@ -105,7 +102,7 @@ class NioDiscoveryIntegrationTest {
             }
             return new DiscoverySource.Snapshot(candidates, snapshot.issue(), snapshot);
         };
-        var result = run(counting, new byte[32], DurableKnowledgeState.establishedEmpty());
+        var result = run(counting, new byte[32]);
         assertEquals(DiscoveryState.READY, result.discoveryState());
         assertTrue(result.observations().stream().allMatch(o -> o.classification() == ObjectDiscovery.Classification.INVALID_STORAGE));
         assertEquals(List.of(0, 1023, 1024, 1025, 1025), readCounts.stream().map(AtomicInteger::get).toList());
@@ -114,31 +111,28 @@ class NioDiscoveryIntegrationTest {
         Path dir = Files.createDirectory(root.resolve("objects-v1")); var token = fixture(TOKEN);
         Path path = dir.resolve(token.id().filename()); Files.write(path, token.bytes());
         var source = new NioDiscoverySource(root);
-        var first = run(source, token.root(), DurableKnowledgeState.establishedEmpty());
+        var first = run(source, token.root());
         var timestamp = Files.getLastModifiedTime(path);
         for (int size : List.of(1024, 1023)) {
             Files.write(path, new byte[size]); Files.setLastModifiedTime(path, timestamp);
-            var result = run(source, token.root(), first.knowledge());
-            assertEquals(first.knowledge().records(), result.knowledge().records());
-            assertTrue(result.readable().evidence().isEmpty()); assertEquals(DiscoveryState.READY, result.discoveryState());
+            var result = run(source, token.root());
+            assertTrue(result.snapshot().objects().isEmpty());
+            assertTrue(result.snapshot().objects().isEmpty()); assertEquals(DiscoveryState.READY, result.discoveryState());
             assertEquals(size == 1024 ? ObjectDiscovery.Detail.AEAD : ObjectDiscovery.Detail.WRONG_LENGTH,
                     result.observations().get(0).detail());
         }
-        var result = run(() -> { var snapshot = source.snapshot(); Files.delete(path); return snapshot; }, token.root(), first.knowledge());
+        var result = run(() -> { var snapshot = source.snapshot(); Files.delete(path); return snapshot; }, token.root());
         assertEquals(DiscoveryState.PROCESSING_INCOMPLETE, result.discoveryState());
-        assertEquals(first.knowledge().records(), result.knowledge().records());
+        assertTrue(result.snapshot().objects().isEmpty());
     }
     @Test void frozenSymlinkReplacementIsIncompleteAndCommitStillRequired() throws Exception {
         Path dir = Files.createDirectory(root.resolve("objects-v1")); var token = fixture(TOKEN);
         Path path = dir.resolve(token.id().filename()); Files.write(path, token.bytes());
         var source = new NioDiscoverySource(root);
-        var failed = DiscoveryCoordinator.discover(source, token.root(), DurableKnowledgeState.establishedEmpty(),
-                observation -> DurableKnowledgeState.PersistenceResult.FAILED);
-        assertEquals(DiscoveryState.PROCESSING_INCOMPLETE, failed.discoveryState());
         var replaced = run(() -> {
             var snapshot = source.snapshot(); Files.delete(path); Files.createSymbolicLink(path, root.resolve("elsewhere"));
             return snapshot;
-        }, token.root(), DurableKnowledgeState.establishedEmpty());
+        }, token.root());
         assertEquals(DiscoveryState.PROCESSING_INCOMPLETE, replaced.discoveryState());
         assertEquals(ObjectDiscovery.Classification.UNAVAILABLE, replaced.observations().get(0).classification());
     }
@@ -146,7 +140,7 @@ class NioDiscoveryIntegrationTest {
         var token = fixture(TOKEN); Path dir = Files.createDirectory(root.resolve("objects-v1"));
         Path path = dir.resolve(token.id().filename()); Files.write(path, token.bytes());
         var source = new NioDiscoverySource(root);
-        var known = run(source, token.root(), DurableKnowledgeState.establishedEmpty()).knowledge();
+        var known = run(source, token.root()).snapshot();
         byte[] key = CryptoSupport.objectKey(CryptoSupport.objectRoot(CryptoSupport.extract(token.root())), token.id());
         var cipher = javax.crypto.Cipher.getInstance("AES/GCM/NoPadding");
         var secret = new javax.crypto.spec.SecretKeySpec(key, "AES");
@@ -161,12 +155,12 @@ class NioDiscoveryIntegrationTest {
             cipher.init(javax.crypto.Cipher.ENCRYPT_MODE, secret, parameters);
             cipher.updateAAD(EnvelopeReader.aad(token.id()));
             Files.write(path, cipher.doFinal(altered));
-            var result = run(source, token.root(), known);
+            var result = run(source, token.root());
             assertEquals(offset == 1007 ? ObjectDiscovery.Detail.PADDING : ObjectDiscovery.Detail.OBJECT_ID,
                     result.observations().get(0).detail());
-            assertEquals(known.records(), result.knowledge().records());
-            assertEquals(known.continuity(), result.knowledge().continuity());
-            assertTrue(result.readable().evidence().isEmpty());
+            assertTrue(result.snapshot().objects().isEmpty());
+
+            assertTrue(result.snapshot().objects().isEmpty());
             assertEquals(DiscoveryState.READY, result.discoveryState());
         }
     }

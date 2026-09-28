@@ -25,22 +25,22 @@ class NioPublicationTest {
         byte[] bytes = new byte[1024]; Arrays.fill(bytes, (byte) 17);
         try (var store = faults.open(root)) {
             assertFalse(Files.exists(root.resolve("objects-v1")));
-            assertEquals(PublicationResult.PUBLISHED_NEW, store.publishDurably(ID, bytes));
+            assertEquals(PublicationResult.PUBLISHED_NEW, store.publish(ID, bytes));
             assertArrayEquals(bytes, Files.readAllBytes(target()));
             assertEquals(List.of("snapshot", "mkdir", "root-sync", "temporary", "stage-sync", "before-link", "after-link", "post-link-sync", "directory-sync"),
                     faults.events.stream().filter(e -> !e.equals("write")).toList());
             faults.events.clear();
-            assertEquals(PublicationResult.ALREADY_PRESENT_EXACT, store.publishDurably(ID, bytes));
-            assertEquals(List.of("existing-read", "existing-file-sync", "existing-directory-sync", "existing-reread"),
+            assertEquals(PublicationResult.ALREADY_PRESENT_EXACT, store.publish(ID, bytes));
+            assertEquals(List.of("existing-read"),
                     faults.events.stream().filter(e -> e.startsWith("existing-")).toList());
             assertFalse(faults.events.contains("root-sync")); assertFalse(faults.events.contains("post-link-sync"));
             byte[] different = bytes.clone(); different[0] ^= 1;
-            assertThrows(IOException.class, () -> store.publishDurably(ID, different));
+            assertThrows(IOException.class, () -> store.publish(ID, different));
             assertArrayEquals(bytes, Files.readAllBytes(target()));
         }
         try (var names = Files.list(root.resolve("objects-v1"))) { assertEquals(List.of(ID.filename()), names.map(p -> p.getFileName().toString()).toList()); }
     }
-    @ParameterizedTest @ValueSource(strings = {"exact", "existing-file-sync", "existing-directory-sync", "existing-reread",
+    @ParameterizedTest @ValueSource(strings = {"exact",
             "changed", "missing", "short", "long", "directory", "same-bytes"})
     void existingAcknowledgementRequiresDurabilityAndExactPostBarrierBytes(String mode) throws Exception {
         Files.createDirectory(root.resolve("objects-v1"));
@@ -48,7 +48,7 @@ class NioPublicationTest {
         Files.write(target(), bytes);
         var faults = new ObjectPublicationFaults(new RecordingDurability()); faults.fail = mode;
         faults.action = point -> {
-            if (!point.equals("existing-reread")) return;
+            if (!point.equals("existing-read")) return;
             switch (mode) {
                 case "changed" -> Files.write(target(), new byte[1024]);
                 case "missing" -> Files.delete(target());
@@ -63,14 +63,14 @@ class NioPublicationTest {
         };
         try (var store = faults.open(root)) {
             if (Set.of("exact", "same-bytes").contains(mode))
-                assertEquals(PublicationResult.ALREADY_PRESENT_EXACT, store.publishDurably(ID, bytes));
-            else assertThrows(IOException.class, () -> store.publishDurably(ID, bytes));
+                assertEquals(PublicationResult.ALREADY_PRESENT_EXACT, store.publish(ID, bytes));
+            else assertThrows(IOException.class, () -> store.publish(ID, bytes));
         }
-        var expected = List.of("existing-read", "existing-file-sync", "existing-directory-sync", "existing-reread");
-        int count = mode.equals("existing-file-sync") ? 2 : mode.equals("existing-directory-sync") ? 3 : 4;
+        var expected = List.of("existing-read");
+        int count = 1;
         assertEquals(expected.subList(0, count), faults.events.stream().filter(e -> e.startsWith("existing-")).toList());
         assertFalse(faults.events.contains("root-sync")); assertFalse(faults.events.contains("post-link-sync"));
-        if (Set.of("exact", "same-bytes", "existing-file-sync", "existing-directory-sync", "existing-reread").contains(mode))
+        if (Set.of("exact", "same-bytes").contains(mode))
             assertArrayEquals(bytes, Files.readAllBytes(target()));
         if (mode.equals("changed")) assertArrayEquals(new byte[1024], Files.readAllBytes(target()));
         if (mode.equals("missing")) assertFalse(Files.exists(target()));
@@ -82,23 +82,23 @@ class NioPublicationTest {
         byte[] bytes = new byte[1024];
         var faults = new ObjectPublicationFaults(new RecordingDurability()); faults.action = p -> { if (p.equals("snapshot")) bytes[0] = 9; };
         var store = faults.open(root);
-        assertThrows(IllegalArgumentException.class, () -> store.publishDurably(ID, new byte[1023]));
-        store.publishDurably(ID, bytes); assertEquals(0, Files.readAllBytes(target())[0]);
-        store.close(); store.close(); assertThrows(IOException.class, () -> store.publishDurably(ID, bytes));
+        assertThrows(IllegalArgumentException.class, () -> store.publish(ID, new byte[1023]));
+        store.publish(ID, bytes); assertEquals(0, Files.readAllBytes(target())[0]);
+        store.close(); store.close(); assertThrows(IOException.class, () -> store.publish(ID, bytes));
     }
     @ParameterizedTest @ValueSource(longs = {0, 1023, 1025, 1099511627776L})
     void exactExistingReadIsBounded(long size) throws Exception {
         Files.createDirectory(root.resolve("objects-v1"));
         try (var file = new java.io.RandomAccessFile(target().toFile(), "rw")) { file.setLength(size); }
         try (var store = NioV1ObjectPublicationStore.open(root, new RecordingDurability())) {
-            assertThrows(IOException.class, () -> store.publishDurably(ID, new byte[1024]));
+            assertThrows(IOException.class, () -> store.publish(ID, new byte[1024]));
         }
         assertEquals(size, Files.size(target()));
     }
     @ParameterizedTest @ValueSource(strings = {"mkdir", "root-sync", "temporary", "write", "zero", "stage-sync", "before-link", "post-link-sync", "directory-sync"})
     void faultLeavesConservativeOutcomeAndNoRollback(String point) throws Exception {
         var faults = new ObjectPublicationFaults(new RecordingDurability()); faults.fail = point;
-        try (var store = faults.open(root)) { assertThrows(IOException.class, () -> store.publishDurably(ID, new byte[1024])); }
+        try (var store = faults.open(root)) { assertThrows(IOException.class, () -> store.publish(ID, new byte[1024])); }
         boolean installed = Set.of("post-link-sync", "directory-sync").contains(point);
         assertEquals(installed, Files.exists(target()));
         if (installed) assertEquals(1024, Files.size(target()));
@@ -106,15 +106,15 @@ class NioPublicationTest {
     @Test void failedRootBarrierIsRetriedAndUnsupportedHardLinksHaveNoFallback() throws Exception {
         var faults = new ObjectPublicationFaults(new RecordingDurability()); faults.fail = "root-sync";
         try (var store = faults.open(root)) {
-            assertThrows(IOException.class, () -> store.publishDurably(ID, new byte[1024]));
-            faults.fail = ""; store.publishDurably(ID, new byte[1024]);
+            assertThrows(IOException.class, () -> store.publish(ID, new byte[1024]));
+            faults.fail = ""; store.publish(ID, new byte[1024]);
             assertEquals(2, Collections.frequency(faults.events, "root-sync"));
         }
         var unsupported = new NioV1ObjectPublicationStore.Operations(new RecordingDurability()) {
             @Override void link(Path target, Path temp) throws IOException { throw new FileSystemException(target.toString(), temp.toString(), "hard links unsupported"); }
         };
         try (var store = NioV1ObjectPublicationStore.open(root, unsupported)) {
-            assertThrows(IOException.class, () -> store.publishDurably(ObjectId.fromFilename("b".repeat(64)), new byte[1024]));
+            assertThrows(IOException.class, () -> store.publish(ObjectId.fromFilename("b".repeat(64)), new byte[1024]));
         }
         assertFalse(Files.exists(root.resolve("objects-v1").resolve("b".repeat(64))));
     }
@@ -129,7 +129,7 @@ class NioPublicationTest {
                 jobs.add(executor.submit(() -> {
                     var faults = new ObjectPublicationFaults(new RecordingDurability());
                     faults.action = p -> { if (p.equals("before-link")) try { barrier.await(10, TimeUnit.SECONDS); } catch (Exception e) { throw new IOException(e); } };
-                    try (var store = faults.open(root)) { return store.publishDurably(ID, bytes); }
+                    try (var store = faults.open(root)) { return store.publish(ID, bytes); }
                     catch (IOException collision) { return null; }
                 }));
             }

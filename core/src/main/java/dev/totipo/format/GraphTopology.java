@@ -9,8 +9,8 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Immutable, disposable §§22–24/31 topology indexes. No values, synchronized
- * availability, or provenance inputs. Head sets have no protocol iteration order.
+ * Immutable §§22–24/31 topology derived only from an accepted snapshot.
+ * Values and provenance do not select edges or heads. Head sets have no protocol order.
  */
 final class GraphTopology {
     private record Identity(boolean token, SecurityBytes id) {}
@@ -20,14 +20,10 @@ final class GraphTopology {
     private final Map<ObjectId, List<ObjectId>> resolvedParents;
     private final Map<Identity, Set<ObjectId>> heads;
     private final GraphIntegrityStatus integrity;
-    private final Map<ObjectId, DurableRecord> records;
+    private final Map<ObjectId, AcceptedObject> records;
 
-    GraphTopology(DurableKnowledgeState state) { this(state.records()); }
-
-    /** Trusted snapshot seam, also usable to validate independently loaded/corrupt records. */
-    GraphTopology(Map<ObjectId, DurableRecord> records) {
-        this.records = Map.copyOf(records);
-        records = this.records;
+    GraphTopology(AcceptedSnapshot snapshot) {
+        records = snapshot.objects();
         var ids = new HashMap<ObjectId, Identity>();
         var claims = new HashMap<ObjectId, List<ParentEdge>>();
         var parents = new HashMap<ObjectId, List<ObjectId>>();
@@ -64,20 +60,13 @@ final class GraphTopology {
         var immutableHeads = new HashMap<Identity, Set<ObjectId>>();
         frontier.forEach((id, nodes) -> immutableHeads.put(id, Set.copyOf(nodes)));
         heads = Map.copyOf(immutableHeads);
-        integrity = hasCycle(parents) ? GraphIntegrityStatus.RESOLVED_CYCLE : GraphIntegrityStatus.ACYCLIC;
+        integrity = snapshot.conflictingEvidence() ? GraphIntegrityStatus.CONFLICTING_OBJECT_ID : hasCycle(parents) ? GraphIntegrityStatus.RESOLVED_CYCLE : GraphIntegrityStatus.ACYCLIC;
     }
 
     GraphIntegrityStatus integrity() { return integrity; }
 
     /** Immutable routing facts from the same snapshot that produced the heads. */
-    DurableRecord record(ObjectId id) { return records.get(id); }
-
-    /** Policy may use newer safety flags, but never unrelated durable routing/evidence. */
-    void requireKnowledge(DurableKnowledgeState state) {
-        if (!records.equals(state.records())) {
-            throw new IllegalStateException("Topology and readiness describe different knowledge");
-        }
-    }
+    AcceptedObject record(ObjectId id) { return records.get(id); }
 
     /** Diagnostics remain available even when a cycle prevents ordinary graph queries. */
     List<ParentEdge> parentEdges(ObjectId child) {
@@ -130,24 +119,24 @@ final class GraphTopology {
     }
 
     private void requireAcyclic() {
-        if (integrity == GraphIntegrityStatus.RESOLVED_CYCLE) {
-            throw new IllegalStateException("Resolved graph cycle: LOCAL_CONTINUITY_UNKNOWN");
+        if (integrity != GraphIntegrityStatus.ACYCLIC) {
+            throw new IllegalStateException("Invalid accepted graph");
         }
     }
 
-    private static Identity identity(DurableRecord record) {
-        if (record instanceof KnownTokenNode t) { return new Identity(true, t.tokenId()); }
-        if (record instanceof KnownDeviceNode d) { return new Identity(false, d.deviceId()); }
+    private static Identity identity(AcceptedObject record) {
+        if (record instanceof AcceptedToken t) { return new Identity(true, t.tokenId()); }
+        if (record instanceof AcceptedDevice d) { return new Identity(false, d.deviceId()); }
         return null;
     }
 
-    private static List<ObjectId> parents(DurableRecord record) {
-        if (record instanceof KnownTokenNode t) { return t.parents(); }
-        if (record instanceof KnownDeviceNode d) { return d.parents(); }
+    private static List<ObjectId> parents(AcceptedObject record) {
+        if (record instanceof AcceptedToken t) { return t.parents(); }
+        if (record instanceof AcceptedDevice d) { return d.parents(); }
         return List.of();
     }
 
-    private static ParentEdgeStatus classify(DurableRecord child, DurableRecord parent) {
+    private static ParentEdgeStatus classify(AcceptedObject child, AcceptedObject parent) {
         var parentIdentity = identity(parent);
         // Opaque-unscoped evidence proves neither compatible nor wrong scoped identity.
         if (parentIdentity == null) { return ParentEdgeStatus.UNRESOLVED; }
@@ -172,26 +161,4 @@ final class GraphTopology {
         return removed != parents.size();
     }
 
-    /**
-     * Append-only insertion can create a new cycle only through the new node, including
-     * old claims newly resolved to it. Walk its resolved ancestors in the committed
-     * snapshot. Independent full-snapshot validation above does not rely on this check.
-     */
-    static boolean insertionClosesCycle(DurableRecord incoming, DurableKnowledgeState state) {
-        if (identity(incoming) == null) { return false; }
-        var visited = new HashSet<ObjectId>();
-        var pending = new ArrayDeque<DurableRecord>();
-        pending.add(incoming);
-        while (!pending.isEmpty()) {
-            var next = pending.removeLast();
-            if (!visited.add(next.objectId())) { continue; }
-            for (var claim : parents(next)) {
-                var parent = state.record(claim);
-                if (classify(next, parent) != ParentEdgeStatus.RESOLVED) { continue; }
-                if (claim.equals(incoming.objectId())) { return true; }
-                pending.add(parent);
-            }
-        }
-        return false;
-    }
 }

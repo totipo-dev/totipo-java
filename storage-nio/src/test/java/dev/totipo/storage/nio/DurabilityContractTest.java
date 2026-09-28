@@ -25,34 +25,20 @@ class DurabilityContractTest {
             else assertArrayEquals(new byte[1024], Files.readAllBytes(target));
         };
         try (var store = NioV1ObjectPublicationStore.open(root, durability)) {
-            assertEquals(PublicationResult.PUBLISHED_NEW, store.publishDurably(ID, new byte[1024]));
+            assertEquals(PublicationResult.PUBLISHED_NEW, store.publish(ID, new byte[1024]));
         }
         assertEquals(List.of(new RecordingDurability.Event("directory", root),
                 new RecordingDurability.Event("directory", directory)), durability.events);
     }
 
-    @ParameterizedTest @ValueSource(strings = {"exact", "existing", "directory", "changed", "missing"})
-    void exactCallsRealInjectedCapabilityBetweenReadAndReread(String mode) throws Exception {
+    @Test void exactExistingNeedsNoDurabilityBarrier() throws Exception {
         Path directory = Files.createDirectory(root.resolve("objects-v1"));
-        Path target = Files.write(directory.resolve(ID.filename()), new byte[1024]);
-        var durability = new RecordingDurability(); durability.fail = mode;
-        var sequence = new ArrayList<String>();
-        durability.action = event -> {
-            sequence.add(event.operation());
-            assertEquals(event.operation().equals("existing") ? target : directory, event.path());
-            if (event.operation().equals("directory")) {
-                if (mode.equals("changed")) Files.write(target, new byte[]{1});
-                if (mode.equals("missing")) Files.delete(target);
-            }
-        };
-        var faults = new ObjectPublicationFaults(durability);
-        faults.action = point -> { if (point.equals("existing-read") || point.equals("existing-reread")) sequence.add(point); };
-        try (var store = faults.open(root)) {
-            if (mode.equals("exact")) assertEquals(PublicationResult.ALREADY_PRESENT_EXACT, store.publishDurably(ID, new byte[1024]));
-            else assertThrows(IOException.class, () -> store.publishDurably(ID, new byte[1024]));
+        Files.write(directory.resolve(ID.filename()),new byte[1024]);
+        var durability = new RecordingDurability(); durability.fail = "directory";
+        try (var store = NioV1ObjectPublicationStore.open(root,durability)) {
+            assertEquals(PublicationResult.ALREADY_PRESENT_EXACT,store.publish(ID,new byte[1024]));
         }
-        var expected = List.of("existing-read", "existing", "directory", "existing-reread");
-        assertEquals(expected.subList(0, mode.equals("existing") ? 2 : mode.equals("directory") ? 3 : 4), sequence);
+        assertTrue(durability.events.isEmpty());
     }
 
     @ParameterizedTest @ValueSource(booleans = {false, true})
@@ -75,10 +61,10 @@ class DurabilityContractTest {
     @Test void failedParentCapabilityIsRetriedBeforeCreatingTemporary() throws Exception {
         var durability = new RecordingDurability(); durability.fail = "directory";
         try (var store = NioV1ObjectPublicationStore.open(root, durability)) {
-            assertThrows(IOException.class, () -> store.publishDurably(ID, new byte[1024]));
+            assertThrows(IOException.class, () -> store.publish(ID, new byte[1024]));
             try (var entries = Files.list(root.resolve("objects-v1"))) { assertEquals(0, entries.count()); }
             durability.fail = "";
-            assertEquals(PublicationResult.PUBLISHED_NEW, store.publishDurably(ID, new byte[1024]));
+            assertEquals(PublicationResult.PUBLISHED_NEW, store.publish(ID, new byte[1024]));
         }
         assertEquals(List.of(root, root, root.resolve("objects-v1")), durability.events.stream().map(RecordingDurability.Event::path).toList());
     }

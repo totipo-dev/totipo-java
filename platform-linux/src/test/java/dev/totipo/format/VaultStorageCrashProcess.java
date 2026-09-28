@@ -15,7 +15,7 @@ public final class VaultStorageCrashProcess {
     static byte[] field(int length) { byte[] b = new byte[length]; Arrays.fill(b, (byte) 37); return b; }
     static byte[] candidate() { return new VaultBootstrapWriter().encode(PASSWORD, ROOT, field(16), field(12)); }
     static byte[] binding() { try (var u = VaultUnlockResult.unlocked(ROOT)) { return u.binding(); } }
-    static VaultLifecycle lifecycle(VaultBootstrapStorage vault, SecurityMemoryStorage memory, DiscoverySource source) {
+    static VaultLifecycle lifecycle(VaultBootstrapStorage vault, VaultBindingStore memory, DiscoverySource source) {
         return new VaultLifecycle(vault, memory, source, bytes -> Arrays.fill(bytes, (byte) 37),
                 new VaultBootstrapWriter(), new VaultUnlocker());
     }
@@ -34,7 +34,7 @@ public final class VaultStorageCrashProcess {
             }
             stage.installInitialDurably(); Runtime.getRuntime().halt(0);
         }
-        var memory = LinuxSecurityMemoryStorage.open(local);
+        var memory = LinuxVaultBindingStore.open(local);
         VaultBootstrapStorage vault = backend;
         if (mode.equals("stage")) vault = new VaultBootstrapStorage() {
             @Override public InputStream openCanonicalRead() throws IOException { return backend.openCanonicalRead(); }

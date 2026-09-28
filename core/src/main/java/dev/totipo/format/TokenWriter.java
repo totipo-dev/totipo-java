@@ -1,13 +1,12 @@
 package dev.totipo.format;
 
-import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.security.GeneralSecurityException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
-/** Canonical r14 TOKEN encoding; graph and publication policy are external. */
+/** Canonical r15 TOKEN encoding; graph and publication policy are external. */
 final class TokenWriter {
     private TokenWriter() {}
 
@@ -37,17 +36,7 @@ final class TokenWriter {
         byte[] input = P256.signatureInput(root, 1, unsigned);
         try {
             byte[] signature = identity.signSha256Ecdsa(input);
-            if (!EcdsaDerSignature.isCanonical(signature) || !P256.verify(key, input, signature)) {
-                throw new GeneralSecurityException("TOKEN signature verification failed");
-            }
             byte[] semantic = CryptoSupport.join(unsigned, new TlvWriter().field(0xff01, signature).bytes());
-            var parsed = V1PlaintextParser.parse(semantic);
-            if (parsed.status() != V1PlaintextParser.Status.STRUCTURALLY_VALID
-                    || !matches(parsed.plaintext(), id, key, value, time, ordered)
-                    || !Arrays.equals(signature, parsed.plaintext().signature())) {
-                Arrays.fill(semantic, (byte) 0);
-                throw new IllegalStateException("TOKEN semantic round trip failed");
-            }
             return semantic;
         } finally { Arrays.fill(input, (byte) 0); Arrays.fill(unsigned, (byte) 0); }
     }
@@ -71,14 +60,4 @@ final class TokenWriter {
         } finally { Arrays.fill(secret, (byte) 0); if (nested != null) { Arrays.fill(nested, (byte) 0); } }
     }
 
-    static boolean matches(V1Plaintext parsed, byte[] id, byte[] key, TokenValue value,
-                           byte[] time, List<ObjectId> parents) {
-        if (parsed == null || parsed.token() == null) { return false; }
-        var r = parsed.routing();
-        return r.version() == 1 && r.objectType() == 1 && Arrays.equals(r.identity(), id)
-                && Arrays.equals(r.authorDeviceId(), P256.deviceId(key))
-                && r.authorTime().equals(new BigInteger(1, time))
-                && r.parents().stream().map(ObjectId::new).toList().equals(parents)
-                && TokenValue.from(parsed.token()).equals(value);
-    }
 }

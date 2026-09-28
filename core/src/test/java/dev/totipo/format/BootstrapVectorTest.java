@@ -19,13 +19,13 @@ import org.junit.jupiter.api.TestFactory;
 class BootstrapVectorTest {
     @Test
     void consumesExactlyThePinnedBootstrapCategory() throws Exception {
-        assertEquals(Set.of("v1.bootstrap.ascii.001", "v1.bootstrap.empty.001", "v1.bootstrap.unicode.001"),
+        assertEquals(Set.of("v1.bootstrap.ascii.001", "v1.bootstrap.empty.001", "v1.bootstrap.unicode.001", "v1.bootstrap.local-binding-establishment.001"),
                 VectorCaseLoader.bootstrapCases().stream().map(Case::id).collect(Collectors.toSet()));
     }
 
     @TestFactory
     List<DynamicTest> allDiagnosticsAndProductionUnlock() throws Exception {
-        return VectorCaseLoader.bootstrapCases().stream().map(v -> DynamicTest.dynamicTest(
+        return VectorCaseLoader.bootstrapCases().stream().filter(v -> v.data().field("operation").string().equals("bootstrap")).map(v -> DynamicTest.dynamicTest(
                 v.context(), () -> check(v))).toList();
     }
 

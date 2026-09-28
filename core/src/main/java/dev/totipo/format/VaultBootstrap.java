@@ -2,7 +2,7 @@ package dev.totipo.format;
 
 import java.util.Arrays;
 
-/** Immutable, fixed non-TLV r14 §8 bootstrap. Contains no password or plaintext root. */
+/** Immutable, fixed non-TLV r15 §8 bootstrap. Contains no password or plaintext root. */
 final class VaultBootstrap {
     static final int RECORD_BYTES = 87;
     static final int HEADER_BYTES = 39;

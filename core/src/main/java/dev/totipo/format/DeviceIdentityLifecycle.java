@@ -8,32 +8,25 @@ import java.util.Objects;
 
 import static dev.totipo.format.DeviceIdentityResult.Status.*;
 
-/** Portable, synchronous custody orchestration. Borrows validated local replay and
+/** Portable, synchronous custody orchestration. Borrows validated local binding and
  * the caller-owned store. No root, bootstrap, discovery or publication capability.
  * Caller must keep the established configuration stable while using a result. */
 final class DeviceIdentityLifecycle {
     private DeviceIdentityLifecycle() {}
 
-    static DeviceIdentityResult loadExisting(SecurityMemoryJournal.Replay replay, DeviceProvenanceKeyStore store) {
-        return operate(replay, store, false);
+    static DeviceIdentityResult loadExisting(VaultBindingStore.Binding bindingState, DeviceProvenanceKeyStore store) {
+        return operate(bindingState, store, false);
     }
-    static DeviceIdentityResult createNew(SecurityMemoryJournal.Replay replay, DeviceProvenanceKeyStore store) {
-        return operate(replay, store, true);
+    static DeviceIdentityResult createNew(VaultBindingStore.Binding bindingState, DeviceProvenanceKeyStore store) {
+        return operate(bindingState, store, true);
     }
-    private static DeviceIdentityResult operate(SecurityMemoryJournal.Replay replay,
+    private static DeviceIdentityResult operate(VaultBindingStore.Binding bindingState,
                                                DeviceProvenanceKeyStore store, boolean create) {
-        Objects.requireNonNull(replay);
+        Objects.requireNonNull(bindingState);
         Objects.requireNonNull(store);
-        switch (replay.status()) {
-            case ABSENT: return DeviceIdentityResult.failure(LOCAL_SECURITY_MEMORY_MISSING);
-            case CORRUPT, UNSUPPORTED_LOCAL_FORMAT: return DeviceIdentityResult.failure(LOCAL_SECURITY_MEMORY_INVALID);
-            case INCOMPLETE_TAIL: return DeviceIdentityResult.failure(LOCAL_TAIL_REPAIR_REQUIRED);
-            case CLEAN: break;
-        }
-        if (replay.establishment().phase() != LocalEstablishment.Phase.ESTABLISHED) {
-            return DeviceIdentityResult.failure(LOCAL_STATE_NOT_ESTABLISHED);
-        }
-        byte[] binding = replay.establishment().binding().bytes();
+        if (bindingState.state() == VaultBindingStore.State.ABSENT) { return DeviceIdentityResult.failure(LOCAL_BINDING_ABSENT); }
+        if (bindingState.state() == VaultBindingStore.State.CORRUPT) { return DeviceIdentityResult.failure(LOCAL_BINDING_CORRUPT); }
+        byte[] binding = bindingState.bytes();
         DeviceProvenanceKey key;
         try { key = store.openExisting(); }
         catch (IOException e) { return DeviceIdentityResult.failure(KEY_STORAGE_UNAVAILABLE); }

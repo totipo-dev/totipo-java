@@ -5,23 +5,24 @@ This is an **exact snapshot pin of the moving v1 pre-RC profile**.
 
 - Upstream repository: https://github.com/totipo-dev/totipo-spec
 - Source branch: `main`
-- Exact upstream Git commit: `0b63f77886f95cf9bab3ceb9cbb0916177fe3589`
-- Snapshot date/time (UTC): `2026-09-28T10:57:00.513551+00:00`
+- Exact upstream Git commit: `5ff6977ae004a9c03a410b38f0f9d73ca2bc76d4`
+- Snapshot date/time (UTC): `2026-09-28T20:58:27.890931+00:00`
 - Protocol: Totipo Vault Format v1
 - Protocol version: 1
-- Design revision: r14
+- Design revision: r15
 - Profile status: `moving-pre-rc` (moving pre-RC)
 - Normative specification: `spec/totipo-vault-format-v1.md`
-- Specification SHA-256: `a60cf63a742b4855b5742e5280ac15cdf6a08e60c81b1a6242b1dea10a1630fb`
+- Specification SHA-256: `f62022718044b172092ec321b48ddd14c83c7b791587050cc0ae4678cdefec35`
 - Moving profile: `requirements/v1-pre-rc.json`
-- Profile file SHA-256: `e6f11dfd93f64589a88b373009710dad50133d412702c305ad6c20dfc2682895`
+- Profile file SHA-256: `756cb4cf2ec642c597928bca896c895098f79d3870e1a493ae95e71e5e51ec81`
 - Manifest: `vectors/manifest.json`
-- Manifest SHA-256: `2776ed6a8c62609384f0f5e34747b4ce80359fb1abc956137cc64e1ad92def41`
+- Manifest SHA-256: `2ddf067d119e3512fa033bd4736a1a9f64042985b8a23968ff89778eb4ce5512`
 - Manifest schema: `vectors/manifest.schema.json`
-- Manifest schema SHA-256: `59bdc9165b1c7e940031c447c2da640185774a6e4fd52fa0fee0b245061e0440`
+- Manifest schema SHA-256: `b670c263ab89387e24763e725317cce7ea1c7905ecefd05b00483f4625e0a4a5`
 - Case schema: `vectors/case.schema.json`
-- Case schema SHA-256: `79e33b68bf948dcc332075827b791c8eb8e54d9cb27634dd59c0c6ac1fd95fd5`
-- Required cases: 90
+- Case schema SHA-256: `e9adccef5aac91e23bcff56c8fda914620757b71d0b88c28adb1eb41a5d2a16d`
+- Vendored cases: 105; baseline: 93; conditional advisory-history: 12
+- Java capability claim: baseline only; optional capabilities: []
 - Local snapshot: `core/src/test/resources/totipo-spec/v1-pre-rc/`
 - Applicable upstream license: `LICENSE` in the snapshot (Apache-2.0).
 
@@ -52,21 +53,21 @@ The vendored snapshot is intentionally immutable during ordinary builds/tests.
 Tests use local files only and never fetch upstream or regenerate fixtures.
 `SNAPSHOT.sha256` is local totipo-java provenance metadata, not an upstream Totipo
 protocol artifact. It contains lowercase SHA-256 records sorted by relative path
-for all 97 upstream files (90 cases plus seven supporting inputs), excluding
+for all 112 upstream files (105 cases plus seven supporting inputs), excluding
 itself. The scoped `.gitattributes` rule disables Git line-ending conversion for
 this directory so checkouts preserve the exact upstream bytes.
 
 The JUnit integrity test hashes the source snapshot, rejects invalid paths and
 uncovered files, independently pins the specification/manifest/schema/profile
 hashes, and checks the profile hash recorded above. Import-time structured JSON
-checks established profile identity, exact case-set equality, matching per-case
-hashes, and all 90 physical case hashes. No JSON dependency or protocol parser is
+checks established profile identity, exact equality of baseline selection and profile required cases, matching per-case
+hashes, and all 105 physical case hashes. No JSON dependency or protocol parser is
 needed for these cryptographic snapshot checks.
 
 Updating the pin requires a separate explicit reviewed change. Fetch upstream
 `main`, resolve a full commit SHA once, and perform every check and byte copy from
 that commit. Check the intended profile identity, specification/manifest/schema
-hashes, complete required-case set, matching profile/manifest case hashes, and
+hashes, complete baseline/conditional case sets, matching profile/manifest case hashes, and
 physical case hashes before import. Stop on discrepancies; do not regenerate
 vectors or guess a normative correction. Atomically update the upstream commit,
 spec/profile/manifest/schema hashes, vendored files, required-case set, and

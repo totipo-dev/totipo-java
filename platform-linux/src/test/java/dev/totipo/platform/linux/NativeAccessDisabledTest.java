@@ -34,10 +34,10 @@ class NativeAccessDisabledTest {
                     try (var stage = vault.stageReplacement(new byte[87])) { stage.replaceCanonicalDurably(); throw new AssertionError(); }
                     catch (java.io.IOException e) { if (!e.getMessage().equals("NATIVE_ACCESS_DISABLED")) throw e; }
                 }
-                try { LinuxSecurityMemoryStorage.open(root); throw new AssertionError(); }
+                try { LinuxVaultBindingStore.open(root); throw new AssertionError(); }
                 catch (java.io.IOException e) { if (!e.getMessage().equals("NATIVE_ACCESS_DISABLED")) throw e; }
                 try (var publisher = NioV1ObjectPublicationStore.open(root, LinuxDurability.open())) {
-                    try { publisher.publishDurably(dev.totipo.format.ObjectId.fromFilename("a".repeat(64)), new byte[1024]); throw new AssertionError(); }
+                    try { publisher.publish(dev.totipo.format.ObjectId.fromFilename("a".repeat(64)), new byte[1024]); throw new AssertionError(); }
                     catch (java.io.IOException e) { if (!e.getMessage().equals("NATIVE_ACCESS_DISABLED")) throw e; }
                 }
                 // Repeated denied calls leave read-only classes usable, with no initialization poisoning.

@@ -11,9 +11,9 @@ class LocalIdentityProvenanceTest {
     @Test void localKeyReevaluatesOnlyMatchingAttributionWithoutChangingAssertion() throws Exception {
         var fixture = ProvenanceTest.token(); byte[] root = ProvenanceTest.root(fixture);
         var store = new FakeDeviceKeyStore();
-        var memory = DeviceIdentityLifecycleTest.established(DeviceIdentityLifecycleTest.binding(root));
-        byte[] journal = memory.bytes.clone();
-        try (var local = DeviceIdentityLifecycle.createNew(DeviceIdentityLifecycleTest.replay(memory), store)) {
+        var memory = new VaultBindingStore.Binding(VaultBindingStore.State.PRESENT, CryptoSupport.hmac(root,CryptoSupport.ascii("totipo/v1/local-vault-binding")));
+        byte[] journal = memory.bytes();
+        try (var local = DeviceIdentityLifecycle.createNew(memory, store)) {
             // Test-only signed assertion construction, never a production TOKEN writer.
             byte[] semantic = TlvTestBytes.replace(fixture.semanticBytes(), 0x0102, local.deviceId());
             var unsigned = ProvenanceTest.valid(semantic, root).unsignedSemantic();
@@ -35,7 +35,7 @@ class LocalIdentityProvenanceTest {
             assertEquals(List.of(VERIFIED, REJECTED, VERIFIED), ProvenanceEvaluator.withLocalIdentity(
                     assertions, root, VerificationKeyMaterial.keys(ProvenanceTest.key(fixture)), local));
             assertSame(plain, valid.plaintext()); assertArrayEquals(originalUnsigned, valid.unsignedSemantic());
-            assertArrayEquals(journal, memory.bytes);
+            assertArrayEquals(journal, memory.bytes());
             byte[] otherRoot = root.clone(); otherRoot[0] ^= 1;
             assertThrows(IllegalArgumentException.class,
                     () -> ProvenanceEvaluator.withLocalIdentity(assertions, otherRoot, empty, local));

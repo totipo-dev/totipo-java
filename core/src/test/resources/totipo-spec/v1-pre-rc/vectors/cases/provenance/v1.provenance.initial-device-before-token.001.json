@@ -13,7 +13,7 @@
       },
       {
         "action": "publish-token",
-        "durable": true
+        "acknowledged": true
       },
       {
         "action": "report-success",
@@ -25,7 +25,7 @@
         "public_key": "key-D",
         "assertion_valid": true,
         "verified": true,
-        "durable": true
+        "acknowledged": true
       },
       {
         "action": "report-success",
@@ -37,7 +37,7 @@
         "public_key": "other",
         "assertion_valid": true,
         "verified": true,
-        "durable": true
+        "acknowledged": true
       },
       {
         "action": "report-success",
@@ -49,7 +49,7 @@
         "public_key": "key-D",
         "assertion_valid": false,
         "verified": true,
-        "durable": true
+        "acknowledged": true
       },
       {
         "action": "report-success",
@@ -61,7 +61,7 @@
         "public_key": "key-D",
         "assertion_valid": true,
         "verified": false,
-        "durable": true
+        "acknowledged": true
       },
       {
         "action": "report-success",
@@ -73,7 +73,7 @@
         "public_key": "key-D",
         "assertion_valid": true,
         "verified": true,
-        "durable": false
+        "acknowledged": false
       },
       {
         "action": "report-success",
@@ -85,7 +85,7 @@
         "public_key": "key-D",
         "assertion_valid": true,
         "verified": true,
-        "durable": true
+        "acknowledged": true
       },
       {
         "action": "report-success",
@@ -100,7 +100,7 @@
         "public_key": "key-D",
         "assertion_valid": true,
         "verified": true,
-        "durable": true
+        "acknowledged": true
       },
       {
         "action": "report-success",
@@ -108,7 +108,7 @@
       },
       {
         "action": "publish-token",
-        "durable": false
+        "acknowledged": false
       },
       {
         "action": "report-success",
@@ -116,7 +116,7 @@
       },
       {
         "action": "publish-token",
-        "durable": true
+        "acknowledged": true
       },
       {
         "action": "report-success",

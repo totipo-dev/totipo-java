@@ -1,0 +1,78 @@
+{
+  "format": "totipo-case-v1",
+  "id": "v1.graph.history-cache-corrupt.001",
+  "operation": "graph",
+  "expected": "PASS",
+  "graph": {
+    "steps": [
+      {
+        "action": "learn",
+        "node": {
+          "id": "a",
+          "version": 1,
+          "type": "TOKEN",
+          "identity": "T",
+          "class": "SUPPORTED_VALID",
+          "parents": [],
+          "author_time": 0,
+          "semantic_digest": "bytes-a"
+        },
+        "value": {
+          "status": "LIVE",
+          "issuer": "Example",
+          "account": "alice",
+          "algorithm": 1,
+          "digits": 6,
+          "period": 30,
+          "secret_hex": "3132333435"
+        }
+      },
+      {
+        "action": "remember"
+      },
+      {
+        "action": "history-lost"
+      },
+      {
+        "action": "query",
+        "query": {
+          "identity": "T",
+          "candidate": "a",
+          "device": ""
+        },
+        "expect": {
+          "heads": [
+            "a"
+          ],
+          "value_state": "UNAMBIGUOUS",
+          "ordinary": true,
+          "author": true,
+          "candidate": true,
+          "candidate_warning": true,
+          "integrity_failure": false,
+          "warnings": [
+            "HISTORY_MEMORY_LOST"
+          ]
+        }
+      },
+      {
+        "action": "state-query",
+        "id": "",
+        "query": {
+          "identity": "T",
+          "candidate": "a",
+          "device": "D"
+        },
+        "state_expect": {
+          "known": [
+            "a"
+          ],
+          "device_heads": [],
+          "parents": [],
+          "integrity_ok": true
+        }
+      }
+    ],
+    "notes": "Conditional advisory-history client detects corrupt previously expected cache, discards it, emits HISTORY_MEMORY_LOST, and derives graph integrity and current heads only from accepted objects."
+  }
+}

@@ -8,24 +8,24 @@ import java.util.Objects;
 
 import static dev.totipo.format.VaultLifecycleResult.Status.*;
 
-/** r14 §§8–10 orchestration. Synchronous, thread-confined, scoped operations.
+/** r15 §§8–10 orchestration. Synchronous, thread-confined, scoped operations.
  * Borrows explicit stores/source/password; caller keeps exclusive local storage
  * ownership throughout and closes stores afterward. All streams/snapshots/staged
- * handles are closed here. No live session escapes; reopen/replay for another pass.
+ * handles are closed here. No live session escapes; discovery reconstructs each pass.
  * No retained candidate/root recovery or application session. */
 final class VaultLifecycle {
     private final VaultBootstrapStorage bootstrap;
-    private final SecurityMemoryStorage memory;
+    private final VaultBindingStore memory;
     private final DiscoverySource source;
     private final EntropySource entropy;
     private final VaultBootstrapWriter writer;
     private final VaultUnlocker unlocker;
 
-    VaultLifecycle(VaultBootstrapStorage bootstrap, SecurityMemoryStorage memory, DiscoverySource source) {
+    VaultLifecycle(VaultBootstrapStorage bootstrap, VaultBindingStore memory, DiscoverySource source) {
         this(bootstrap, memory, source, new EntropySource.Jdk(),
                 new VaultBootstrapWriter(), new VaultUnlocker());
     }
-    VaultLifecycle(VaultBootstrapStorage bootstrap, SecurityMemoryStorage memory, DiscoverySource source,
+    VaultLifecycle(VaultBootstrapStorage bootstrap, VaultBindingStore memory, DiscoverySource source,
                    EntropySource entropy, VaultBootstrapWriter writer, VaultUnlocker unlocker) {
         this.bootstrap = Objects.requireNonNull(bootstrap);
         this.memory = Objects.requireNonNull(memory);
@@ -37,12 +37,12 @@ final class VaultLifecycle {
 
     /** Explicitly new local configuration and new synchronized vault. */
     VaultLifecycleResult createNew(byte[] password) {
-        SecurityMemorySession session;
-        try { session = SecurityMemorySession.open(memory); }
+        VaultBindingStore.Binding bindingState;
+        try { bindingState = memory.read(); }
         catch (IOException e) { return fail(LOCAL_PERSISTENCE_FAILURE); }
-        var invalid = localProblem(session);
+        var invalid = localProblem(bindingState);
         if (invalid != null) { return fail(invalid); }
-        if (session.establishment().phase() != LocalEstablishment.Phase.UNESTABLISHED) {
+        if (bindingState.state() != VaultBindingStore.State.ABSENT) {
             return fail(LOCAL_STATE_NOT_FRESH);
         }
         try (var canonical = bootstrap.openCanonicalRead()) {
@@ -58,11 +58,6 @@ final class VaultLifecycle {
         }
         if (preflight != null) { return fail(preflight); }
         if (!PasswordBytes.valid(password)) { return fail(INVALID_PASSWORD_INPUT); }
-        try {
-            if (session.head().status() == SecurityMemoryJournal.Status.ABSENT) {
-                session = SecurityMemorySession.initializeNew(memory);
-            }
-        } catch (IOException e) { return fail(LOCAL_PERSISTENCE_FAILURE); }
         byte[] root = new byte[32], salt = new byte[16], nonce = new byte[12];
         try {
             byte[] candidate, binding;
@@ -72,7 +67,6 @@ final class VaultLifecycle {
                 try (var intended = VaultUnlockResult.unlocked(root)) { binding = intended.binding(); }
                 if (!matches(candidate, password, root, binding)) { return fail(CRYPTO_CONSTRUCTION_FAILED); }
             } catch (RuntimeException e) { return fail(CRYPTO_CONSTRUCTION_FAILED); }
-            if (!session.persistPending(binding)) { return fail(LOCAL_PERSISTENCE_FAILURE); }
             VaultBootstrapStorage.StagedBootstrap staged = null;
             try {
                 staged = bootstrap.stageInitial(candidate);
@@ -83,7 +77,7 @@ final class VaultLifecycle {
                 if (installed == null || !matches(installed, password, root, binding)) {
                     return fail(PUBLICATION_INCOMPLETE);
                 }
-                if (!session.establishFromPending(binding)) { return fail(LOCAL_PERSISTENCE_FAILURE); }
+                try { memory.create(binding); } catch (IOException e) { return fail(LOCAL_PERSISTENCE_FAILURE); }
             } catch (IOException | RuntimeException e) { return fail(PUBLICATION_INCOMPLETE); }
             finally {
                 if (staged != null) {
@@ -93,39 +87,31 @@ final class VaultLifecycle {
                     }
                 }
             }
-            return discovered(true, root, session);
+            return discovered(true, root);
         } finally {
             Arrays.fill(root, (byte) 0); Arrays.fill(salt, (byte) 0); Arrays.fill(nonce, (byte) 0);
         }
     }
 
-    /** Explicit new-client authorization; authenticate before initializing absent memory. */
-    VaultLifecycleResult configureExisting(byte[] password) { return open(password, Intent.CONFIGURE_EXISTING); }
+    /** Explicit new-client authorization; authenticate before creating an absent binding. */
+    VaultLifecycleResult configureExisting(byte[] password) { return open(password); }
 
-    /** Existing local configuration: absence of memory is never a fresh-client signal. */
-    VaultLifecycleResult openConfigured(byte[] password) { return open(password, Intent.OPEN_CONFIGURED); }
+    /** Authenticate canonical VAULT and establish the local binding when absent. */
+    VaultLifecycleResult openConfigured(byte[] password) { return open(password); }
 
-    private enum Intent { CONFIGURE_EXISTING, OPEN_CONFIGURED }
 
     /** Rewrap only the established root. Passwords are synchronously borrowed.
-     * Local memory is read-only; no discovery or semantic policy is evaluated.
+     * Local binding is read-only; no discovery or semantic policy is evaluated.
      * Historical bootstrap/password copies remain usable; this is not revocation. */
     PasswordChangeStatus changePassword(byte[] currentPassword, byte[] newPassword) {
         if (!(bootstrap instanceof VaultBootstrapReplacementStorage replacement)) {
             return PasswordChangeStatus.REPLACEMENT_UNSUPPORTED;
         }
-        SecurityMemorySession session;
-        try { session = SecurityMemorySession.open(memory); }
+        VaultBindingStore.Binding bindingState;
+        try { bindingState = memory.read(); }
         catch (IOException e) { return PasswordChangeStatus.LOCAL_STORAGE_UNAVAILABLE; }
-        switch (session.head().status()) {
-            case ABSENT: return PasswordChangeStatus.LOCAL_SECURITY_MEMORY_MISSING;
-            case CORRUPT, UNSUPPORTED_LOCAL_FORMAT: return PasswordChangeStatus.LOCAL_SECURITY_MEMORY_INVALID;
-            case INCOMPLETE_TAIL: return PasswordChangeStatus.LOCAL_TAIL_REPAIR_REQUIRED;
-            case CLEAN: break;
-        }
-        if (session.establishment().phase() != LocalEstablishment.Phase.ESTABLISHED) {
-            return PasswordChangeStatus.LOCAL_STATE_NOT_ESTABLISHED;
-        }
+        if (bindingState.state() == VaultBindingStore.State.ABSENT) { return PasswordChangeStatus.LOCAL_BINDING_ABSENT; }
+        if (bindingState.state() == VaultBindingStore.State.CORRUPT) { return PasswordChangeStatus.LOCAL_BINDING_CORRUPT; }
         byte[] canonical;
         try { canonical = read(bootstrap.openCanonicalRead()); }
         catch (IOException e) { return PasswordChangeStatus.BOOTSTRAP_STORAGE_UNAVAILABLE; }
@@ -138,7 +124,7 @@ final class VaultLifecycle {
                 case INVALID_PASSWORD_INPUT: return PasswordChangeStatus.CURRENT_INVALID_PASSWORD_INPUT;
                 case UNLOCKED: break;
             }
-            byte[] binding = session.establishment().binding().bytes();
+            byte[] binding = bindingState.bytes();
             if (!MessageDigest.isEqual(binding, current.binding())) {
                 return PasswordChangeStatus.ESTABLISHED_BINDING_MISMATCH;
             }
@@ -181,25 +167,11 @@ final class VaultLifecycle {
         } catch (RuntimeException e) { return PasswordChangeStatus.CRYPTO_CONSTRUCTION_FAILED; }
     }
 
-    private VaultLifecycleResult open(byte[] password, Intent intent) {
-        SecurityMemorySession session;
-        try { session = SecurityMemorySession.open(memory); }
-        catch (IOException e) { return fail(LOCAL_PERSISTENCE_FAILURE); }
-        var invalid = localProblem(session);
-        if (invalid != null) { return fail(invalid); }
-        boolean absent = session.head().status() == SecurityMemoryJournal.Status.ABSENT;
-        var phase = session.establishment().phase();
-        if (intent == Intent.OPEN_CONFIGURED && absent) { return fail(LOCAL_SECURITY_MEMORY_MISSING); }
-        if (intent == Intent.CONFIGURE_EXISTING && phase != LocalEstablishment.Phase.UNESTABLISHED
-                || intent == Intent.OPEN_CONFIGURED && phase == LocalEstablishment.Phase.UNESTABLISHED) {
-            return fail(LOCAL_STATE_NOT_FRESH);
-        }
+    private VaultLifecycleResult open(byte[] password) {
         byte[] canonical;
         try { canonical = read(bootstrap.openCanonicalRead()); }
         catch (IOException e) { return fail(BOOTSTRAP_STORAGE_UNAVAILABLE); }
-        if (canonical == null) {
-            return fail(phase == LocalEstablishment.Phase.PENDING ? PENDING_CANONICAL_ABSENT : CANONICAL_VAULT_ABSENT);
-        }
+        if (canonical == null) { return fail(CANONICAL_VAULT_ABSENT); }
         try (var unlocked = unlocker.unlock(canonical, password)) {
             if (unlocked.status() != VaultUnlockResult.Status.UNLOCKED) {
                 return fail(switch (unlocked.status()) {
@@ -209,34 +181,23 @@ final class VaultLifecycle {
                     default -> throw new AssertionError();
                 });
             }
-            byte[] binding = unlocked.binding();
-            if (phase != LocalEstablishment.Phase.UNESTABLISHED
-                    && !MessageDigest.isEqual(binding, session.establishment().binding().bytes())) {
-                return fail(phase == LocalEstablishment.Phase.PENDING
-                        ? PENDING_BINDING_MISMATCH : ESTABLISHED_BINDING_MISMATCH);
-            }
-            if (intent == Intent.CONFIGURE_EXISTING) {
-                try { if (absent) { session = SecurityMemorySession.initializeNew(memory); } }
-                catch (IOException e) { return fail(LOCAL_PERSISTENCE_FAILURE); }
-                if (!session.establishFirstOpen(binding)) { return fail(LOCAL_PERSISTENCE_FAILURE); }
-            } else if (phase == LocalEstablishment.Phase.PENDING && !session.establishFromPending(binding)) {
-                return fail(LOCAL_PERSISTENCE_FAILURE);
-            }
+            try {
+                var local = memory.read();
+                if (local.state() == VaultBindingStore.State.CORRUPT) { return fail(LOCAL_BINDING_CORRUPT); }
+                if (local.state() == VaultBindingStore.State.PRESENT
+                        && !MessageDigest.isEqual(local.bytes(), unlocked.binding())) { return fail(ESTABLISHED_BINDING_MISMATCH); }
+                if (local.state() == VaultBindingStore.State.ABSENT) { memory.create(unlocked.binding()); }
+            } catch (IOException e) { return fail(LOCAL_PERSISTENCE_FAILURE); }
             byte[] root = unlocked.root();
-            try { return discovered(false, root, session); }
+            try { return discovered(false, root); }
             finally { Arrays.fill(root, (byte) 0); }
         }
     }
-
-    private static VaultLifecycleResult.Status localProblem(SecurityMemorySession session) {
-        return switch (session.head().status()) {
-            case CLEAN, ABSENT -> null;
-            case INCOMPLETE_TAIL -> LOCAL_TAIL_REPAIR_REQUIRED;
-            case CORRUPT, UNSUPPORTED_LOCAL_FORMAT -> LOCAL_SECURITY_MEMORY_INVALID;
-        };
+    private static VaultLifecycleResult.Status localProblem(VaultBindingStore.Binding binding) {
+        return binding.state() == VaultBindingStore.State.CORRUPT ? LOCAL_BINDING_CORRUPT : null;
     }
-    private VaultLifecycleResult discovered(boolean created, byte[] root, SecurityMemorySession session) {
-        return VaultLifecycleResult.established(created, root, DiscoveryCoordinator.discover(source, root, session));
+    private VaultLifecycleResult discovered(boolean created, byte[] root) {
+        return VaultLifecycleResult.established(created, root, DiscoveryCoordinator.discover(source, root));
     }
     private boolean matches(byte[] bytes, byte[] password, byte[] intended, byte[] binding) {
         try (var unlocked = unlocker.unlock(bytes, password)) {

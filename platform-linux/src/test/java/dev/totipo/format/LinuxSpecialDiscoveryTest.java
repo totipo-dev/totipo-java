@@ -37,7 +37,7 @@ class LinuxSpecialDiscoveryTest {
         Path second = Files.createDirectory(root.resolve("other-root"));
         try (var socket = unixSocket()) {
             socket.bind(UnixDomainSocketAddress.of(second.resolve("objects-v1")));
-            var result = run(new NioDiscoverySource(second), new byte[32], DurableKnowledgeState.establishedEmpty());
+            var result = run(new NioDiscoverySource(second), new byte[32]);
             assertEquals(DiscoverySource.SnapshotIssue.UNSAFE_NAMESPACE, result.snapshotIssue());
         }
     }

@@ -35,13 +35,10 @@ final class NioTestFixtures {
                 hex.parseHex(fields.get("object_hex")), hex.parseHex(fields.get("root_hex")));
     }
 
-    static DiscoveryResult run(DiscoverySource source, byte[] root, DurableKnowledgeState state) {
-        // COMMITTED here MODELS an external durable commit. This fake has no crash durability.
-        return DiscoveryCoordinator.discover(source, root, state, o -> DurableKnowledgeState.PersistenceResult.COMMITTED);
+    static DiscoveryResult run(DiscoverySource source, byte[] root) {
+        return DiscoveryCoordinator.discover(source, root);
     }
-
     static TokenOperationPolicy policy(DiscoveryResult result, SecurityBytes token) {
-        return new TokenOperationPolicy(new VaultReadiness(result.knowledge(), result.discoveryState()),
-                result.topology(), token, result.readable());
+        return new TokenOperationPolicy(result.snapshot(), token);
     }
 }

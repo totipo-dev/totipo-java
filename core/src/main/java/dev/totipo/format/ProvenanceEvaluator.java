@@ -9,7 +9,7 @@ final class ProvenanceEvaluator {
     private ProvenanceEvaluator() {}
 
     /** Reevaluate currently readable known assertions when local key material arrives.
-     * Returns only attribution, in input order; never mutates assertions or durable state.
+     * Returns only attribution, in input order; never mutates assertions or accepted state.
      * Caller supplies the current established vault's root and existing candidate material.
      * Unreadable assertions must be evaluated when their exact bytes become available. */
     static java.util.List<ProvenanceStatus> withLocalIdentity(

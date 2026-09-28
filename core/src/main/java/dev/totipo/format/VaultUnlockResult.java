@@ -32,7 +32,7 @@ final class VaultUnlockResult implements AutoCloseable {
     /** Caller owns the copy. No key bytes appear in toString, errors, or logs. */
     byte[] root() { requireOpen(); return root == null ? null : root.clone(); }
 
-    /** Pure r14 §10 derivation, without any durable establishment or comparison. */
+    /** Pure r15 §10 derivation, without any durable establishment or comparison. */
     byte[] binding() {
         requireOpen();
         if (root == null) {

@@ -1,17 +1,19 @@
 # Totipo Vault Format v1
 
-**Status:** design draft, revision 14  
+**Status:** design draft, revision 15  
 **Protocol version:** 1  
-**Revision:** r14  
-**Scope:** encrypted append-only TOTP vault format, complete-state token assertions, token-local causal history, device presentation history, durable local rollback evidence, bootstrap semantics, cryptographic construction, canonical encoding, and writer/application safety.
+**Revision:** r15  
+**Scope:** encrypted append-only TOTP vault format, complete-state token assertions, token-local causal history, device presentation history, advisory local regression evidence, bootstrap semantics, cryptographic construction, canonical encoding, and writer/application safety.
 
 **Historical note:** Earlier Totipo design work used a v0 draft. It was never released as an implemented/deployed protocol and is not a supported predecessor of v1. v1 defines no migration protocol from v0; historical v0 draft artifacts are outside the v1 protocol.
 
-**Revision 14 summary:** v1/r14 narrows the baseline local-filesystem threat model without changing wire format, cryptography, synchronized-state semantics, storage-family layout, routing, capacity rules, or TOTP algorithms. Synchronized contents and provider history remain fully untrusted. Baseline conformance trusts the local OS/filesystem execution environment and does not require immunity to an actively malicious same-privilege process racing pathname, file-type, directory-identity, or inode changes between filesystem operations. Bounded parsing, cryptographic authentication, conservative synchronization-churn handling, namespace/family isolation, and crash-safe/no-overwrite publication remain required. Stronger hostile-local-filesystem hardening remains permitted.
+**Revision 15 summary:** v1/r15 intentionally simplifies state semantics: authenticated immutable objects over unreliable sync; accepted-snapshot authorship; optional advisory history; TOKEN-specific conflict confirmation; independent immutable publication. Strong local durability protects vault identity and private custody. No wire-format, crypto, routing-prefix, envelope-family, object-size, capacity-formula, TOTP algorithm, or identifier construction changes.
 
 ---
 
 ## 1. Goals
+
+Totipo uses immutable authenticated objects and causal DAG semantics over an unreliable synchronization transport; strong local durability protects vault identity and private custody, while optional remembered history provides best-effort regression warnings rather than authoritative protocol state.
 
 Totipo v1 is an encrypted, append-only, multi-device TOTP vault format intended for synchronization over an untrusted or partially trusted file-synchronization medium such as Syncthing, Dropbox, or Google Drive.
 
@@ -21,13 +23,13 @@ The principal goals are:
 - confidentiality against the synchronization medium;
 - immutable authenticated content storage;
 - deterministic synchronization-derived interpretation of the same observed object set;
-- deterministic effective state given the same synchronized observations and the same durable known-graph/security state;
+- deterministic effective state given the same accepted authenticated snapshot;
 - complete usable token state in every vault-authenticated TOKEN;
 - explicit preservation of genuine concurrent disagreement;
 - no silent field-wise synthesis of a state that no user confirmed;
 - graceful availability when historical ancestry is missing;
 - device provenance without a device-authorization system;
-- durable local detection of already-known history disappearing;
+- best-effort local detection of previously observed history disappearing;
 - efficient incremental synchronization;
 - minimal externally visible semantic metadata.
 
@@ -112,42 +114,31 @@ Parent IDs express claimed causal incorporation. They are used for causality, co
 
 A `DEVICE` affects presentation/provenance only. It never affects token value authority.
 
-A client MAY maintain disposable indexes and materialized token views. The durable known graph required by Section 24 is security memory rather than a disposable cache and is intentionally not synchronized protocol state.
+A client MAY maintain disposable indexes and materialized token views. All graph indexes are disposable derived state; optional history is advisory under Section 34.
 
 ## 3. Threat model
 
-The synchronization medium MUST NOT be trusted for confidentiality, integrity, freshness, ordering, completeness, or availability.
+Totipo guarantees vault identity, cryptographic authenticity, immutable objects, causal interpretation, and explicit handling of known semantic conflicts. It does not guarantee synchronized-store completeness, propagation, freshness, rollback prevention, or transactionality.
 
-An attacker controlling the synchronization medium may read, copy, add, replace, replay, reorder, withhold, or delete files.
+### 3.1 Trusted local execution environment
 
-The synchronization medium is untrusted as a source of bytes, directory entries, ordering, history, freshness, completeness, and availability, regardless of whether those synchronized entries are materialized locally by a synchronization client. The synchronization client is not trusted to provide truthful synchronized state.
+The local kernel, filesystem implementation, mount/process namespace, and processes acting with the application's local privileges are trusted for baseline conformance. Immunity to an actively malicious same-privilege process racing individual pathname, file-type, directory-identity, or inode operations is optional hardening. Ordinary synchronization churn remains in scope. External synchronized bytes are hostile even when materialized on a local filesystem and MUST pass structural and cryptographic validation.
 
-Baseline v1 does not treat compromise of the client's own local execution environment as part of the synchronization-medium attacker model. The local kernel, filesystem implementation, mount/process namespace, and processes acting with the application's local privileges are part of the trusted computing base for baseline protocol conformance.
+### 3.2 Authoritative local state
 
-In particular, a conforming implementation is not required to prove immunity to an actively malicious same-privilege local process that deliberately races individual filesystem operations by changing pathname targets, file types, directory identities, or already-open inode contents between checks and uses.
+The durable local `VAULT_BINDING` pins the configured installation to accepted `K_root`. Private device-key custody is security-sensitive, private, crash-safe local state bound to that vault. Neither is an advisory cache.
 
-Ordinary synchronization churn remains in scope. Files may legitimately appear, disappear, or be replaced while an operation is in progress. Implementations MUST handle such observed changes conservatively as availability/freshness failures, incomplete discovery, or retry/rescan conditions rather than invent authenticated protocol state.
+### 3.3 Advisory local state
 
-This trust boundary never permits synchronized bytes to be trusted merely because they were obtained from the local filesystem. Protocol objects and bootstraps still require their normal structural and cryptographic validation. Local secret-custody, permissions, and durable security-memory protection obligations remain unchanged.
+Optional remembered history supports regression warnings, startup indexes, and UI history. Loss or corruption of advisory history may reduce detection of unexpected regressions but does not invalidate otherwise authenticated current synchronized state.
 
-Stronger defenses against hostile local namespace manipulation, sandbox escape, or same-user local compromise MAY be provided by an implementation but are outside baseline v1 interoperability/conformance requirements.
+### 3.4 Untrusted and unreliable synchronized transport
 
-Without `K_root`, the synchronization-medium attacker MUST NOT be able to:
+Synchronized storage is untrusted for content and unreliable for availability, propagation, completeness, and freshness. It may delay or omit objects, replay old subsets, later reveal hidden history, or remove previously visible objects. No local observation proves global completeness. No successful local publication proves peer propagation. No local scan proves another client has no newer object.
 
-- decrypt semantic object contents;
-- compute valid object identifiers for guessed plaintext;
-- construct a new valid v1 semantic object;
-- substitute a different v1 vault root without detection by an established client.
+Without `K_root`, the synchronization-medium attacker cannot decrypt semantic contents, compute keyed IDs for guessed plaintext, construct new authenticated objects, or substitute another root without detection by an installation with an intact binding. Device signatures provide attribution, not authorization. Possession of `K_root` permits vault-valid state and a fresh provenance identity, but not forged verified attribution to an existing device key. A compromised unlocked client can read secrets and author valid history.
 
-Possession of `K_root` grants vault read capability and permits creation of a fresh vault-specific P-256 device provenance identity. v1 defines no additional protocol membership or authorization check.
-
-Device provenance signatures provide attribution, not authorization.
-
-Possession of `K_root` alone MUST NOT permit forging **verified provenance** attributed to an already-existing device public key without that device's private signing key. A holder of `K_root` can nevertheless author vault-valid TOKEN state because v1 authorization is rooted in vault-key possession rather than device membership.
-
-A compromised unlocked client is assumed capable of reading token secrets, reading `K_root`, generating a fresh device signing identity, and creating valid new v1 `TOKEN` and `DEVICE` objects under that fresh identity.
-
-This threat model is important to the ancestry rules: a signer capable of creating an otherwise valid complete `TOKEN` already has semantic write capability. Invalidating that complete state solely because a parent edge is unavailable or semantically unusable would create an availability attack without removing write capability from an authorized vault holder.
+Valid concurrent forks are expected from offline operation, delayed sync, hidden history, ambiguous retries, and simultaneous clients. The DAG interprets them; storage transactions do not prevent them.
 
 ---
 
@@ -205,7 +196,7 @@ No v1 semantic information appears directly in the directory hierarchy below `ob
 
 v1 does not define protocol garbage collection of valid historical v1-family objects.
 
-Writers SHOULD publish immutable v1-family objects using a completed temporary file followed by atomic no-replace or equivalent immutable installation where available.
+Writers MUST publish complete immutable bytes with no overwrite of different existing bytes and atomic/complete visibility at the local filesystem API boundary (Section 50). Synchronized storage is an unreliable transport/cache, not a transactional database.
 
 The atomic/no-replace requirement protects immutable publication and crash/concurrency correctness; it does not require defense against an already-compromised same-privilege local execution environment deliberately racing individual filesystem syscalls.
 
@@ -339,11 +330,7 @@ Ordinary initial creation is permitted only when the configured canonical `vault
 
 If candidate v1-family protocol object files already exist under `objects-v1/` while the canonical bootstrap is absent, ordinary creation MUST stop. The implementation MUST require explicit recovery/reconfiguration rather than create an unrelated vault over potentially recoverable v1-family material.
 
-Before initial bootstrap publication, the client MUST durably persist the pending local `VAULT_BINDING` from Section 10.
-
-Initial bootstrap installation MUST use no-replace semantics or an equivalent local exclusion guarantee.
-
-Creation MUST NOT be reported successful until the installed bootstrap has been reopened, authenticated, shown to recover the intended `K_root`, matched against the pending local binding, and the local establishment state has become durably `ESTABLISHED`.
+Initial bootstrap installation MUST use no-replace semantics or equivalent local exclusion and Section 9.1 durability. Authenticate the canonical VAULT and establish the local binding under Section 10 before reporting setup success. No pending binding record is required.
 
 ---
 
@@ -372,19 +359,9 @@ Concurrent unsynchronized password changes are not mergeable semantic operations
 
 Both initial creation and later password/bootstrap replacement MUST use crash-safe publication.
 
-A conforming writer MUST:
+A conforming writer MUST construct complete bytes in a separate temporary file, flush/force that file, atomically install (initially no-replace) or replace the canonical pathname, and flush/force the containing directory. Platform-specific equivalent crash-safe mechanisms are acceptable. The intended root MUST remain unchanged on replacement. Under the trusted local environment this pattern requires neither repeated inode/path identity proofs nor mandatory rereads. A final cryptographic reopen MAY be used as defensive hardening and is recommended when practical.
 
-1. construct the complete candidate bootstrap in a separate temporary file in the same filesystem/storage context in which atomic installation can be attempted;
-2. write the complete candidate bytes;
-3. durably flush the temporary file to the extent supported by the platform;
-4. reopen and validate the completed temporary bootstrap locally:
-   - for initial creation, require that the configured password unwraps exactly the newly generated `K_root` and derives the `VAULT_BINDING` about to be pinned;
-   - for replacement, require that the new password unwraps exactly the already-established unchanged `K_root` and derives the already pinned `VAULT_BINDING`;
-5. for initial creation, install with no-replace semantics or equivalent local exclusion;
-6. for replacement, atomically replace the canonical `vault` pathname where the platform provides atomic replace/rename;
-7. durably flush containing-directory metadata when the platform provides such a facility;
-8. reopen/authenticate the installed canonical bootstrap;
-9. report creation or password-change success only after all required publication and local-security-state persistence steps complete.
+Success requires completion of these durability steps and the authoritative local binding obligations. Interrupted or ambiguous authoritative-file publication is incomplete.
 
 The canonical `vault` pathname MUST NOT be created or updated by truncating/overwriting the final file in place.
 
@@ -410,9 +387,9 @@ Crash-safe publication protects against torn local writes. It does not make conc
 
 ---
 
-## 10. Durable local vault binding, first establishment, and bootstrap continuity
+## 10. Durable local vault binding and establishment
 
-Derive:
+Derive the unchanged local anchor:
 
 ```text
 VAULT_BINDING =
@@ -422,96 +399,17 @@ VAULT_BINDING =
     )
 ```
 
-`VAULT_BINDING` is local-only durable security state.
+`K_root` is uniformly random; this fixed domain separates the local PRF use. `VAULT_BINDING` is authoritative local state, independent of synchronized history.
 
-The direct HMAC use of `K_root` here is intentional. `K_root` is already a uniformly random 256-bit key, `VAULT_BINDING` is a single local PRF-derived binding value, and the fixed `totipo/v1/local-vault-binding` domain string separates this use. An additional HKDF expansion would not provide a distinct interoperability/security property for this local binding.
+Authenticate the configured canonical VAULT and derive the binding. If no binding exists, durably create it before ordinary use, semantic authorship, or creation/reuse of the configured device key. If a binding exists, require exact equality. A present but malformed/unreadable/corrupt binding is a local anchor failure requiring explicit recovery/reconfiguration; it MUST NOT silently become absence. A mismatching binding MUST reject automatic open and key reuse.
 
-A configured vault has local establishment state:
+Use complete temporary bytes, file flush/force, atomic install/no-replace or replacement as appropriate, and containing-directory flush/force (or a platform equivalent). No journal or pending establishment record is required.
 
-```text
-UNESTABLISHED
-PENDING(VAULT_BINDING)
-ESTABLISHED(VAULT_BINDING)
-```
+If canonical VAULT creation succeeded but the process crashes before binding creation, next startup behaves as first open for this installation: authenticate canonical VAULT and durably create the binding. This has fresh-installation limitations.
 
-A client MUST NOT report ordinary creation/open success, reuse a configured device provenance key, expose ordinary current credential state, or author semantic objects until the configured vault is durably `ESTABLISHED`.
+Device private-key storage MUST bind to this same vault, remain private under local permissions/platform custody, be crash-safe on creation, and prevent accidental replacement.
 
-### 10.1 Initial creation
-
-Before installing the canonical initial `vault`, the client MUST durably persist:
-
-```text
-PENDING(VAULT_BINDING)
-```
-
-for the newly generated `K_root`.
-
-Initial publication then follows Section 9.1.
-
-After installation, the client MUST reopen/authenticate the canonical `vault`, require that it unwraps to a root deriving exactly the pending binding, and only then durably transition to:
-
-```text
-ESTABLISHED(VAULT_BINDING)
-```
-
-### 10.2 First open of an existing vault
-
-A newly configured client opening an already-existing vault:
-
-1. validates/authenticates the canonical bootstrap;
-2. unwraps `K_root`;
-3. derives `VAULT_BINDING`;
-4. durably establishes that binding for the configured vault before exposing ordinary state or creating/reusing a device provenance key;
-5. then performs semantic-object scanning and durable known-graph insertion.
-
-An implementation MAY use a transient `PENDING` step or one atomic durable establishment operation, provided a crash cannot result in ordinary use under an unpinned root.
-
-### 10.3 Restart with pending establishment
-
-If `PENDING(VAULT_BINDING)` exists and canonical `vault` is present:
-
-- authenticate/unwrap the canonical bootstrap;
-- require that it derives exactly the pending binding;
-- only then transition to `ESTABLISHED`;
-- a differing root stops automatic establishment and requires explicit abort/reconfiguration.
-
-If `PENDING(VAULT_BINDING)` exists and canonical `vault` is absent:
-
-- setup remains incomplete;
-- the client MUST NOT silently establish a different root;
-- it MAY resume the original creation only if retained candidate material can reproduce a bootstrap/root deriving exactly the pending binding;
-- otherwise explicit user-directed abort/reconfiguration is required before another vault can be established.
-
-### 10.4 Subsequent opens
-
-On every later open, the unwrapped candidate root MUST derive exactly the established `VAULT_BINDING`.
-
-A differing binding means a different vault. The client MUST NOT silently switch roots or reuse the existing device provenance identity.
-
-A locally stored device private key MUST be bound to the same established `VAULT_BINDING`.
-
-### 10.5 Same-root VAULT representation rollback
-
-A password change rewraps the same `K_root`. Historical bootstrap copies can therefore remain usable with their historical passwords.
-
-An established client MAY retain:
-
-```text
-LAST_ACCEPTED_VAULT_FINGERPRINT =
-    SHA-256(exact 87-byte VAULT representation)
-```
-
-as local audit/usability evidence.
-
-After a successful unwrap that derives the established `VAULT_BINDING`, if the exact bootstrap representation differs from the remembered representation and the client did not itself just complete that rewrap, the client MAY warn that the same root is being presented through a different bootstrap representation.
-
-Such a difference can represent a legitimate rewrap, a concurrent rewrap, or replay/rollback to an older same-root bootstrap.
-
-Because `K_root` is unchanged, the warning does not alter TOKEN state authority.
-
-A successfully accepted local password change SHOULD advance the remembered fingerprint only after the new canonical `vault` is durable and has been reopened/authenticated.
-
-Password rewrap MUST NOT be described as secure revocation of older bootstrap copies/passwords.
+Password changes retain `K_root`. Historical same-root VAULT copies and their passwords remain usable. An optional `SHA-256(exact 87-byte VAULT representation)` fingerprint may warn of representation changes; it is audit evidence, not proof of rollback or a TOKEN gate.
 
 ---
 
@@ -698,7 +596,7 @@ The old v1 client does not need to understand or locate the corresponding future
 
 The compatibility object's opaque tail may contain future-family metadata understood by newer clients, but v1 ignores that tail.
 
-A future-family writer claiming rolling compatibility MUST ensure the required v1-family compatibility assertion becomes durable no later than it reports the corresponding future-family semantic action successful.
+A future-family writer claiming rolling compatibility MUST ensure the required v1-family compatibility assertion receives local immutable-publication acknowledgement no later than it reports the corresponding future-family semantic action successful.
 
 If a compatibility frontier is too wide for one v1-family object, the future specification must preserve equivalent causal coverage using bounded v1-family compatibility objects.
 
@@ -892,14 +790,14 @@ Provenance-verifier differences MUST NOT change `TOKEN` value authority.
 A verifier may obtain the P-256 public key for `AUTHOR_DEVICE_ID` from:
 
 - an `ASSERTION_VALID DEVICE` whose derived `DEVICE_ID` matches;
-- the durable `KNOWN_DEVICE_NODE.PUBLIC_KEY_X963` record from Section 24;
+- an optionally retained authenticated DEVICE/key copy (not a current graph node);
 - locally bound key material for the same established vault.
 
-An established client MUST retain the exact 65-byte `PUBLIC_KEY_X963` in its durable DEVICE graph record after learning an assertion-valid DEVICE.
+An implementation MAY retain exact authenticated public-key material for future provenance verification. Retention does not make the DEVICE a current presentation head.
 
 The `DEVICE` object's own friendly-name provenance signature need not verify in order for its exact structurally valid public-key bytes to be retained as candidate verification material for a TOKEN. The TOKEN signature independently proves possession of the corresponding private key.
 
-If no matching public-key bytes are available in synchronized data, durable graph state, or locally bound key material, TOKEN provenance is `UNRESOLVED`.
+If no matching public-key bytes are available in accepted synchronized data, optional authenticated copies, or locally bound key material, TOKEN provenance is `UNRESOLVED`.
 
 If matching public-key bytes are available but do not decode as P-256, or the TOKEN signature fails, TOKEN provenance is `REJECTED`.
 
@@ -929,11 +827,9 @@ A SHA-256 collision causing two distinct canonical public keys to share one `DEV
 
 ### 16.2 Initial DEVICE advertisement
 
-Before a writer reports its **first** successful TOKEN publication for a particular local device provenance identity in an established vault, it MUST ensure that an assertion-valid, locally provenance-verified v1 `DEVICE` advertising that exact `DEVICE_ID` and `PUBLIC_KEY_X963` has been durably published into `objects-v1/`.
+Before reporting first TOKEN setup success for local device D, the matching assertion-valid, correctly self-signed locally authored DEVICE for D MUST have received local immutable-publication acknowledgement (`PUBLISHED_NEW` or `ALREADY_PRESENT_EXACT` equivalent), and the TOKEN publication must also be acknowledged. Wrong-key or invalid DEVICE assertions do not satisfy this prerequisite. TOKEN-before-DEVICE publication is allowed if success is withheld until both acknowledgements.
 
-The writer SHOULD publish and locally verify the DEVICE before publishing the first TOKEN. A crash that leaves an otherwise valid orphan DEVICE advertisement is harmless.
-
-Synchronization may expose the TOKEN before the DEVICE to another client; that peer may temporarily classify TOKEN provenance as `UNRESOLVED` until the DEVICE arrives. The publication requirement ensures that a conforming writer does not intentionally leave peer provenance permanently unresolved.
+This ensures the writer attempted to place the public key into synchronized storage before reporting setup complete; it does not prove any peer has received it. Later DEVICE disappearance may leave remote TOKEN provenance `UNRESOLVED` without retroactively invalidating TOKEN state. No durable local graph record is required. Runtime self-reverification is optional hardening; writers MUST generate correct canonical self-signed bytes.
 
 ---
 
@@ -1002,7 +898,7 @@ Two supported v1 TOKENs with equal `TOKEN_VALUE` remain semantically equal even 
 
 A parentless v1 TOKEN is a root assertion.
 
-A conforming writer creating a new logical token uses a fresh random `TOKEN_ID`, no parents, its local `DEVICE_ID` as `AUTHOR_DEVICE_ID`, one Section 20.1 `AUTHOR_TIME`, and a locally verified provenance signature.
+A conforming writer creating a new logical token uses a fresh random `TOKEN_ID`, no parents, its local `DEVICE_ID` as `AUTHOR_DEVICE_ID`, one Section 20.1 `AUTHOR_TIME`, and a correct provenance signature.
 
 ---
 
@@ -1220,258 +1116,64 @@ Unverified or rejected `DEVICE` objects remain vault-authenticated audit/key-adv
 
 A provenance signature is attribution evidence, not a membership credential and not the authority source for TOKEN state.
 
-## 22. Durable parent claims, edge status, and graph-integrity failures
+## 22. Authenticated parent claims and graph integrity
 
-Supported-valid objects and opaque-routable future objects both contain vault-authenticated frozen parent claims.
+Supported-valid and opaque-routable objects contain immutable authenticated parent claims. Evaluate them within the accepted snapshot. A TOKEN edge resolves to an accepted supported-valid or opaque-routable TOKEN with the same TOKEN_ID; a DEVICE edge resolves analogously for DEVICE_ID. An accepted object at the exact ID with wrong type/identity rejects the edge. Missing, unreadable, cryptographically invalid, or intrinsically invalid parent evidence leaves the edge unresolved. Neither unresolved nor rejected edges invalidate the complete child or suppress another head.
 
-Once such a TOKEN/DEVICE routing record is durably persisted, its immutable parent claims remain known even if synchronized bytes later disappear.
-
-For TOKEN, a parent edge resolves when the exact parent is a supported-valid or opaque-routable TOKEN with the same `TOKEN_ID`.
-
-For DEVICE, it resolves when the exact parent is a supported-valid or opaque-routable DEVICE with the same `DEVICE_ID`.
-
-A durable authenticated record at the exact ID with wrong type/logical identity rejects the edge.
-
-Current-path absence, unreadability, AEAD failure, keyed-ID mismatch, or invalid supported-version body leaves an otherwise unknown edge unresolved.
-
-Resolved TOKEN and DEVICE graphs MUST be acyclic.
-
-Within one vault, one `OBJECT_ID` identifies exactly one authenticated semantic byte string and one immutable routing record. The namespace includes supported-valid, opaque-routable, and opaque-unscoped records.
-
-A cycle or inconsistent global-ID reuse is local graph-integrity failure and forces `LOCAL_CONTINUITY_UNKNOWN`.
+Resolved graphs MUST be acyclic. Two genuinely different authenticated meanings at one OBJECT_ID violate the cryptographic/global identity invariant. A resolved cycle or such contradiction MUST fail evaluation safely and abort use of that inconsistent snapshot/vault context. Neither is ordinary semantic conflict. No permanent sticky cache flag is required after restart; malformed optional cache data is discarded under Section 34.
 
 ---
 
-## 23. Durable known ancestry and concurrency
+## 23. Accepted ancestry and concurrency
 
-For two durable TOKEN routing nodes `A` and `B` with the same `TOKEN_ID`, each supported-valid or opaque-routable:
+For accepted TOKEN nodes A and B with the same TOKEN_ID, `A <c B` iff a resolved parent path leads from B to A. Two nodes are concurrent when neither is in the other's ancestry. The analogous DEVICE relation uses same-DEVICE_ID edges.
 
-```text
-A <c B
-```
-
-iff a resolved parent path leads from `B` to `A`.
-
-Two nodes are concurrent when neither is in the other's ancestry.
-
-Semantic version, device identity, arrival order, filename order, `AUTHOR_TIME`, and value equality never create ordering.
-
-The analogous DEVICE relation uses same-`DEVICE_ID` resolved edges.
-
-Durable ancestry is independent of byte availability and whether this client understands the version-specific body.
+Semantic version, device identity, arrival order, filename order, AUTHOR_TIME, provenance, and value equality never create ordering. Missing intermediate objects may prevent resolving a path in this snapshot; advisory remembered topology MUST NOT silently supply that path.
 
 ---
 
-## 24. Durable known graph, opaque semantics, discovery, and current token frontier
+## 24. Accepted snapshot, discovery, and current frontier
 
-An established client durably remembers supported-valid TOKEN/DEVICE nodes, opaque-routable TOKEN/DEVICE nodes, and opaque-unscoped authenticated evidence.
+`ACCEPTED_SNAPSHOT` is the set of objects this client has successfully read, envelope-authenticated, keyed-ID authenticated, routed/classified, and semantically accepted as appropriate from one local observation context, plus locally authored objects successfully published during the current process as appropriate. A snapshot is local evidence, not proof of global completeness. A writer acts on an accepted local snapshot.
 
-Minimum TOKEN routing record:
+### 24.1 Current graph
 
-```text
-KNOWN_TOKEN_NODE {
-    OBJECT_ID
-    OBJECT_VERSION
-    SEMANTIC_STATUS = SUPPORTED_VALID | OPAQUE_ROUTABLE
-    TOKEN_ID
-    PARENT_ID [...]
-    AUTHOR_DEVICE_ID
-    AUTHOR_TIME
-}
-```
+Current TOKEN/DEVICE graphs derive solely from accepted object evidence in that snapshot. Implementations MAY cache indexes; indexes are disposable derived state, not a separate durable protocol authority. An advisory history entry MUST NOT make an object currently present merely because it was seen previously. Explicitly selected authenticated historical copies can support candidate/history use; they do not silently supplement current heads.
 
-Minimum DEVICE routing record:
+### 24.2 Diagnostics
 
-```text
-KNOWN_DEVICE_NODE {
-    OBJECT_ID
-    OBJECT_VERSION
-    SEMANTIC_STATUS = SUPPORTED_VALID | OPAQUE_ROUTABLE
-    DEVICE_ID
-    PARENT_ID [...]
-    AUTHOR_TIME
-    PUBLIC_KEY_X963?   // required for supported v1 DEVICE
-}
-```
+A snapshot MAY carry diagnostics for incomplete enumeration, unreadable candidates, resource limits, missing remembered history, and authenticated unknown/future evidence. These diagnostics do not automatically make accepted objects invalid or block ordinary operations. Implementations SHOULD disclose known incomplete-view, regression, memory-loss, and compatibility warnings. Exact UI words are non-normative.
 
-Minimum opaque-unscoped record:
+### 24.3 Discovery completeness
 
-```text
-OPAQUE_UNSCOPED_RECORD {
-    OBJECT_ID
-    EXACT_OBJECT_BYTES[1024]
-}
-```
+`PROCESSING_INCOMPLETE` means the client did not successfully process every locally observed candidate. Enumeration failure, unavailable required bytes, and exhausted resources MUST NOT become implicit validity. Successfully accepted objects remain usable. The client MUST disclose that its local view may be incomplete. A complete local pass means every locally observed candidate received a terminal classification, not that remote history is complete. Implementations MAY conservatively wait/retry; v1 does not require a vault-wide operation gate.
 
-`EXACT_OBJECT_BYTES` is the exact v1-family object file that successfully passed envelope authentication, padding checks, and keyed `OBJECT_ID` recomputation before being classified `OPAQUE_UNSCOPED`.
+### 24.4 Current TOKEN heads
 
-The exact encrypted 1024-byte object is required so a later compatible implementation can reprocess the original authenticated evidence even if synchronized storage has deleted or replaced it.
+`CURRENT_TOKEN_HEADS(T, S)` is the set of maximal accepted supported-valid and opaque-routable TOKEN nodes for T under resolved ancestry in S. Opaque-unscoped evidence has no assignable TOKEN scope and is not a TOKEN head.
 
-An implementation MAY additionally retain safely parsed raw routing/version/type diagnostics, but those diagnostics do not replace the required exact object bytes.
+### 24.5 Current values
 
-### 24.1 Durable insertion
+An opaque-routable current TOKEN head makes that TOKEN's semantic state incomplete/unknown and blocks ordinary use and v1 semantic authorship for T. Otherwise accepted supported heads supply complete TokenValue alternatives. One distinct value is unambiguous; multiple distinct values are a known whole-state conflict. No heads means no current value (new-token creation is separate).
 
-New authenticated supported/opaque security knowledge MUST be durably persisted before authoritative operations may rely on the updated interpretation.
+### 24.6 Reappearance and corruption
 
-For `OPAQUE_UNSCOPED`, durable persistence includes both:
-
-```text
-OBJECT_ID
-EXACT_OBJECT_BYTES[1024]
-```
-
-If the exact authenticated object cannot be durably retained, the client MUST set:
-
-```text
-KNOWLEDGE_PERSISTENCE_BLOCKED
-```
-
-and MUST NOT treat the opaque-unscoped observation as safely recorded.
-
-Failure to persist learned authenticated security information blocks both authoritative and candidate operations until repaired.
-
-Within one established local continuity epoch, durable authenticated graph/evidence knowledge is not discarded merely because synchronized bytes disappear.
-
-### 24.2 Common readiness predicates and active opaque-unscoped evidence
-
-An `OPAQUE_UNSCOPED` record is **active** when it belongs to the current local continuity epoch and has not subsequently been reclassified by a compatible implementation as a supported-valid or opaque-routable object.
-
-Compatible reprocessing MAY use the required retained `EXACT_OBJECT_BYTES` when synchronized bytes are unavailable.
-
-Synchronized disappearance alone does not deactivate the record.
-
-Define:
-
-```text
-BASE_OPERATION_SAFE =
-    LOCAL_CONTINUITY_UNKNOWN == false
-    and KNOWLEDGE_PERSISTENCE_BLOCKED == false
-
-AUTHORITATIVE_VAULT_READY =
-    BASE_OPERATION_SAFE
-    and DISCOVERY_STATE == READY
-    and no active OPAQUE_UNSCOPED evidence exists
-
-CANDIDATE_USE_READY =
-    BASE_OPERATION_SAFE
-```
-
-Active `OPAQUE_UNSCOPED` evidence therefore blocks authoritative operations but does not by itself block explicit candidate credential use.
-
-### 24.3 Discovery and resource completeness
-
-`DISCOVERY_STATE` is `READY` or `PROCESSING_INCOMPLETE`.
-
-A discovery pass operates over a fixed local snapshot/set of candidate observations accepted for that pass.
-
-A discovery pass is **resource-complete** when:
-
-- every candidate observation in that pass's snapshot reaches a terminal classification under the applicable storage/envelope rules; and
-- no configured count, byte, memory, time, recursion, or parser-work limit causes a candidate to be skipped or left unclassified.
-
-Terminal classifications include supported-valid, opaque-routable, opaque-unscoped, and invalid current-storage evidence.
-
-A candidate that cannot be read/authenticated/classified because required bytes are unavailable or an implementation resource limit is exhausted prevents that pass from being resource-complete.
-
-If an accepted candidate disappears, changes, becomes unreadable, or otherwise cannot supply the required bytes during ordinary synchronization churn, that observation is unavailable for the pass and prevents resource completeness. A later pass may observe the new state.
-
-Resource completeness does not require proving atomic immunity to an actively malicious same-privilege process racing filesystem namespace or inode changes between individual local filesystem operations.
-
-`DISCOVERY_STATE=READY` requires completion of the authoritative discovery work required by Sections 24 and 33.
-
-Ordinary current use and semantic authorship require `READY`.
-
-Candidate use may proceed during incomplete discovery when `CANDIDATE_USE_READY` and the selected exact candidate is already supported-valid/readable LIVE state.
-
-### 24.4 Known current TOKEN heads
-
-`KNOWN_TOKEN_NODES(T)` contains both supported-valid and opaque-routable TOKEN nodes for `TOKEN_ID=T`.
-
-`KNOWN_CURRENT_TOKEN_HEADS(T)` are the maximal such nodes under resolved ancestry.
-
-Opaque TOKEN nodes therefore participate fully in current-head selection.
-
-### 24.5 Supported-value and opaque-current status
-
-`TOKEN_VALUE_READABLE(X)` applies only to a supported-valid TOKEN whose trustworthy complete bytes are currently available and parseable.
-
-Define:
-
-```text
-OPAQUE_CURRENT_TOKEN_HEADS(T)
-UNAVAILABLE_SUPPORTED_CURRENT_HEADS(T)
-READABLE_CURRENT_TOKEN_VALUES(T)
-```
-
-in the obvious partition of current heads.
-
-Any opaque or unavailable current head means v1 cannot claim complete understanding of current TOKEN value state.
-
-### 24.6 Scope of degradation
-
-A routable opaque TOKEN affects only its `TOKEN_ID`.
-
-A routable opaque DEVICE affects only presentation/provenance for its `DEVICE_ID`.
-
-Active opaque-unscoped authenticated evidence blocks authoritative vault operations through `AUTHORITATIVE_VAULT_READY`, but does not block explicit candidate use through `CANDIDATE_USE_READY`.
-
-### 24.7 Reappearance, synchronized corruption, and local graph integrity
-
-Reappearing **successfully authenticated** bytes for one durable `OBJECT_ID` MUST reproduce the same immutable routing record.
-
-If successfully authenticated bytes at the same keyed `OBJECT_ID` disagree with the durable record, or if durable local graph/security records are corrupt/internally inconsistent, the client MUST treat this as local graph/security-memory integrity failure and enter `LOCAL_CONTINUITY_UNKNOWN`.
-
-By contrast, synchronized bytes at a known `OBJECT_ID` that are absent, unreadable, wrong-length, fail AEAD authentication, fail padding checks, or fail keyed object-ID verification are hostile/unavailable current storage evidence. They MUST NOT cause `LOCAL_CONTINUITY_UNKNOWN`.
-
-In that synchronized-corruption case:
-
-- the durable routing/graph node is retained;
-- its previously learned ancestry remains known;
-- if its complete supported TOKEN/DEVICE value/presentation bytes are needed and no exact trusted local copy is available, that value/presentation becomes unavailable;
-- for `OPAQUE_UNSCOPED`, the required retained `EXACT_OBJECT_BYTES` remain available for future compatible reprocessing;
-- ordinary/candidate behavior follows the existing availability rules.
-
-An ordinary storage race resulting in unreadable or replaced current bytes is a synchronized availability issue, not a local continuity failure, unless successfully authenticated contradictory evidence is obtained as described above.
-
-Detected durable-record corruption, global-ID inconsistency, or resolved cycles remains a local continuity failure.
-
-Durable authenticated routing/evidence is not removed merely because synchronized bytes disappear.
+Absence/unreadability says only “not available in this accepted local observation”; it proves neither global deletion/nonexistence nor rollback nor invalidity of earlier authored history. Wrong length, AEAD failure, padding failure, and keyed-ID failure are invalid/unavailable local evidence, never authenticated opaque evidence. Remembered facts may support regression warnings but cannot authenticate corrupt current bytes. Later valid reappearance is evaluated normally and may reveal concurrency.
 
 ---
 
 ## 25. Whole-state value and completeness semantics
 
-For token `T`:
+For token T in accepted snapshot S, let H = CURRENT_TOKEN_HEADS(T, S), O be the opaque-routable subset of H, and V be the distinct complete supported TOKEN_VALUEs in H (Section 18).
 
 ```text
-H = KNOWN_CURRENT_TOKEN_HEADS(T)
-O = OPAQUE_CURRENT_TOKEN_HEADS(T)
-M = UNAVAILABLE_SUPPORTED_CURRENT_HEADS(T)
-V = distinct READABLE_CURRENT_TOKEN_VALUES(T)
+H empty: no current TOKEN state
+O non-empty: VALUE_INCOMPLETE_OPAQUE
+O empty and |V| == 1: semantically unambiguous
+O empty and |V| > 1: whole-state conflict
 ```
 
-Interpretation:
-
-```text
-H empty:
-    no known current TOKEN state
-
-O non-empty:
-    VALUE_INCOMPLETE_OPAQUE
-
-O empty and M non-empty:
-    VALUE_INCOMPLETE_UNAVAILABLE
-
-O empty and M empty and |V| == 1:
-    semantically unambiguous
-
-O empty and M empty and |V| > 1:
-    whole-state conflict
-```
-
-Opaque current state prevents a v1 client from asserting complete understanding even when all readable v1 heads agree.
-
-Semantic-version number never orders state.
+Every accepted supported current object supplies its complete value. A remembered but absent object is not in H. An implementation unable to retain/read required accepted value evidence must obtain it again or evaluate a subsequent observation without that object; it must not invent a usable value. Opaque current state prevents claiming complete understanding even when supported values agree. Semantic-version number never orders state.
 
 ---
 
@@ -1489,75 +1191,41 @@ If a v1 client later learns a supported-readable descendant of the opaque node a
 
 ---
 
-## 27. Whole-state conflict, unavailable-state confirmation, and freshness
+## 27. Visible whole-state conflict and semantic confirmation
 
-A v1 writer obtains explicit complete-state confirmation before authoring over supported current semantics that conflict or contain unavailable supported values.
+When accepted current supported heads for T contain multiple distinct complete TokenValue alternatives, ordinary use/authorship MUST remain conflict-sensitive. Publishing one resulting complete state requires explicit user confirmation; clients MUST NOT silently merge fields. Confirmation may choose one existing complete value or a newly composed complete value.
 
-A v1 writer MUST NOT author while:
+Bind confirmation to at least TOKEN_ID, exact visible supported head set H, exact visible complete TokenValue alternatives, exact desired complete TokenValue, and relevant operation intent. Immediately before publication, recompute this TOKEN-specific semantic context from the latest accepted observations. If it changed, obtain renewed confirmation. Newly learned TOKEN-relevant semantic information material to what the user saw also requires reconfirmation, even if a later event restores an earlier-looking context. This event sensitivity is limited to the semantic decision.
 
-```text
-OPAQUE_CURRENT_TOKEN_HEADS(T) is non-empty
-```
+Unrelated TOKEN changes, DEVICE display presentation, provenance-only changes, discovery events, sibling files, and generic vault owner revisions do not stale confirmation. There is no vault-global consent epoch. The recheck keeps the human decision aligned with known conflict; it cannot exclude hidden remote history.
 
-because it cannot represent/present the complete future-version current semantics.
-
-This is a writer restriction, not a candidate-use restriction.
-
-Confirmation binds the desired complete v1 value, exact current head IDs, and a monotonic confirmation-context epoch.
-
-The epoch advances on current-head, value-availability, opaque-state, displayed provenance, discovery, and local-continuity changes.
-
-An unpublished confirmation does not survive restart.
-
-During a fold, exact local batch intermediates do not stale the active confirmation; any non-batch safety-relevant observation does.
+Previously remembered but currently absent objects are not current H. Regression evidence SHOULD warn and MAY prompt additional product-policy confirmation, but unavailable remembered history does not mandate Section 27 confirmation.
 
 ---
 
 ## 28. Hidden or later-discovered history
 
-A TOKEN records the exact parents its writer incorporated.
+Later discovery of history that was not present in the accepted snapshot may make a prior locally authored object concurrent with that history. This does not retroactively invalidate the authored object.
 
-It does not prove that synchronization revealed every concurrent object.
+```text
+accepted snapshot: A
+writer plans:      B parent A
+before or after B publication another client object appears: C parent A
 
-A user may confirm current heads and create a later TOKEN. Discovery of another durable-valid TOKEN afterward does not retroactively invalidate the earlier action.
+    A
+   / \
+  B   C
+```
 
-If the new object becomes a durably known ancestor of an existing current head, it is historical only.
-
-If it remains incomparable:
-
-- if all current values are available and equal, state is unambiguous;
-- if all are available and differ, a whole-state conflict exists;
-- if any current value is unavailable, current state is incomplete.
-
-Later arrival of a previously missing parent object may resolve graph edges and change which durable known nodes are maximal, without changing any complete TOKEN value.
-
-Because graph topology is durable, later disappearance of an already-known intermediate object file does not erase previously learned ancestry.
+B and C are ordinary concurrent history. Neither publication is invalid merely because the other was not observed. Different complete values create conflict; equal values remain unambiguous. No rollback of B is required. A client may act only on what it has authenticated, but it cannot infer that authenticated hidden history does not exist.
 
 ---
 
-## 29. Missing ancestry and missing values are different
+## 29. Missing ancestry and remembered history
 
-A TOKEN whose claimed parent is not yet in the durable known graph still contains a complete vault-authenticated value.
+A supported TOKEN with an unavailable parent still contains a complete authenticated value. It can be current and ordinarily usable despite unresolved ancestry. Signed parent claims remain part of its immutable bytes; a missing parent does not turn the child into a root.
 
-The child may be a known current head and its value may be ordinarily usable if every known current head value is available and unambiguous.
-
-Missing ancestry therefore does not by itself block state use.
-
-By contrast, a durable known current head whose complete object bytes are unavailable represents known semantic state whose value cannot be reconstructed.
-
-That condition is `VALUE_INCOMPLETE` under Section 25 and blocks ordinary credential consumption.
-
-Clients SHOULD clearly distinguish:
-
-```text
-ancestry incomplete:
-    current value known, some history relationship unresolved
-
-value incomplete:
-    a known current state exists but its complete value is unavailable
-```
-
-The protocol does not reinterpret a child with a missing parent as a root. Its durable signed parent claim remains recorded.
+An absent remembered object is not a current head. If current accepted evidence fails to causally incorporate remembered history, Section 34 recommends a regression warning. An older available assertion can be current in this snapshot; the warning communicates the missing historical evidence. Later arrival can resolve ancestry or reveal conflict. An opaque current head is different: it is accepted current evidence with semantics this client cannot interpret.
 
 ---
 
@@ -1582,11 +1250,11 @@ This whole-state rule replaces v0's lifecycle-witness machinery.
 
 ---
 
-## 31. DEVICE durable presentation graph
+## 31. DEVICE presentation graph
 
-Durable DEVICE topology includes supported-valid and opaque-routable nodes.
+Accepted DEVICE topology includes supported-valid and opaque-routable nodes.
 
-Current DEVICE heads for one `DEVICE_ID` are maximal durable nodes under resolved same-device ancestry, regardless of provenance status.
+Current DEVICE heads for one `DEVICE_ID` are maximal accepted nodes under resolved same-device ancestry, regardless of provenance status.
 
 Only supported provenance-`VERIFIED` DEVICE heads may supply authenticated friendly names.
 
@@ -1604,334 +1272,128 @@ Opaque or unverified DEVICE state affects presentation/provenance only and MUST 
 
 ---
 
-## 32. Writer frontier rule
+## 32. Snapshot-based writer parent rule
 
-Before publishing a v1 TOKEN for `T`, require:
+For ordinary TOKEN authorship:
 
 ```text
-AUTHORITATIVE_VAULT_READY
-OPAQUE_CURRENT_TOKEN_HEADS(T) is empty
+S = accepted snapshot used for the operation
+H = CURRENT_TOKEN_HEADS(T, S)
+PARENTS(new) = H
 ```
 
-and parent exactly `KNOWN_CURRENT_TOKEN_HEADS(T)`.
+The exact parent set attests “these were the current TOKEN heads the writer had accepted when it planned this operation.” It does not attest global completeness, absence of concurrent remote history, or that H remained the local frontier until publication.
 
-Readable unambiguous supported state may be edited ordinarily.
-
-Supported conflict/unavailable state requires Section 27 confirmation.
-
-Opaque current TOKEN state blocks v1 authorship only for that token until upgrade/migration or a later supported-readable descendant moves the opaque node into history.
-
-Unrelated tokens remain writable when `AUTHORITATIVE_VAULT_READY`.
-
-Wide frontiers use Section 47's fold.
+Ordinary updates require one complete understood semantic value in S for T. Creation of a new TOKEN uses empty H. A known visible supported conflict requires Section 27 confirmation. An opaque current TOKEN head blocks semantic authorship for T, not unrelated tokens. A writer MUST NOT drop required parents merely to fit; Section 47 folds cover wide frontiers.
 
 ---
 
-## 33. Operation freshness and publication linearization
+## 33. Operations against accepted snapshots
 
-Every credential-generation or authorship operation has a local freshness point.
+Ordinary use and authorship operate against an explicitly accepted local snapshot. There is no required last-moment frontier linearization for ordinary writes. History arriving after planning may be concurrent and does not invalidate the planned object. Implementations MAY conservatively restart; conformance does not require it.
 
-This requirement does not require proof that a malicious same-privilege local actor cannot mutate storage immediately afterward. Newly observed synchronized changes still stale or recompute operations as specified here and in Section 27.
+Changes to another TOKEN, DEVICE presentation, unrelated availability/provenance, or sibling files do not retroactively invalidate ordinary writes. Only human conflict-resolution confirmation has the TOKEN-specific semantic recheck in Section 27.
 
-### 33.1 Ordinary current TOTP generation
-
-Immediately before ordinary use for `T`, recheck:
-
-```text
-AUTHORITATIVE_VAULT_READY
-KNOWN_CURRENT_TOKEN_HEADS(T)
-OPAQUE_CURRENT_TOKEN_HEADS(T)
-UNAVAILABLE_SUPPORTED_CURRENT_HEADS(T)
-READABLE_CURRENT_TOKEN_VALUES(T)
-```
-
-Ordinary use requires no opaque/unavailable current head and one unambiguous LIVE readable value.
-
-### 33.2 Explicit candidate generation
-
-Pin the exact candidate `OBJECT_ID`, supported-readable `TOKEN_VALUE`, `BASE_OPERATION_SAFE`, and current warning context.
-
-Candidate use does not require `AUTHORITATIVE_VAULT_READY`; it may remain available under incomplete discovery, opaque current state, or opaque-unscoped evidence.
-
-### 33.3 TOKEN authorship
-
-Immediately before publication recheck authoritative readiness, exact current heads, no opaque current TOKEN head, supported-value conflict/availability, confirmation freshness, provenance verification, and persistence/resource state.
-
-A changed frontier or newly opaque current head aborts/restarts the operation.
-
-Final object bytes and durable routing records must be persisted before success is reported.
+Ordinary TOTP use requires accepted supported current state, no opaque current TOKEN head, complete supported values, and exactly one distinct LIVE TokenValue. Explicit candidate use pins the selected authenticated readable supported LIVE object and value with Section 35 warnings. Neither requires cache health, globally complete discovery, or absence of unrelated unscoped evidence.
 
 ---
 
-## 34. Durable local security memory
+## 34. Advisory local history
 
-The durable known graph from Section 24 is the primary per-object local security memory.
+Implementations MAY retain advisory local history: previously accepted OBJECT_IDs, routing summaries, head sets, or optional authenticated object copies. Its purposes are regression detection, startup acceleration, diagnostics, and UI history. Advisory history MUST NOT become authoritative current protocol state or silently add current objects, readable values, or ancestry.
 
-It MUST be retained independently of the hostile synchronized vault namespace.
+Advisory remembered history is an optional local capability. Baseline Totipo v1/r15 implementations derive protocol state solely from accepted authenticated snapshots and need not retain cross-run graph history. Implementations without advisory history remain baseline conforming and are not required to emit history-derived warnings. The mere absence of an advisory-history feature is not HISTORY_MEMORY_LOST. Such clients cannot detect regressions based on observations from earlier executions.
 
-At minimum durable local security state includes:
+Implementations may use an atomic snapshot file, database, preferences, or no cache. No append-only journal, frame format, replay, tail repair, ambiguous-append poison, exact retained bytes, or persistence representation is required. Cache durability is advisory/best effort; atomic replacement with file/directory flushes can improve reliability.
 
-```text
-VAULT_BINDING
-LOCAL_CONTINUITY_STATUS
-KNOWN_TOKEN_NODE records
-KNOWN_DEVICE_NODE records
-OPAQUE_UNSCOPED_RECORD records, including required exact object bytes
-```
+An implementation that retains advisory history SHOULD use it to detect regressions or history-memory loss as described below. These diagnostics apply only to retained/expected advisory state or detected cache failures; they are not serialized consensus/protocol states:
 
-An implementation MAY retain exact authenticated immutable object copies for supported-valid or opaque-routable objects as an additional protected recovery/cache layer.
+- `HISTORY_NORMAL`: no regression detected from available remembered evidence; not a freshness proof.
+- `HISTORY_REGRESSION`: current accepted evidence does not causally incorporate some previously remembered history. It reports apparent regression/stale view. Ordinary reading and TOKEN authorship are not automatically blocked. Reappearance may reveal conflict after a write.
+- `HISTORY_MEMORY_LOST`: meaningful evidence indicates that history previously retained or expected by this implementation is absent, unreadable, malformed, deleted, or restored inconsistently. Discard/ignore it, rebuild from accepted synchronized objects, and continue. Intentional nonimplementation of the feature does not qualify; no sticky protocol failure results.
+- `HISTORY_CACHE_WRITE_FAILED`: an attempted optional-cache update failed; regression detection may be degraded.
 
-Exact authenticated object retention is **required**, not optional, for `OPAQUE_UNSCOPED_RECORD` under Section 24.
+Cache-update failure does not invalidate authenticated or published objects, block credential use, or block authorship. A client may use an authenticated accepted object immediately without writing a cache record first. A hypothetical optional-cache failure cannot revoke publication acknowledgement even in a baseline conformance trial; implementations without caches need no failure-injection or diagnostic API.
 
-Within one established local continuity epoch, the graph/evidence store is append-only knowledge:
+Clearing optional history only forgets regression evidence. It neither repairs nor changes synchronized causal history. The UI SHOULD explain the lost detection capability; no security-critical reset/rebaseline transition exists. Loss can make an established client behave more like a fresh installation. Binding and private-key failures remain separate authoritative-state failures under Sections 10 and 16.
 
-- a known valid/routable node is not removed because synchronized bytes disappear;
-- an opaque-unscoped record is not removed because synchronized bytes disappear;
-- immutable parent claims are not rewritten;
-- later node arrival may resolve/reject prior unresolved edges;
-- compatible reprocessing may reclassify opaque-unscoped evidence without rewriting its authenticated object bytes;
-- graph indexes/current-head calculations are derived and may be rebuilt from durable records.
+### 34.1 Advisory-history capability
 
-### 34.1 Security-memory storage boundary
+`advisory-history` is a conformance capability identifier, not wire state or protocol negotiation. An implementation claiming this capability retains some authenticated prior-observation evidence and MUST satisfy the conditional advisory-history cases in addition to baseline requirements.
 
-The durable graph/security state MUST NOT be stored solely inside the hostile synchronized vault namespace.
+Under the specified conditional test inputs, it MUST produce the applicable diagnostic state above for non-incorporated remembered evidence, detected loss/corruption of retained/expected memory, or failed cache updates. Equivalent diagnostic representations are permitted; exact identifiers and user-visible English strings are not protocol requirements. Implementations SHOULD surface understandable UI warnings. The general recommendation to use retained history does not make diagnostics mandatory for implementations that do not claim this capability.
 
-It must reside in local application/security state whose rollback behavior is independent of ordinary vault synchronization, or be protected by an independent integrity/freshness mechanism.
-
-### 34.2 Detected local security-memory rollback or reset
-
-If the implementation detects, is informed of, or has independent evidence that durable local graph/security memory was restored from an older backup, deleted, reset, or rolled back, it MUST enter:
-
-```text
-LOCAL_CONTINUITY_UNKNOWN
-```
-
-unless an independent trusted mechanism proves no relevant knowledge was lost.
-
-A complete rollback of all local application state that is indistinguishable from a fresh or internally consistent older installation cannot be detected by the vault protocol alone. Stronger local anti-rollback guarantees require platform/trusted monotonic state outside the rolled-back backup domain.
-
-While `LOCAL_CONTINUITY_UNKNOWN`:
-
-- prior local continuity/anti-rollback guarantees MUST NOT be claimed;
-- current synchronized data MAY be inspected as fresh-client evidence;
-- ordinary credential consumption and semantic authorship MUST remain blocked;
-- missing graph knowledge MUST NOT be invented.
-
-### 34.3 Baseline re-establishment
-
-To leave `LOCAL_CONTINUITY_UNKNOWN` without trusted restored graph state:
-
-1. perform a **resource-complete** scan under Section 24.3 of all currently available candidate semantic objects;
-2. validate/classify them normally;
-3. build and durably persist supported-valid, opaque-routable, and opaque-unscoped records from currently available authenticated objects;
-4. for every opaque-unscoped observation, durably retain its exact authenticated 1024-byte object as required by Section 24;
-5. surface current conflicts, unavailable supported values, opaque future semantics, opaque-unscoped evidence, unreadable storage, and provenance warnings;
-6. tell the user that previous local continuity knowledge is unavailable and fresh-client limitations apply;
-7. obtain explicit acknowledgement establishing the newly built graph/evidence set as the local continuity baseline;
-8. durably leave `LOCAL_CONTINUITY_UNKNOWN`.
-
-Baseline re-establishment does not itself author any synchronized TOKEN.
-
-Conflicts/incomplete current values remain conflicts/incomplete after baseline establishment and are handled normally.
-
-If the scan is not resource-complete, required opaque-unscoped object retention fails, or graph-integrity failure occurs while constructing the replacement graph, baseline re-establishment MUST NOT complete.
-
-### 34.4 Explicit user-directed continuity reset
-
-A client MAY offer an explicit user-directed continuity reset when the user deliberately chooses to abandon the current local rollback/history-continuity evidence and establish a fresh baseline from currently available authenticated storage.
-
-This is the v1-native recovery path for sticky local evidence such as an `OPAQUE_UNSCOPED` record that cannot otherwise be interpreted by the current implementation.
-
-Before discarding the prior local security epoch, the client MUST:
-
-1. clearly warn that previously remembered history, rollback evidence, opaque-unscoped evidence, and other local continuity knowledge may be lost;
-2. explicitly warn that losing remembered ancestry can cause assertions previously known to be historical/superseded-by-ancestry to re-enter the newly derived current frontier or appear as whole-state conflicts after re-baselining;
-3. explain that the reset does not prove those older assertions became semantically newer — it only discards prior local causal knowledge that may have suppressed them;
-4. obtain explicit user confirmation;
-5. enter `LOCAL_CONTINUITY_UNKNOWN`;
-6. discard/replace the old local graph/evidence epoch only as part of the Section 34.3 baseline re-establishment procedure.
-
-The new baseline is built solely from the resource-complete current scan.
-
-If the previously blocking opaque-unscoped object is still available, it is rediscovered, its exact object bytes are retained, and the authoritative block remains.
-
-If it is absent from the complete current scan, the new baseline does not retain the prior epoch's opaque-unscoped record. This is an intentional loss of prior continuity guarantees, not proof that the old object never existed.
-
-After the new baseline is established, current heads/conflicts are recomputed solely from the new durable graph and MUST be surfaced normally.
-
-A normal synchronization disappearance MUST NOT trigger this reset automatically.
+A claimant MUST NOT use cache-only evidence as current synchronized objects, values, or ancestry; MUST discard/ignore corrupt cache; and MUST NOT let cache persistence failure block otherwise valid use, authorship, or publication. Diagnostics MUST NOT affect object validity, H, snapshot conflict calculation, writer parent sets, or cryptographic provenance. Cache corruption cannot authenticate protocol objects. Clearing cache only loses detection capability; returning synchronized history is processed through normal accepted-snapshot semantics. No particular cache storage format or exact-object retention is required.
 
 ---
 
-## 35. Explicit candidate credential use and convergence
+## 35. Explicit candidate use and convergence
 
-An available candidate for logical token `T` is any supported-valid readable TOKEN with `TOKEN_ID=T` and `STATUS=LIVE`.
+A candidate is an exact authenticated, supported-valid, readable LIVE TOKEN for T. It may be current or historical. Candidate use MUST pin its OBJECT_ID and complete TokenValue and disclose known uncertainty: historical selection, not uniquely current, visible conflict, incomplete local snapshot, and remembered-history regression when applicable. It is explicit and non-mutating.
 
-It may be current, concurrent, historical, selected while another current head is opaque/unavailable, or selected while discovery/unscoped future semantics are incomplete.
-
-### 35.1 Candidate use
-
-Candidate generation requires:
-
-```text
-CANDIDATE_USE_READY
-```
-
-and the exact selected supported-valid readable LIVE TOKEN.
-
-Candidate use may continue despite incomplete discovery, opaque current TOKEN heads, or opaque-unscoped authenticated evidence.
-
-UI must disclose all known uncertainty and state that the selected credential is not attested as uniquely current.
-
-Candidate generation is explicit, non-authoritative, non-mutating, and pins exact `OBJECT_ID` + `TOKEN_VALUE`.
-
-### 35.2 Whole-state convergence/reaffirmation
-
-A v1 client may converge/reaffirm only when:
-
-```text
-AUTHORITATIVE_VAULT_READY
-OPAQUE_CURRENT_TOKEN_HEADS(T) is empty
-```
-
-An older v1 client MUST NOT author over an opaque current future-version TOKEN.
-
-### 35.3 Later understood descendant
-
-If a supported-readable TOKEN `R` causally descends from opaque current head `C`, then C becomes historical.
-
-When the resulting current frontier is fully supported/readable and otherwise unambiguous, ordinary v1 operation resumes.
+Cache health is not an eligibility gate. Incomplete discovery or unscoped future evidence does not block an otherwise valid candidate. Candidate use may remain available when an opaque current head blocks ordinary use. V1 convergence/authorship over an opaque current TOKEN head remains prohibited. A later understood readable descendant can move an opaque node into history and restore ordinary operation.
 
 ---
 
-## 36. Durable knowledge ordering
+## 36. Independent immutable publication and caching
 
-A newly validated semantic object MUST NOT be treated as durably known until its graph/security record is itself durable.
-
-For newly authored local objects, the encrypted immutable object bytes MUST be durably published before, or atomically with, the durable graph insertion that allows the object to become current local knowledge.
-
-If graph insertion succeeds before synchronized publication becomes durable, the client may remember an object that other clients cannot yet retrieve; implementations therefore SHOULD publish object bytes durably first and then durably record graph knowledge before reporting operation success.
-
-For remotely discovered objects:
+The publication boundary for synchronized immutable objects is:
 
 ```text
-validate exact object
-        ↓
-persist durable graph node
-        ↓
-only then allow that new knowledge to drive ordinary state use/writes
+construct valid canonical object
+→ install/publish complete immutable bytes locally
+→ publication acknowledged
 ```
 
-If persistence fails after validation, the relevant token/vault remains `KNOWLEDGE_PERSISTENCE_BLOCKED`.
+After acknowledgement, the writer may accept the object as locally authored during this process. Optional history/cache updates are best effort and independent. Cache failure after publication leaves publication successful: do not delete the object or roll it back. An object absent from a local journal is simply an immutable synchronized object; later scans rediscover it normally. No durable graph insertion or persistence attestation precedes state use or operation success.
 
-Authenticated opaque-routable or opaque-unscoped future-version observations become safety-relevant only after their required durable record is persisted; until then operations that could ignore the learned authenticated information remain blocked.
+An unacknowledged/ambiguous publication attempt MUST NOT be reported successful. Its object may or may not be visible; later discovery determines observed state. No persistent reconciliation state, publication epoch, rescan-before-authorship fence, or poisoned session is required. Retry the same bytes or repeat the logical operation, possibly producing another immutable sibling. Both are permitted. Implementations SHOULD retry already-constructed bytes when convenient for efficiency/history cleanliness. Siblings follow normal concurrency rules.
 
-A shared filesystem/database flush does not imply transactional atomicity unless the storage mechanism actually provides it.
+External synchronized bytes require the full reader/validation path. Self-authored bytes originate in the canonical encoder; a conforming writer MUST produce valid canonical objects but need not decrypt/reparse/revalidate its own output at runtime. Parsing, envelope decryption, provenance recomputation, or post-publication rereading MAY be defensive hardening. Canonical byte vectors, signature-input vectors, roundtrip tests, and independent implementation/vector tests demonstrate writer correctness.
 
 ---
 
-## 37. Future semantic versions, future envelope families, and degraded interoperability
+## 37. Future semantics and envelope families
 
-Authenticated future semantic versions inside `objects-v1/` are not automatically vault-wide fatal errors.
+### 37.1 Routable future TOKEN
 
-### 37.1 Routable future TOKEN inside the v1 envelope family
+Accepted `OPAQUE_ROUTABLE TOKEN` evidence participates in the graph for its TOKEN_ID. A current opaque TOKEN head blocks that TOKEN's ordinary semantic use/authorship; historical opaque ancestry does not. Unrelated tokens continue normal ordinary use and authorship. Explicit supported candidate use remains possible.
 
-An `OPAQUE_ROUTABLE TOKEN` in `objects-v1/` is durably inserted into the TOKEN graph, participates in ancestry/current-head selection for its `TOKEN_ID`, and has no v1-readable `TOKEN_VALUE`.
+### 37.2 Routable future DEVICE
 
-While current, it degrades only that token. Explicit candidate use from readable supported LIVE TOKENs remains available. v1 semantic authorship is blocked only for that affected token while opaque current semantics remain. Unrelated tokens continue normal ordinary use and authorship.
+Opaque DEVICE heads may make presentation incomplete. They do not globally block TOKEN authorship. Missing DEVICE/key availability may leave provenance UNRESOLVED; provenance does not determine credential authority.
 
-### 37.2 Routable future DEVICE inside the v1 envelope family
+### 37.3 Unscoped authenticated evidence
 
-An `OPAQUE_ROUTABLE DEVICE` in `objects-v1/` participates in the DEVICE graph for its `DEVICE_ID`.
+Current `OPAQUE_UNSCOPED` means this client observed authenticated v1-family state it does not understand. Clients MUST disclose this compatibility uncertainty. It MUST NOT globally block ordinary v1 TOKEN use/authorship. Hidden remote history already creates uncertainty; one unknown object must not create permanent vault-wide denial.
 
-It may make current friendly-name/presentation state unreadable but does not block TOKEN authority or credential generation.
+Exact opaque bytes MAY be retained for future compatible reprocessing. Without retained bytes, reprocessing depends on synchronized bytes becoming available again. No mandatory exact-byte security-memory record or sticky blocking lifecycle exists.
 
-### 37.3 Opaque-unscoped v1-family evidence
+### 37.4 Unknown sibling families
 
-Authenticated `OPAQUE_UNSCOPED` evidence can arise only from an authenticated v1-family object whose scope cannot be determined by the current client.
+Unknown sibling namespaces are ignored by v1 semantic discovery. Their names/existence cannot authenticate future evidence or change the v1 graph. An unknown sibling envelope family is likewise not authenticated semantic evidence.
 
-Once durably recorded in the current local continuity epoch, that evidence is **active** under Section 24.2.
+### 37.5 Rolling compatibility
 
-While active:
-
-```text
-AUTHORITATIVE_VAULT_READY = false
-```
-
-so ordinary current use and semantic authorship remain blocked vault-wide. Explicit candidate credential use remains available under `CANDIDATE_USE_READY`.
-
-Within an established v1 client this block is sticky, not a temporary pause: synchronized disappearance of the opaque-unscoped object's bytes does not clear the durable evidence.
-
-Active opaque-unscoped evidence becomes inactive only when:
-
-- a compatible implementation successfully reprocesses the retained exact authenticated object from `OPAQUE_UNSCOPED_RECORD` (or an identical synchronized copy) and durably reclassifies it as supported-valid or opaque-routable; or
-- the user deliberately performs the Section 34.4 continuity reset/re-baseline procedure, accepting loss of the previous local continuity epoch.
-
-If the offending object remains present during re-baselining, it is rediscovered and the block remains.
-
-v1 defines no ordinary “ignore this authenticated unknown object” override.
-
-### 37.4 Unknown sibling envelope families
-
-A v1 client ignores unknown sibling storage namespaces for v1 semantic discovery.
-
-For example, the existence of `objects-v2/` does not by itself prove a future Totipo version exists, create opaque semantic evidence, block ordinary/candidate operations, or alter the durable v1 graph.
-
-This is intentional because the synchronization medium can fabricate arbitrary names/directories.
-
-### 37.5 Rolling upgrades across envelope families
-
-If a future family needs a different size/layout/encryption family, its own objects live outside `objects-v1/`.
-
-To claim rolling compatibility with v1, the future writer also publishes the required authenticated v1-family compatibility assertion(s) into `objects-v1/`.
-
-Old v1 clients observe only that compatibility projection.
-
-A newer client may use the separate future-family representation as its authoritative richer state while maintaining the v1 compatibility graph for old clients.
-
-Rolling-upgrade interoperability with v1 is cooperative, not enforceable by v1 alone.
-
-### 37.6 Durable opaque evidence
-
-Durably learned `OPAQUE_ROUTABLE` ancestry remains known despite synchronized disappearance and may later become historical through resolved causal descendants.
-
-Durably learned `OPAQUE_UNSCOPED` evidence follows the stricter Section 37.3 lifecycle because its logical scope is unknown.
-
-The presence or absence of an unknown sibling family directory does not clear or create either kind of evidence.
+A future envelope family claiming rolling compatibility must publish the authenticated v1-family compatibility projection required by Section 12. V1 observes that projection only. Cooperative compatibility does not prove propagation, completeness, or availability. Wrong-size current-family files remain invalid storage evidence, never opaque evidence.
 
 ---
 
-## 38. Ordinary and explicit candidate token consumption safety
+## 38. Ordinary consumption safety
 
-Ordinary current TOTP generation requires:
+Ordinary current TOTP generation for T requires at least one understood current TOKEN, no routable opaque current TOKEN head, complete supported current values, and exactly one distinct complete LIVE TokenValue. A supported whole-state conflict prevents ordinary generation; a uniquely tombstoned value is not LIVE.
 
-```text
-AUTHORITATIVE_VAULT_READY
-KNOWN_CURRENT_TOKEN_HEADS(T) non-empty
-OPAQUE_CURRENT_TOKEN_HEADS(T) empty
-UNAVAILABLE_SUPPORTED_CURRENT_HEADS(T) empty
-READABLE_CURRENT_TOKEN_VALUES(T) = exactly one distinct LIVE value
-```
-
-Candidate use may be offered when ordinary use is unavailable because of conflict, unavailable supported state, opaque future state, incomplete discovery, or opaque-unscoped evidence.
-
-Candidate use requires `CANDIDATE_USE_READY` plus an exact supported-valid readable LIVE candidate.
-
-Candidate use does not bypass local-continuity failure or failure to durably persist learned authenticated security information.
+History-cache loss, cache-write failure, incomplete discovery, or unrelated unscoped evidence do not add eligibility gates. Appropriate diagnostics accompany usable state. Section 35 defines explicit candidate use when ordinary use is unavailable.
 
 ---
 
-## 39. Freshness limitation
+## 39. Freshness and security limitations
 
-Observed state is relative to objects currently available to the client plus durable local security evidence.
+No local freshness check establishes absence of remote concurrent history. Last-moment directory rescans are not a security boundary. Parents attest accepted causal context, not global completeness. Even Section 27's human-decision recheck cannot exclude hidden remote history.
 
-No client can prove that the synchronization medium is not withholding a newer independent object that it has never seen.
+Totipo does not provide global freshness, rollback prevention for a fresh client, guaranteed rollback detection after local history loss, synchronized-store completeness, peer propagation acknowledgement, transactional multi-file publication, prevention of valid concurrent forks, or guaranteed availability. This is intentional.
 
-A fresh client cannot distinguish a complete object set from a valid older subset with newer objects withheld.
-
-Parent references prove only what the signer explicitly named as incorporated history; they do not prove global completeness.
-
-Later discovery of hidden incomparable history may create a new whole-state conflict.
+Retained advisory history can improve detection of previously observed history disappearing, apparent regression, and suspicious restoration of an older synchronized subset. This is best-effort evidence; losing it reduces detection capability. Immutable authenticated objects and DAG concurrency preserve the meaning of authored history even when later observations reveal conflict.
 
 ---
 
@@ -2272,59 +1734,19 @@ Diagnostics MUST redact `SECRET_BYTES` by default.
 
 ---
 
-## 47. Normal TOKEN write and staged bounded folds
+## 47. Normal TOKEN writes and bounded folds
 
-A one-object TOKEN write uses exactly:
-
-```text
-PARENTS = KNOWN_CURRENT_TOKEN_HEADS(T)
-```
-
-and one complete resulting TOKEN value.
-
-If current values conflict or any current value is unavailable, Section 27 explicit complete-state confirmation is required.
-
-The writer sets `AUTHOR_TIME` under Section 20.1.
+A one-object write parents exactly `CURRENT_TOKEN_HEADS(T, S)` from its accepted planning snapshot S and carries one complete resulting value. Visible supported conflict requires Section 27 confirmation. Set AUTHOR_TIME under Section 20.1.
 
 ### 47.1 One-object write
 
-If the complete current parent set fits:
-
-1. snapshot exact `KNOWN_CURRENT_TOKEN_HEADS(T)`;
-2. obtain any required confirmation;
-3. choose one `AUTHOR_TIME`;
-4. construct/sign/locally verify the complete TOKEN;
-5. recheck the frontier, discovery state, persistence gates, and confirmation epoch immediately before publication;
-6. durably publish encrypted object bytes;
-7. durably insert the new TOKEN node into the known graph;
-8. report success only after both are durable.
-
-Once the node is durably inserted, graph ancestry naturally makes incorporated parents historical.
-
-No accepted-head or superseded-ID bookkeeping exists.
+Accept snapshot S, select exact H, obtain required confirmation, construct/sign the canonical TOKEN, perform the TOKEN-specific confirmation recheck if applicable, and publish complete immutable bytes. Report publication success on acknowledgement. Runtime self-validation and cache insertion are not prerequisites. Ordinary writes have no final frontier recheck.
 
 ### 47.2 Active multi-object fold
 
-If the complete known current frontier does not fit one 1024-byte TOKEN under the Section 45 72-byte signature-reservation rule, the client performs a linear fold using ordinary TOKENs that all carry:
+If H does not fit under Section 45's unchanged 72-byte signature reservation, use a linear fold of ordinary TOKENs carrying the same chosen/confirmed complete value and the same AUTHOR_TIME captured before signing the first stage. Remember the original H, chosen value, operation intent, and exact locally generated intermediates in process.
 
-- the exact same confirmed complete state `S`;
-- the exact same `AUTHOR_TIME`, captured once before the first batch object is signed.
-
-Local session staging records:
-
-```text
-TOKEN_FOLD_BATCH {
-    TOKEN_ID
-    ORIGINAL_CURRENT_HEAD_IDS
-    CONFIRMED_VALUE
-    AUTHOR_TIME
-    CONFIRMATION_EPOCH
-    PUBLISHED_INTERMEDIATE_ID [...]
-    LAST_STAGED_HEAD_ID?
-}
-```
-
-For an illustrative TOKEN state whose Section 45 reserved-size calculation leaves capacity for four parents:
+For an illustrative TOKEN state whose reserved-size calculation leaves capacity for four parents:
 
 ```text
 H1 H2 H3 H4  -> M1(S)
@@ -2332,159 +1754,57 @@ M1 H5 H6 H7  -> M2(S)
 M2 H8 H9 H10 -> FINAL(S)
 ```
 
-Each intermediate:
+Each stage parents the previous staged head, if any, plus as many unincorporated original heads as fit. Every original head MUST be an ancestor of FINAL through the constructed fold. Required parents MUST NOT be dropped merely to fit. Each stage is a valid complete immutable assertion; publication acknowledgement suffices. No durable journal is required. Locally generated stages implementing the same confirmed decision do not stale that decision.
 
-- is an ordinary complete authoritative TOKEN;
-- is durably published and durably inserted into the known graph;
-- may therefore be observed/used by other clients according to ordinary protocol semantics;
-- is recorded as an exact locally batch-generated intermediate;
-- does not by itself stale the initiating client's exact active batch confirmation;
-- blocks unrelated same-token authorship on the initiating client until batch completion/abort.
+### 47.3 No transaction across stages
 
-Every later step parents the previous staged head plus as many still-unincorporated original current IDs as fit.
+Other clients may use M1 before FINAL. Uncovered original heads remain current where available. A fold is not an atomic distributed transaction and adds no wire batch markers. New remote concurrency does not invalidate already-published stages. Finalization incorporates the intentionally selected frontier under these coverage rules, not a claimed globally complete frontier.
 
-Finalization requires:
+### 47.4 New observations and interruption
 
-```text
-X <=c FINAL
-```
-
-in the durable known graph for every original current head X.
-
-Because every intermediate graph node remains durable knowledge even if synchronized bytes later disappear, no separate superseded-ID record is required.
-
-### 47.3 Multi-object folds are not synchronized transactions
-
-A fold is **not** an atomic distributed transaction.
-
-Another client may observe and act on `M1` before `FINAL` exists.
-
-This is safe because each intermediate:
-
-- is itself a complete vault-authoritative TOKEN carrying state `S`;
-- does not claim that every original head has already been incorporated;
-- leaves uncovered original heads current until later fold objects causally incorporate them.
-
-Only the initiating client's UI success reporting and confirmation staging are transaction-like/local.
-
-Implementations MUST NOT invent hidden wire batch markers or assume other clients observe the fold atomically.
-
-### 47.4 External changes and interruption
-
-Any non-batch safety-relevant observation advances the confirmation epoch and aborts/stales the batch.
-
-If publication stops partway:
-
-- published intermediates remain ordinary durable known graph nodes;
-- prior confirmation is not treated as completed local operation state;
-- uncovered original heads remain current alongside staged history as derived from the graph;
-- process restart discards batch/confirmation staging;
-- the client recomputes current heads and obtains fresh confirmation where required.
-
-The graph topology itself preserves all learned causal incorporation across later synchronized-file deletion.
+For a confirmed conflict resolution, newly learned TOKEN-relevant semantic information requires Section 27 reconfirmation before further publication; unrelated events do not. Ordinary folds may continue against their chosen snapshot. On interruption, published stages remain ordinary history. Restart discards in-process confirmation/staging and plans from a new accepted snapshot, confirming visible conflict as needed. Missing intermediates may leave unresolved ancestry and regression warnings; optional cache topology cannot silently repair the current graph.
 
 ---
 
-## 48. Whole-state convergence/reaffirmation write
+## 48. Whole-state convergence write
 
-When current TOKEN values conflict or one/more known current values are unavailable and the user chooses one complete intended state:
+For visible supported conflict, derive H from an accepted snapshot, show exact complete alternatives and the intended resulting value, and obtain Section 27 confirmation. Publish a complete TOKEN parenting all H, or use Section 47's bounded fold. Recompute the TOKEN-specific confirmation context immediately before publication and reconfirm if changed.
 
-```text
-derive KNOWN_CURRENT_TOKEN_HEADS(T)
-        ↓
-show available candidates, unavailable-current warnings,
-verified device context, and reported AUTHOR_TIME values
-        ↓
-obtain complete-state confirmation under §27
-        ↓
-construct complete desired TOKEN state S
-        ↓
-parents = all KNOWN_CURRENT_TOKEN_HEADS(T)
-        ↓
-one TOKEN under §47.1
-or staged linear fold under §47.2-47.4
-        ↓
-durably publish object(s)
-and durable graph node(s)
-        ↓
-FINAL becomes current by ordinary graph ancestry
-```
-
-No missing current object needs to reappear if its durable graph node is already known.
-
-The user may copy the complete state of an available current candidate, use a historical candidate as a starting point, edit values using out-of-band knowledge, or construct a different complete state.
-
-The protocol records the resulting authoritative TOKEN and its parent identities; it does not encode why the user chose particular field values.
+The user can choose an existing complete candidate, start from a historical candidate, or compose one complete desired value. The resulting TOKEN records that value and parent identities, not the user's reasoning. Missing remembered history generates advisory warnings, not mandatory unavailable-state confirmation. Publication and optional cache persistence are independent.
 
 ---
 
-## 49. DEVICE write and wide presentation frontiers
+## 49. DEVICE writes and wide frontiers
 
-A v1 rename requires `AUTHORITATIVE_VAULT_READY` and no opaque current DEVICE head for the target `DEVICE_ID`.
+A rename uses an accepted DEVICE snapshot and requires no opaque current DEVICE head for the target DEVICE_ID. Its rename frontier is the complete current supported DEVICE frontier, including provenance VERIFIED, UNRESOLVED, and REJECTED heads. Parenting a presentation-inert assertion incorporates causality without endorsing its name or provenance.
 
-The rename frontier is the complete current **supported DEVICE frontier**, including provenance-`VERIFIED`, `UNRESOLVED`, and `REJECTED` supported heads.
-
-Parenting an unverified/rejected DEVICE assertion expresses causal incorporation; it does not endorse that assertion's display name or provenance.
-
-The selected display name is chosen from user intent and authenticated presentation context under Section 31, not from presentation-inert unverified/rejected heads.
-
-If the frontier fits one object, the new provenance-verified DEVICE parents every current supported DEVICE head and carries the selected display name.
-
-If it does not fit, use an analogous staged linear fold:
-
-- every fold object carries the same selected display name and the same `AUTHOR_TIME` captured for the rename action;
-- the first object references as many current supported DEVICE heads as fit;
-- later objects reference the previous staged head plus additional original supported heads;
-- every published assertion-valid DEVICE is durably inserted into the known DEVICE graph;
-- exact locally staged intermediates do not stale their own rename selection;
-- any external relevant DEVICE observation aborts/recomputes the selection;
-- finalization requires every original current supported DEVICE head to be a durable known ancestor of FINAL.
-
-Because durable DEVICE topology remains known after synchronized bytes disappear, no separate presentation superseded-ID bookkeeping is required.
-
-If a current supported DEVICE head has rejected/unresolved provenance, it remains presentation-inert but can be causally moved into history by the rename.
-
-If a current DEVICE value/name is unavailable, UI falls back to `DEVICE_ID`/fingerprint plus warning under Section 31.
-
-DEVICE presentation incompleteness never changes TOKEN state authority.
+A correctly signed rename parents every such head and carries the chosen name. If capacity requires folding, use the same selected name and AUTHOR_TIME in every stage; parent the prior stage and additional original heads until all original heads are ancestors of FINAL. No transaction or durable graph record is required. Relevant new DEVICE presentation can prompt recomputation; earlier published stages remain valid. DEVICE presentation uncertainty does not change TOKEN authority.
 
 ---
 
-## 50. Filesystem robustness, local trust boundary, and family namespace isolation
+## 50. Filesystem obligations and durability
 
-### 50.1 Baseline trust boundary
+### 50.1 Reads and namespace
 
-Synchronized storage contents and history are untrusted under Section 3. The local OS/filesystem execution environment is trusted for baseline v1 conformance.
+Under Section 3's trusted local execution boundary, readers MUST use exact canonical names, direct ordinary files, bounded reads/allocations, and normal cryptographic validation. Only direct regular-file children of `objects-v1/` with 64 lowercase hexadecimal names are object candidates. Observed symlinks, directories, FIFOs, sockets, and devices are not candidates; do not deliberately follow observed symlinks or traverse arbitrary paths. Ignore temporary/conflict names and sibling namespaces. Metadata is not authentication. Wrong-size files are never authenticated opaque evidence.
 
-Baseline conformance does not require atomic defense against a malicious local process with the application's privileges deliberately racing pathname, file-type, directory-identity, or inode-content changes between individual filesystem operations. Implementations MAY provide stronger local-filesystem hardening.
+Churn/read/resource failures produce unavailable/incomplete observations. Successfully accepted objects remain usable. No same-UID TOCTOU, stable inode, or path-identity proof is required.
 
-### 50.2 Required storage robustness
+### 50.2 Immutable synchronized writes
 
-Implementations MUST bound reads and allocations when processing synchronized storage. They MUST NOT rely solely on attacker-preservable metadata such as file size, timestamp/mtime, or other metadata as proof that known bytes are unchanged.
+Writers MUST install complete exact 1024-byte objects at exact canonical OBJECT_ID filenames with atomic/complete visibility at the local filesystem API boundary. Temporary-file handling MUST prevent accidental collisions/clobbering. Use immutable no-replace installation or equivalent exclusion; never overwrite different existing bytes.
 
-v1-family object discovery MUST remain confined to direct candidates in the exact `objects-v1/` namespace. Only observed regular-file entries with names consisting of exactly 64 lowercase hexadecimal characters become content candidates. Observed symlinks, directories, FIFOs, sockets, and device/special files MUST NOT be treated as protocol objects; implementations MUST NOT deliberately follow an observed symlink as a protocol object or as the `objects-v1/` directory.
+`ALREADY_PRESENT_EXACT`: an ordinary accepted file at the canonical target containing exactly the intended 1024 bytes suffices for local publication acknowledgement. Exact-byte equality is enough; no fsync of that existing provider file, directory fsync merely for existing presence, reread after fsync, or inode identity proof is required. A mismatched existing target fails publication and MUST NOT be replaced.
 
-Implementations MUST stay within the configured logical namespace and MUST NOT recurse into sibling family namespaces. Protocol-derived names are exactly `vault`, `objects-v1`, and the 64-lowercase-hex object filename. Implementations MUST NOT construct protocol paths from arbitrary untrusted path strings in a way that permits `..`, separators, or sibling-family recursion.
+New synchronized objects SHOULD use complete temp → file flush/force → no-replace install → directory flush/force for reliability. Lack of physical crash durability is not a protocol-authenticity failure. An acknowledged object may later disappear; this is availability degradation, not retroactive invalidation. Ambiguity follows Section 36.
 
-Unrelated, temporary, and synchronization-conflict names MUST be ignored by ordinary discovery. Unknown sibling names have no semantic effect. A differently sized candidate inside `objects-v1/` is invalid current-family storage evidence, never authenticated opaque evidence.
+### 50.3 Authoritative local durability
 
-Implementations SHOULD use ordinary platform no-follow, exclusive-create, atomic-move/no-replace, and stable-handle facilities where they are readily available and useful for robustness. Baseline conformance does not require proving that such mechanisms close every TOCTOU race against an actively malicious local actor.
+VAULT, local VAULT_BINDING, and private-key custody MUST be crash-safe. The straightforward pattern is complete temporary file → file durability barrier → atomic install/replacement → containing-directory durability barrier, with equivalent platform mechanisms acceptable. No mandatory reread or stable inode proof is needed for crash durability. VAULT MUST NOT be partially rewritten in place. Key storage must additionally preserve privacy and prevent accidental replacement.
 
-### 50.3 Ordinary synchronization races
+### 50.4 Advisory cache
 
-Files and directories may appear, disappear, or be replaced during normal synchronization. Implementations MUST handle observed changes conservatively:
-
-- a failed or unavailable accepted-candidate read makes the observation unavailable and the pass incomplete under Section 24.3;
-- a pathname or type observed to have changed before use requires re-evaluation or failure/retry; an accepted observation whose required bytes cannot be obtained prevents resource completeness for that pass;
-- partial, torn, or malformed bytes undergo normal storage and protocol validation and fail that validation when invalid;
-- filesystem observations MUST NOT invent authenticated knowledge or erase durable authenticated graph knowledge;
-- immutable protocol objects MUST NOT be overwritten merely to repair hostile/current storage.
-
-### 50.4 Publication
-
-Complete bytes MUST be written before authoritative installation. Immutable object publication SHOULD use no-replace or equivalent immutable installation where available, and MUST NOT overwrite an existing immutable protocol object. The canonical mutable `vault` follows Section 9.1 crash-safe publication/replacement, including candidate flush and validation, no-replace initial installation, atomic replacement and containing-directory durability where available, and canonical reopen/authentication; in-place truncate/overwrite is prohibited.
-
-Success MUST be reported only after the required durability acknowledgement; ambiguous or interrupted publication is non-success. Publication-before-durable-graph ordering remains required. Temporary-file handling MUST prevent accidental collisions or clobbering under the normal local environment, using exclusive creation or equivalent protections. Baseline conformance does not require hostile same-privilege redirection/race immunity.
+History-cache durability is best effort. A flushed atomic replacement snapshot may improve reliability, but failure/corruption means warn, discard/rebuild, and continue. It cannot turn successful object publication into failed protocol authorship.
 
 ---
 
@@ -2528,100 +1848,38 @@ Post-decryption keyed-ID recomputation is mandatory.
 
 ---
 
-## 53. Security meaning of vault authentication, provenance, parents, and durable graph knowledge
+## 53. Security meaning of authentication and writer policy
 
-Vault-root authentication establishes that semantic object bytes were created by a party possessing root-derived vault capabilities.
+Vault authentication establishes complete object integrity under K_root; provenance attributes signatures without introducing membership authorization. Signed parents express exact incorporated history in the accepted planning snapshot. They do not prove completeness, propagation, or freshness.
 
-TOKEN value authority derives from this vault authentication plus intrinsic complete-state validity.
+Reader validity and writer conformance are distinct. A cryptographically/canonically valid TOKEN remains reader-valid even if its writer violated confirmation policy, recommended regression-warning handling, or retry guidance: the wire cannot prove client-side intent. Known visible whole-state conflicts still require explicit confirmation from conforming writers.
 
-P-256 provenance is a separate attribution claim. Verified provenance does not grant additional protocol authorization; rejected/unresolved provenance does not erase TOKEN value authority.
-
-`K_signature_context` vault-binds otherwise vault-independent device provenance. It prevents a signature created for one vault from being replayed as verified attribution in another vault that knows the same device public key.
-
-A signed/vault-authenticated parent ID proves only that the child committed to that exact immutable identity.
-
-For an established client, once compatible supported-valid or opaque-routable child/parent routing nodes are durably known, the resolved edge remains part of durable graph knowledge even if one or both synchronized files later disappear.
-
-This durable graph memory prevents a hostile storage medium from making an established client forget previously authenticated causal relationships merely by deleting historical object files.
-
-A fresh client has no such prior graph knowledge and remains subject to synchronization withholding.
-
-Current-value availability is separate from topology knowledge:
-
-```text
-known current head
-    !=
-complete current value available
-```
-
-When a known current value is unavailable, the protocol preserves that fact and does not silently resurrect an older value.
-
-Explicit candidate credential use under Section 35 is a user-directed availability escape hatch, not a change to current-state semantics.
-
-`AUTHOR_TIME` is presentation/audit metadata only. It never creates or breaks causality and MUST NOT be used to choose a winner among concurrent assertions.
-
-A party with `K_root` remains capable of authoring arbitrary new vault-valid TOKEN state; v1 does not provide membership authorization against such a party.
-
-Hostile synchronized-file corruption and local durable-security-memory corruption have different meanings. Failure to authenticate current synchronized bytes only makes those bytes unavailable; previously authenticated durable graph knowledge remains. `LOCAL_CONTINUITY_UNKNOWN` is reserved for detected corruption/rollback/inconsistency of the local durable security-memory basis itself (or an authenticated same-ID inconsistency).
+The simplification is not a wire downgrade. Cryptographic and encoding protections are unchanged; r15 removes local assumptions that cannot deliver global guarantees over unreliable synchronization.
 
 ---
 
 ## 54. Core invariants
 
-```text
-K_root is the cryptographic identity of one v1 vault.
-
-objects-v1/ is the exact storage namespace for the Totipo v1 envelope family.
-
-Every valid object in objects-v1/ is exactly 1024 bytes.
-
-Synchronized bytes/history always require normal protocol validation; baseline v1 trusts local execution
-and treats ordinary synchronization races as availability/freshness events, without hostile same-privilege syscall-race immunity.
-
-OBJECT_VERSION versions semantics inside the v1 envelope family; allocation governance
-is specification-controlled, while unsupported routable values are still handled
-conservatively as opaque state.
-
-The frozen routing prefix lets older clients retain causal identity/topology for
-future semantic versions that remain in objects-v1/.
-
-Opaque-routable state degrades the affected scope; active opaque-unscoped evidence
-blocks authoritative vault operations but not explicit candidate credential use.
-
-Within one local continuity epoch, opaque-unscoped evidence remains active despite
-synchronized disappearance until compatible reclassification or an explicit
-user-directed continuity reset/re-baseline.
-
-Candidate use requires exact supported-valid readable LIVE material and never mutates
-or reclassifies protocol state.
-
-Resolved ancestry, not provenance, semantic version, timestamp, arrival order,
-namespace name, or filename order, determines current heads.
-
-Only provenance-verified supported DEVICE heads supply authenticated friendly names,
-but every current supported DEVICE head participates in rename/convergence causality.
-
-Before first TOKEN success for a device/vault, the writer has durably published the
-corresponding DEVICE public-key advertisement.
-
-Hostile synchronized-byte corruption never erases already authenticated durable graph
-knowledge or by itself enters LOCAL_CONTINUITY_UNKNOWN.
-
-Detected local durable-security-memory corruption/inconsistency does enter
-LOCAL_CONTINUITY_UNKNOWN.
-
-ECDSA provenance signing uses cryptographically secure native/platform nonce generation;
-ad-hoc ECDSA nonce generation is forbidden.
-
-K_signature_context vault-binds device provenance signatures.
-
-Loss of semantic certainty should normally degrade capability rather than make
-authenticated candidate material unusable.
-```
+- K_root is stable; the authoritative durable local VAULT_BINDING pins identity.
+- Private-key custody is authoritative local state; remembered history is advisory.
+- Canonical crypto/wire, keyed OBJECT_ID, immutable objects, and exact authenticated parent claims remain unchanged.
+- Every valid object in objects-v1/ is exactly 1024 bytes. Wrong-size files never become opaque evidence.
+- Complete TokenValue semantics prohibit silent field merging; LIVE/TOMBSTONE does not provide secure deletion.
+- Current graphs derive from ACCEPTED_SNAPSHOT; cached history cannot silently become current evidence.
+- Ordinary parents equal exact H from the accepted planning snapshot; later history creates normal concurrency, not retroactive invalidity.
+- Known visible supported whole-state conflict requires TOKEN-specific semantic confirmation.
+- Routable opaque current TOKEN heads block that TOKEN; unscoped authenticated evidence warns without a global authorship block.
+- Invalid current-family bytes and unknown sibling families are not authenticated future evidence.
+- No local scan proves global completeness or freshness; publication does not prove peer propagation.
+- Cache persistence is not a state-use or publication-success prerequisite.
+- Same-ID authenticated contradictions and resolved cycles fail evaluated graph integrity.
+- ECDSA uses cryptographically secure signing nonces; K_signature_context binds provenance to one vault root.
 
 ---
 
 ## 55. Required conformance evidence for v1
+
+The moving-pre-RC requirement profile is the baseline protocol set. Every case has explicit manifest applicability: baseline or conditional `advisory-history`. Baseline conformance requires no advisory cache. The conditional suite is required only when that capability is claimed; both kinds remain hash-pinned normative evidence when applicable. The reference implementation declares its supported capability and executes both suites. Accepted snapshots, graph/head/conflict interpretation, canonical VAULT authentication, VAULT_BINDING, private-key custody, and external cryptographic validation remain baseline obligations.
 
 Before v1 byte-level release-candidate freeze, executable evidence MUST cover at least:
 
@@ -2634,7 +1892,7 @@ Before v1 byte-level release-candidate freeze, executable evidence MUST cover at
 - same-root rewrap recovery;
 - optional remembered exact-VAULT fingerprint warning for same-root representation change;
 - no-replace first creation;
-- crash/restart establishment ordering;
+- absent binding first-open establishment, corrupt binding recovery, and crash after VAULT before binding;
 - differing-root binding rejection.
 
 ### Storage-family namespace, canonical encoding, and object crypto
@@ -2690,7 +1948,7 @@ Baseline v1 conformance does not require executable proof of immunity to a malic
 - randomized signatures for identical message/key are accepted;
 - signing implementation uses cryptographically secure ECDSA nonce generation; no ad-hoc Totipo nonce generator;
 - same device key + same unsigned object under different `K_signature_context` values verifies only in the matching vault context;
-- a fresh local device identity MUST NOT report its first TOKEN publication successful until the matching DEVICE advertisement is durably published; TOKEN-before-DEVICE publication ordering is allowed if success is withheld until both are durable;
+- a fresh local device identity MUST withhold first TOKEN success until matching valid DEVICE and TOKEN local publication acknowledgements;
 - exact v1 `totipo/v1/token` and `totipo/v1/device` signature-input vectors including AUTHOR_TIME;
 - AUTHOR_TIME=0 unknown case and positive u64 case;
 - AUTHOR_TIME=0x7fffffffffffffff and 0xffffffffffffffff remain structurally valid and non-causal;
@@ -2720,11 +1978,11 @@ Baseline v1 conformance does not require executable proof of immunity to a malic
 - verified child TOKEN may reaffirm a rejected-provenance current TOKEN without deleting history;
 - wide-frontier convergence batch fully covers all original heads;
 - batch intermediate publication does not stale its own confirmation;
-- external observation during batch stales confirmation;
-- every published fold TOKEN is durably inserted as a graph node;
-- finalized multi-object fold has every original current head as a durable known ancestor of FINAL;
-- deletion of synchronized intermediate bytes after finalization cannot erase durable fold ancestry or resurrect original heads;
-- interrupted convergence batch leaves published intermediate nodes in the durable graph, uncovered original heads current as appropriate, and requires fresh confirmation after restart.
+- new TOKEN-relevant semantic information during a confirmed batch requires reconfirmation;
+- every acknowledged fold TOKEN is accepted locally without mandatory caching;
+- finalized multi-object fold covers all original heads through its constructed ancestry;
+- missing intermediates may leave ancestry unresolved in a later snapshot;
+- interrupted folds retain valid published stages; restart plans from current accepted evidence.
 
 ### Parent-edge semantics
 
@@ -2739,54 +1997,23 @@ Baseline v1 conformance does not require executable proof of immunity to a malic
 - traversal cycle defense;
 - arrival-order invariance.
 
-### Durable known-graph / missing-value behavior
+### Accepted snapshots and advisory history
 
-- active opaque-unscoped evidence survives synchronized disappearance within one continuity epoch;
-- every durable opaque-unscoped record retains the exact authenticated 1024-byte object needed for later compatible reprocessing;
-- persistence failure for that exact opaque-unscoped object sets KNOWLEDGE_PERSISTENCE_BLOCKED;
-- compatible reprocessing may durably reclassify opaque-unscoped evidence and clear the authoritative block;
-- explicit continuity reset/re-baseline clears prior-epoch opaque-unscoped evidence only if it is absent from the complete new scan;
-- continuity reset warning states that previously historical assertions may re-enter the new current/conflict frontier when prior ancestry knowledge is discarded;
-- present opaque-unscoped evidence is rediscovered during re-baseline and remains blocking;
-- corrupt/unreadable synchronized bytes at a known ID retain the durable node and make current value unavailable rather than entering LOCAL_CONTINUITY_UNKNOWN;
-- corruption/inconsistency of local durable graph/security memory enters LOCAL_CONTINUITY_UNKNOWN;
+Snapshot, graph, and operation rules below are baseline requirements. History-derived diagnostics are conditional on the Section 34.1 advisory-history capability; a client without it need not synthesize loss/regression/cache warnings.
 
-- supported-valid and opaque-routable TOKEN nodes share one durable causal graph;
-- opaque current TOKEN remains current while its value semantics are unreadable;
-- routable opaque TOKEN affects only its TOKEN_ID;
-- opaque-unscoped evidence blocks authoritative operations but not candidate use;
-- later supported descendant of opaque current TOKEN can restore old-client ordinary semantics;
-
-- startup/object-discovery state blocks ordinary current use and semantic authorship until READY;
-- PROCESSING_INCOMPLETE may still permit explicit use of an already authenticated LIVE candidate with mandatory warning;
-- newly observed candidate before operation freshness point is processed before completion;
-- resource-incomplete discovery remains PROCESSING_INCOMPLETE;
-- graph-node reappearance must match durable identity/topology/public-key/timestamp record;
-- detected graph-record corruption enters LOCAL_CONTINUITY_UNKNOWN;
-- resolved TOKEN/DEVICE cycle => graph-integrity failure, never zero-head/ordinary causal suppression;
-- one OBJECT_ID reused across TOKEN/DEVICE or inconsistent immutable records => graph-integrity failure;
-
-- assertion-valid TOKEN graph node persists after synchronized object deletion;
-- persisted child+parent nodes retain resolved causality after either file disappears;
-- known current head whose bytes disappear remains current with unavailable value;
-- older available ancestor is not silently promoted to current;
-- explicit candidate use may select an available current conflicting LIVE TOKEN;
-- explicit candidate use may select an available current LIVE TOKEN while another current value is missing;
-- explicit candidate use may select an older historical LIVE TOKEN when current values are unavailable;
-- candidate use never mutates graph/current state;
-- incomplete discovery, opaque current state, and opaque-unscoped evidence do not by themselves block candidate use;
-- local continuity failure or knowledge-persistence failure does block candidate use;
-- reaffirming TOKEN may parent a supported known current head whose value bytes are unavailable; v1 reaffirmation is prohibited while an opaque current TOKEN head exists;
-- remote child of a locally known unavailable current head advances normally when learned;
-- multi-object fold remains causally intact after synchronized intermediate file deletion;
-- interrupted fold leaves durable intermediate graph nodes and requires fresh confirmation after restart;
-- graph persistence failure after authenticated learning blocks ordinary use, authorship, and candidate use until durable persistence succeeds;
-- detected local graph rollback/reset enters `LOCAL_CONTINUITY_UNKNOWN`;
-- resource-complete baseline re-establishment rebuilds supported-valid, opaque-routable, and opaque-unscoped records and fails closed on graph-integrity errors;
-- undetectable complete app-state rollback/fresh-install ambiguity is documented;
-- graph growth is append-only and not protocol-bounded.
-
----
+- exact parent choice from a supplied accepted snapshot;
+- late concurrent arrival before/after publication preserves authored validity;
+- unrelated TOKEN/DEVICE changes do not stale ordinary writes or conflict confirmation;
+- visible conflict remains confirmed; relevant semantic-context changes require reconfirmation;
+- conditional advisory-history: detected loss/corruption of previously retained/expected memory or failed cache update => diagnostic, current graph independent and ordinary operations available;
+- remembered absent history => regression warning, not a current head or unavailable-state confirmation;
+- incomplete processing preserves accepted usable state and never validates failed candidates;
+- current unscoped evidence => compatibility warning without global blocking;
+- routable opaque current TOKEN => scoped blocking;
+- same-ID contradiction and resolved cycles => integrity failure;
+- ambiguous publication => non-success, later discovery, permitted retry siblings;
+- exact-existing publication requires exact bytes, no persistence barrier in semantic validity;
+- optional exact opaque retention and later reprocessing are implementation choices.
 
 ### DEVICE semantics
 
@@ -2802,7 +2029,7 @@ Baseline v1 conformance does not require executable proof of immunity to a malic
 - wrong-device parent => rejected edge, child presentation assertion remains valid;
 - token objects cannot become device causal parents;
 - current DEVICE value unavailable => fingerprint/DEVICE_ID warning, not silent older-name fallback;
-- durable DEVICE graph retains PUBLIC_KEY_X963 so future TOKEN provenance can still verify after synchronized DEVICE bytes disappear;
+- missing DEVICE/key material may degrade remote provenance without invalidating TOKENs;
 - current friendly name is not implied to be historical friendly-name metadata for older TOKENs.
 
 ### Future semantic-version and envelope-family interoperability
@@ -2821,8 +2048,8 @@ Baseline v1 conformance does not require executable proof of immunity to a malic
 - v1 authorship over opaque current TOKEN is blocked;
 - later supported descendant can restore old-client ordinary semantics;
 - routable future DEVICE affects only presentation/provenance scope;
-- opaque-unscoped evidence blocks authoritative operations but not candidate use;
-- disappearance does not erase durable opaque routing/evidence;
+- opaque-unscoped evidence warns without blocking ordinary operations;
+- disappearance updates snapshot evidence; optional history supports warnings;
 - semantic version number never orders state.
 
 ### TOTP
@@ -2840,18 +2067,11 @@ At least two independent implementations MUST consume the frozen v1 vectors befo
 
 ---
 
-## 56. Open work after r14
+## 56. Open work after r15
 
-r14 preserves the protocol architecture and r13 recovery/provenance semantics while narrowing baseline local-filesystem conformance to the Section 3 trust boundary.
+Before v1-rc1, independently consume frozen vectors in at least two implementations, cross-verify native P-256/password handling, test production bounded storage reads and complete immutable no-overwrite publication, and verify strong VAULT/binding/key durability. Review snapshot parent choice, TOKEN-specific confirmation, bounded fold interruption, optional regression diagnostics, and ordinary concurrency. Go race tests remain implementation race detection, not a global sync-freshness proof.
 
-Before v1-rc1:
-
-1. maintain executable conformance coverage for opaque-unscoped exact-object retention/reprocessing, continuity-reset frontier changes, DEVICE all-head convergence, remote-vs-local corruption distinction, first-DEVICE success gating, late provenance reclassification, and signature-context vault binding;
-2. cross-verify P-256 provenance vectors and signing behavior in Java/JCA, Android Keystore, and Apple CryptoKit;
-3. verify durable graph/evidence persistence, continuity reset/re-baseline, discovery resource completeness, candidate-use, confirmation freshness, and bounded-fold interruption across crash/restart and concurrent-client workflows;
-4. test production filesystem behavior for bounded reads, ordinary synchronization churn/disappearance/replacement, exact family/filename handling, immutable no-overwrite object publication, bootstrap replacement ordering, crash/restart durability, retained opaque-unscoped object storage, and hostile synchronized-byte corruption; stronger hostile-local-namespace race hardening is implementation-specific rather than a baseline v1 release requirement;
-5. verify native/platform password UTF-8 and signing behavior without introducing custom cryptographic implementations;
-6. perform an external specification/security review and independent live-implementation vector consumption before declaring v1 release-candidate freeze.
+Downstream implementation impact (non-normative): replace durable graph journals as a security boundary with optional caches; remove continuity/persistence/global discovery gates, ordinary frontier rechecks, publication reconciliation fences, runtime self-reader requirements, and synchronized existing-file fsync requirements. Narrow confirmation freshness, simplify first DEVICE acknowledgement and binding establishment, and retain strong VAULT/binding/private-key durability. This revision does not edit downstream implementations.
 
 ---
 
@@ -2881,11 +2101,17 @@ history generation ID
 graph-only merge objects
 ```
 
-The security goals previously served by those mechanisms are addressed by complete vault-authenticated token state, whole-state conflict semantics, complete-frontier user confirmation, durable authenticated topology, explicit value-availability/candidate-use handling, and no-field-merge behavior.
+The security goals previously served by those mechanisms are addressed by complete vault-authenticated token state, whole-state conflict semantics, complete-frontier user confirmation, accepted authenticated topology, explicit candidate-use handling, and no-field-merge behavior.
 
 ---
 
 ## 58. Revision history
+
+### v1/r15
+
+This revision intentionally changes state semantics. Synchronized storage is explicitly unreliable and nontransactional. Writers use accepted local snapshots; later hidden history is normal concurrency. Optional local history becomes advisory regression evidence, with cache loss/corruption discarded rather than blocking operations. Durable graph transactions, history-persistence gates, global discovery/unscoped gates, mandatory opaque retention, and unavailable remembered-state confirmation are removed. Conflict confirmation tracks TOKEN-specific semantic decisions, not unrelated vault events. Ambiguous publication is normal uncertainty with permitted retries. Synchronized-object fsync becomes reliability guidance; exact-existing publication needs exact bytes. First DEVICE success uses publication acknowledgement. Local binding establishment no longer uses pending records; VAULT, binding, and private custody retain strong durability. Runtime writer self-roundtrips are optional hardening.
+
+No wire-format, crypto, routing-prefix, envelope-family, object-size, capacity-formula, TOTP algorithm, or identifier construction changes.
 
 ### v1/r14
 

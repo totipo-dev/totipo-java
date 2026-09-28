@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.security.GeneralSecurityException;
 
 /**
- * App-local secret custody, separate from append-only SecurityMemoryStorage and
+ * App-local secret custody, separate from VaultBindingStore and
  * synchronized bootstrap/object storage. Different confidentiality, mutation and
  * hardware-backed-key requirements preclude combining these trust domains.
  * No portable private-key serialization format is specified. The caller owns the

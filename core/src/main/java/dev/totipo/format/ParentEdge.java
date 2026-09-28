@@ -1,4 +1,4 @@
 package dev.totipo.format;
 
-/** Snapshot-derived relationship; never persisted inside a durable routing node. */
+/** Snapshot-derived relationship; derived only from current accepted objects. */
 record ParentEdge(ObjectId childObjectId, ObjectId parentObjectId, ParentEdgeStatus status) {}

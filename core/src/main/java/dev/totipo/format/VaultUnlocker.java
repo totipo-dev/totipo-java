@@ -8,7 +8,7 @@ import javax.crypto.Cipher;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
-/** Read-only r14 §§5–8 recovery. Callers must not mutate borrowed passwords during a call. */
+/** Read-only r15 §§5–8 recovery. Callers must not mutate borrowed passwords during a call. */
 final class VaultUnlocker {
     private final Argon2idKdf kdf;
 

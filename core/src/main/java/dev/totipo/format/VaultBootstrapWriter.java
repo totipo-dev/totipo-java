@@ -7,7 +7,7 @@ import javax.crypto.Cipher;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
-/** r14 §8 encoding for creation and rewrap. Borrows inputs for the call, retains none. */
+/** r15 §8 encoding for creation and rewrap. Borrows inputs for the call, retains none. */
 final class VaultBootstrapWriter {
     private final Argon2idKdf kdf;
     VaultBootstrapWriter() { this(new BouncyCastleArgon2idKdf()); }

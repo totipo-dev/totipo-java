@@ -55,13 +55,14 @@
             "a"
           ],
           "value_state": "UNAMBIGUOUS",
-          "ordinary": false,
-          "author": false,
+          "ordinary": true,
+          "author": true,
           "candidate": true,
           "candidate_warning": true,
           "integrity_failure": false
         }
       }
-    ]
+    ],
+    "notes": "Baseline accepted-snapshot behavior: disappearance excludes the object from current H; remaining accepted state determines use/authorship. No advisory cache or history-derived warning is required."
   }
 }

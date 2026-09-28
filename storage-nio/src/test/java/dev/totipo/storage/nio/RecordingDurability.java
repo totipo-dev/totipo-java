@@ -19,5 +19,4 @@ final class RecordingDurability implements StorageDurability {
         if (fail.equals(operation)) throw new IOException("injected " + operation);
     }
     @Override public void syncDirectory(Path path) throws IOException { record("directory", path); }
-    @Override public void syncExistingFile(Path path) throws IOException { record("existing", path); }
 }

@@ -10,10 +10,36 @@ in the schema. `null` parent arrays mean empty; a null signature means zero byte
 This representation has no Go-specific serialized types.
 
 Each manifest entry identifies one real case file, its SHA-256, category, kind,
-expected outcome, normative status, and specification sections. IDs are stable.
+expected outcome, normative status, and specification sections. Pre-RC IDs may be replaced with documented semantic changes.
 Kinds distinguish exact bytes, negative parser inputs, and semantic/state cases.
-The moving profile pins the complete manifest and per-case hashes. Reordering or
+The moving baseline profile pins the complete manifest hash and baseline case hashes. The manifest pins conditional case hashes too. Reordering or
 changing cases requires a reviewed profile update.
+
+## Case applicability
+
+Every manifest entry declares exactly one strict applicability object:
+
+```json
+{"kind":"baseline"}
+```
+
+or:
+
+```json
+{"kind":"conditional","capability":"advisory-history"}
+```
+
+Unknown properties/capabilities reject. Baseline cannot include a capability;
+conditional requires this recognized capability. `expected` remains a real outcome
+when applicable. No SKIP or optional PASS state is used. The baseline profile's
+required set equals only baseline manifest entries; every physical case file must
+appear exactly once in the complete manifest.
+
+`make conformance` runs baseline with no optional capability. To claim the optional
+feature, use `make conformance-all` or `go run ./conformance/cmd/totipo-conformance -root . -capability advisory-history`.
+Output separates baseline from `capability=advisory-history`; the reference model
+explicitly declares support. No protocol feature-negotiation API or wire change is
+implied. `make check` executes both baseline and full reference suites.
 
 ## Dispatch and full crypto
 
@@ -75,63 +101,42 @@ hex values. `semantic_digest` names the exact immutable byte string represented
 by the symbolic object. Learning is assumed to follow storage authentication and
 intrinsic classification; the graph evaluator is not an alternate byte parser.
 
-Each case begins with an established client and empty durable knowledge. Actions:
+Each case begins with an empty accepted snapshot. `remember`, `history-lost`,
+`history-clear`, and `cache-write-fails` require the conditional advisory-history
+capability. Other actions operate on baseline protocol state. Actions:
 
-- `learn`: successfully persist the supplied immutable node and, if present,
-  make its supported complete value available. Repeated IDs must match immutable
-  metadata. `integrity_error: true` expects an ID conflict or resolved cycle.
-- `persist-fails`: authenticated learning cannot persist; set the persistence
-  safety gate. It cannot become authoritative known state.
-- `disappear`: remove synchronized value availability while retaining knowledge.
-- `discovery-incomplete`: set the discovery gate to `flag` (default false).
-- `continuity-unknown`: set the continuity gate to `flag` (default false).
-- `query`: compare every expected result field and assert that evaluating the
-  query leaves graph state unchanged.
+- `learn`: accept supplied authenticated immutable evidence; repeated current IDs
+  must agree. `integrity_error` expects a concrete contradiction or resolved cycle.
+- `disappear` / `remote-unavailable`: subsequent observation excludes that object;
+  remote reasons distinguish absent, unreadable, wrong-size, AEAD, padding, or ID failure.
+- `remember`: optional advisory memory copies current IDs for regression warnings.
+- `history-lost`: detected loss/corruption of previously retained/expected advisory memory; discard it, emit a diagnostic, retain current objects. Mere absence of the feature is not this event.
+- `history-clear`: explicitly forget advisory memory/diagnostics without changing current graph state.
+- `optional-cache-failure`: baseline hypothetical non-authoritative failure notification; cannot undo acknowledged publication and requires no cache implementation or diagnostic API.
+- `cache-write-fails`: accept the object and expose a cache warning without blocking.
+- `discovery-incomplete`: set the incomplete-view diagnostic to `flag`.
+- `plan`: supply TOKEN node, complete desired value, intent, and confirmation `flag`;
+  compare eligibility `success` and exact chosen `parents` against the snapshot.
+- `publish`: supply acknowledgement `flag`; compare publication `success`. Ordinary
+  plans survive later observations; confirmed conflicts recheck TOKEN context.
+- `rename`: incorporate all supported DEVICE heads, including presentation-inert ones.
+- `query` / `state-query`: compare complete current results without mutating state.
 
-Queries name a token identity, exact candidate, and optionally a device identity.
-Results expose sorted durable heads, whole-state completeness/conflict,
-ordinary-use eligibility, authoring eligibility, explicit-candidate eligibility,
-mandatory candidate warning, integrity failure, and optional DEVICE presentation.
-`author` is eligibility for a fully confirmed write; this model does not implement
-confirmation epochs or production publication. Unavailable/conflicting supported frontiers
-still require explicit whole-state confirmation under the specification.
-
-Graph values contain all TOKEN_VALUE fields, excluding author, timestamp,
-provenance and ancestry. DEVICE presentation uses only available verified heads.
-These tests model security-memory semantics, not filesystem crash durability.
-The timestamp fold case supplies a shared captured timestamp; it does not claim
-to test a complete staged writer implementation.
+Results expose accepted heads, complete value/conflict state, ordinary authorship
+eligibility, explicit candidate eligibility, optional `requires_confirmation`, and
+optional warning expectations. `integrity_ok` describes concrete graph consistency,
+not a global readiness predicate. Warnings never silently add nodes or values.
+The timestamp fold case checks shared time, not a complete production fold writer.
 
 ## Deliberate fixture maintenance
 
-Normal tests and CI never regenerate fixtures. For an explicitly reviewed corpus
-change, from the repository root:
-
-```sh
-GOCACHE="$PWD/.direnv/go-build" go run ./conformance/cmd/totipo-vector-gen -root .
-make check
-```
-
-The generator is tooling around the same Go consumer, not an independent protocol
-implementation. It writes case files before adding entries to the manifest, then
-writes the moving requirements profile. Existing full-object signatures are
-reused and must still verify; changed signed inputs fail rather than silently
-replace a fixture. Back up and review fixture changes when intentionally changing
-signed inputs. Stable case IDs must not be reassigned to different requirements.
-
-On first generation, full-object signatures are produced once using Go's
-`crypto/ecdsa` CSPRNG-backed signer and verified locally. The two DER-length test
-fixtures use offline length selection solely to exercise 70/72-byte verification.
-That selection is not part of the writer and never influences writer parent sets.
-The short-DER capacity rejection fixture uses one signature and its equivalent
-low-S form; it is a deliberately forbidden writer shape that a reader can accept.
-The actual writer helper reserves 72 bytes before a single signing attempt and
-never retries to make a shape fit.
-
-Graph expectations and reserved-size expectations are explicitly authored from
-the specification, not obtained by running the semantic evaluator. First-generated
-crypto bytes share implementation ancestry with their consumer; independent native
-platform/live-implementation checks remain necessary before RC freeze.
+Normal checks never generate fixtures. Fixed canonical bytes, signatures, signature
+inputs, ciphertexts, IDs, VAULT bytes, and TOTP answers are immutable in r15. The old
+monolithic generator was removed with its obsolete state semantics. Edit semantic
+cases explicitly from the specification, review the before/after matrix, and update
+manifest/profile pins only after checking the exact changed files. Do not derive
+expected results from the Go evaluator just to make it pass. Independent consumers
+remain necessary before RC freeze.
 
 ## Storage-family environments (r10)
 
@@ -151,9 +156,9 @@ Content readers are invoked only for exact v1-family candidates. Thus the runner
 never decrypts or interprets ignored sibling representations.
 
 `expect` records candidate observations and their classes, sorted learned IDs,
-opaque-unscoped IDs, authoritative readiness, and a query result from the existing
+opaque-unscoped IDs, concrete graph integrity, and a query result from the existing
 graph model. `INVALID_STORAGE` is unauthenticated/incorrectly sized storage evidence;
-`INVALID` is failed supported semantic grammar. Neither becomes durable semantic
+`INVALID` is failed supported semantic grammar. Neither becomes accepted semantic
 knowledge. Query expectations are authored independently of the evaluator.
 
 `objects-v1/` identifies the v1 envelope/storage family, while `OBJECT_VERSION`
@@ -172,83 +177,32 @@ on an ordinary supported baseline; sibling names add no warning or semantic bloc
 These in-memory environments model observed storage state and protocol classification.
 They do not model local syscall-level TOCTOU races or crash durability.
 
-Under r14, baseline v1 conformance does not require a live implementation to prove
+Under r15, baseline v1 conformance does not require a live implementation to prove
 immunity to a malicious same-privilege process racing namespace/type/inode changes
 between individual filesystem calls. Static special-file/symlink handling, ordinary
 synchronization churn, bounded reads, and protocol authentication remain required
-as specified. Live crash/durability evidence remains required.
+as specified. Authoritative local VAULT/binding/private-key durability still requires platform evidence. Synchronized-object flushing is reliability guidance.
 
-## r12 hardening workflows
+## Publication, binding, and provenance workflows
 
-Additional graph actions use the same symbolic authenticated-object model:
+`publication` carries device/key identity and events. `advertise` supplies matching
+identity, assertion validity, correct self-signature (`verified`), and local
+`acknowledged` outcome; `publish-token` supplies its acknowledgement. Reported setup
+success requires both. TOKEN-before-DEVICE visibility is allowed. These booleans
+are construction/API outcomes, not mandatory runtime self-reader checks or fsyncs.
 
-- `remote-unavailable`: `reason` is absent, unreadable, wrong-size, aead, padding,
-  or object-id. Retain node/ancestry and remove value availability unless `flag`
-  indicates an exact trusted local copy. This never sets continuity unknown.
-- `local-security-corruption`: set continuity unknown and block all operations.
-- `reset-begin`: represents explicit user confirmation of lost continuity;
-  enter continuity unknown and start an empty replacement epoch.
-- `baseline-learn`: authenticate/persist into that replacement, with `flag: true`
-  simulating persistence failure. The old epoch remains until completion.
-- `reset-complete`: `flag` asserts a resource-complete scan. Compare the Boolean
-  `success`; completion also requires consistent, successfully persisted records.
-- `reclassify`: compatible processing of the exact `semantic_digest` replaces an
-  opaque-unscoped interpretation. `flag: true` simulates failed persistence.
-- `rename`: derive parents from all current supported DEVICE heads, regardless
-  of provenance. Compare `success`; any opaque current head blocks the operation.
-- `state-query`: compare sorted `known`, `device_heads`, the selected `id`'s
-  `parents`, `authoritative`, and `continuity_unknown` against `state_expect`.
+`local` trials model simple local API obligations. For `install`, `exact` targets
+contain the intended 1024 abstract bytes (0x42 repeated), `different` contains 0x43,
+and absent/symlink are explicit entry kinds. Exact ordinary-file bytes acknowledge
+presence without an existing-file barrier; mismatched targets remain unchanged.
+An unacknowledged absent-target attempt is UNKNOWN and may later be observed.
+For `binding`, the derived anchor is 32 abstract 0x11 bytes; different is 0x12 and
+corrupt is one byte. Authentication and authoritative durability outcomes are
+explicit inputs. Absence allows first open, corruption requires recovery, mismatch
+rejects. These abstract fixtures do not allocate or regenerate protocol bytes.
 
-Values may specify `provenance` as VERIFIED, UNRESOLVED, or REJECTED; existing
-`verified` Boolean fixtures remain supported. Rejected/unresolved names are
-presentation-inert while their nodes remain causal. Disappearance cannot clear
-opaque-unscoped evidence. Reset deliberately loses prior security memory and
-rediscovering a still-present unscoped object keeps authority blocked.
-
-`publication` carries a vault-local `device_id`, `public_key`, and ordered events.
-`advertise` supplies identity/key and assertion_valid/verified/durable validation
-results; only a matching valid, verified, durable advertisement opens the gate.
-`publish-token` supplies durability; `report-success` checks `success` against
-both gates. `restart-workflow` begins a separate empty scenario, not a simulated
-production crash. TOKEN-before-DEVICE visibility is allowed; premature reported
-success is not. These fields are semantic workflow inputs, not wire fields.
-
-`signature-context` supplies one fixed signed `input`, its public key, canonical
-unsigned bytes, two distinct 32-byte vault contexts, and VERIFIED/REJECTED results
-under A/B. It reuses the original token-root fixture's fixed signature and public
-test key. Verification uses each explicit context; no fresh signing is required.
-Trusted native randomized ECDSA remains valid; no custom nonce generator is added.
-
-The fixture generator carries these eight hand-authored r12 files forward without
-rewriting them. Their expected results are independent of the state evaluator.
-
-## r13 recovery/provenance workflows
-
-Five hand-authored cases extend the unchanged 85-case r12 corpus. The generator
-carries these files forward without deriving their expectations from the model.
-
-`opaque-retention` references an existing hash-verified authenticated unscoped
-envelope by `fixture_case`. Each trial begins with fresh state. `persist` controls
-exact-object persistence; the synchronized bytes are replaced and removed.
-`retained_exact` compares all 1024 retained encrypted bytes with the fixture.
-Optional `reclassify` and `reclassify_persist` run a controlled synthetic compatible
-classifier on reauthenticated retained bytes and test durable reclassification.
-This test classifier recognizes only the supplied synthetic fixture; it allocates
-no new wire format or OBJECT_VERSION. Expectations include the final class,
-persistence gate and authoritative gate. A failed persistence trial is included
-in the retention case; no redundant standalone persistence case is added.
-
-`late-provenance` references the existing fixed signed TOKEN child fixture. Each
-trial tracks the TOKEN without its key, then supplies matching public-key material
-as from a DEVICE advertisement or restored record. `corrupt_signature` flips the
-last signature byte in memory for the rejected transition; committed crypto bytes
-are unchanged. `before`, `after`, and `semantic_unchanged` assert provenance and
-invariance of TOKEN values, validity, graph/ancestry, heads, and credential gates.
-
-Graph cases may include explanatory `notes`. `reset-complete-scan` takes a fixed
-`scan` snapshot of candidate IDs and classifications. `flag` is the expected
-resource-complete result, not an input override; `success` is the expected baseline
-completion. Supported, opaque and invalid classifications are terminal;
-UNCLASSIFIED, RESOURCE_EXHAUSTED and BYTES_UNAVAILABLE are not. No concrete resource
-limits are implied. A historical-frontier case drops a missing intermediate from
-the new epoch, preserving the assertions while recomputing heads/conflicts.
+`signature-context` and `late-provenance` retain their fixed signed fixtures.
+Context verification binds signatures to the vault. Late matching key arrival
+updates UNRESOLVED to VERIFIED/REJECTED without changing complete values or ancestry.
+Optional retained opaque bytes and their storage format are implementation choices;
+there is no mandatory retention/reset case operation in r15.

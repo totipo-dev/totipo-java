@@ -7,19 +7,12 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
-/**
- * Read-only §§33/35/38 policy over one supplied snapshot. Eligible now is not safe
- * forever: later orchestration must perform the immediate pre-operation recheck.
- * No OTP, persistence, discovery, confirmation, provenance or writer execution.
- * Operates only within an already-established vault continuity epoch; application
- * orchestration must satisfy the outer §10 establishment/binding prerequisite
- * documented by {@link VaultReadiness} before ordinary exposure or TOKEN authorship.
- */
+/** Per-TOKEN policy over current accepted evidence. */
 final class TokenOperationPolicy {
     /** Diagnostics only, not serialized protocol state. */
     enum Reason {
-        ELIGIBLE, BASE_OPERATION_UNSAFE, DISCOVERY_INCOMPLETE, OPAQUE_UNSCOPED_ACTIVE,
-        NO_CURRENT_STATE, CURRENT_OPAQUE, CURRENT_UNAVAILABLE, CURRENT_CONFLICT,
+        ELIGIBLE,
+        NO_CURRENT_STATE, CURRENT_OPAQUE, CURRENT_CONFLICT,
         CURRENT_TOMBSTONE, CANDIDATE_NOT_AVAILABLE, RESTORATION_INTENT_DEFERRED
     }
     enum AuthorshipStage { BLOCKED, CAN_PROCEED_TO_PLAN, REQUIRES_CONFIRMATION_WORKFLOW }
@@ -52,21 +45,17 @@ final class TokenOperationPolicy {
         }
     }
 
-    private final VaultReadiness readiness;
+    private final AcceptedSnapshot snapshot;
     private final CurrentTokenValueView current;
     private final Map<ObjectId, CandidateToken> candidates;
-
-    TokenOperationPolicy(VaultReadiness readiness, GraphTopology topology, SecurityBytes tokenId,
-                         CurrentReadableValues readable) {
-        this.readiness = Objects.requireNonNull(readiness);
-        Objects.requireNonNull(tokenId);
-        topology.requireKnowledge(readiness.knowledge());
-        // Reuse M2.2's binding check and exact partitions; reject resolved cycles.
-        current = CurrentTokenValueEvaluator.evaluate(topology, tokenId, readable);
+    TokenOperationPolicy(AcceptedSnapshot snapshot, SecurityBytes tokenId) {
+        this.snapshot = snapshot;
+        current = CurrentTokenValueEvaluator.evaluate(snapshot, tokenId);
         var catalog = new HashMap<ObjectId, CandidateToken>();
-        for (var evidence : readable.evidence()) {
-            if (evidence.tokenId().equals(tokenId) && evidence.value().status() == 1) {
-                catalog.put(evidence.objectId(), new CandidateToken(evidence.objectId(), tokenId, evidence.value()));
+        for (var object : snapshot.objects().values()) {
+            if (object instanceof AcceptedToken token && token.tokenId().equals(tokenId)
+                    && token.value() != null && token.value().status() == 1) {
+                catalog.put(token.objectId(), new CandidateToken(token.objectId(), tokenId, token.value()));
             }
         }
         candidates = Map.copyOf(catalog);
@@ -76,26 +65,13 @@ final class TokenOperationPolicy {
     /** Exact assertions, including historical ones; equal values do not collapse IDs. */
     Map<ObjectId, CandidateToken> candidates() { return candidates; }
 
-    /** Precedence: base safety, discovery, unscoped evidence, M2.2 state, tombstone. */
-    private Reason authoritativeBlocker() {
-        if (!readiness.baseOperationSafe()) { return Reason.BASE_OPERATION_UNSAFE; }
-        if (readiness.discovery() != DiscoveryState.READY) { return Reason.DISCOVERY_INCOMPLETE; }
-        if (readiness.activeOpaqueUnscoped()) { return Reason.OPAQUE_UNSCOPED_ACTIVE; }
-        return Reason.ELIGIBLE;
-    }
-
     OrdinaryUse ordinaryUse() {
-        var reason = authoritativeBlocker();
-        if (reason == Reason.ELIGIBLE) {
-            reason = switch (current.state()) {
-                case NO_KNOWN_CURRENT_STATE -> Reason.NO_CURRENT_STATE;
-                case VALUE_INCOMPLETE_OPAQUE -> Reason.CURRENT_OPAQUE;
-                case VALUE_INCOMPLETE_UNAVAILABLE -> Reason.CURRENT_UNAVAILABLE;
-                case WHOLE_STATE_CONFLICT -> Reason.CURRENT_CONFLICT;
-                case SEMANTICALLY_UNAMBIGUOUS -> uniqueValue().status() == 1
-                        ? Reason.ELIGIBLE : Reason.CURRENT_TOMBSTONE;
-            };
-        }
+        var reason = switch (current.state()) {
+            case EMPTY -> Reason.NO_CURRENT_STATE;
+            case OPAQUE_CURRENT -> Reason.CURRENT_OPAQUE;
+            case CONFLICT -> Reason.CURRENT_CONFLICT;
+            case UNAMBIGUOUS -> uniqueValue().status() == 1 ? Reason.ELIGIBLE : Reason.CURRENT_TOMBSTONE;
+        };
         return new OrdinaryUse(reason, reason == Reason.ELIGIBLE ? Optional.of(uniqueValue()) : Optional.empty());
     }
 
@@ -108,36 +84,28 @@ final class TokenOperationPolicy {
         var facts = EnumSet.of(CandidateWarning.NOT_ATTESTED_UNIQUELY_CURRENT);
         facts.add(current.currentHeadIds().contains(selected.objectId())
                 ? CandidateWarning.CANDIDATE_CURRENT : CandidateWarning.CANDIDATE_HISTORICAL);
-        if (readiness.discovery() == DiscoveryState.PROCESSING_INCOMPLETE) {
+        if (snapshot.incomplete()) {
             facts.add(CandidateWarning.DISCOVERY_INCOMPLETE);
         }
-        if (readiness.activeOpaqueUnscoped()) { facts.add(CandidateWarning.OPAQUE_UNSCOPED_ACTIVE); }
+        if (snapshot.hasUnscopedEvidence()) { facts.add(CandidateWarning.OPAQUE_UNSCOPED_ACTIVE); }
         if (!current.opaqueHeadIds().isEmpty()) { facts.add(CandidateWarning.CURRENT_OPAQUE_PRESENT); }
-        if (!current.unavailableSupportedHeadIds().isEmpty()) {
-            facts.add(CandidateWarning.CURRENT_UNAVAILABLE_PRESENT);
-        }
         // Known readable disagreement is worth disclosing even under incomplete state.
-        if (current.distinctReadableValues().size() > 1) { facts.add(CandidateWarning.CURRENT_CONFLICT); }
-        return new CandidateUse(readiness.candidateUseReady() ? Reason.ELIGIBLE : Reason.BASE_OPERATION_UNSAFE,
-                selected, facts);
+        if (current.distinctValues().size() > 1) { facts.add(CandidateWarning.CURRENT_CONFLICT); }
+        return new CandidateUse(Reason.ELIGIBLE, selected, facts);
     }
 
     Authorship authorship() {
-        var reason = authoritativeBlocker();
-        if (reason != Reason.ELIGIBLE) { return authorship(AuthorshipStage.BLOCKED, reason); }
         return switch (current.state()) {
-            case VALUE_INCOMPLETE_OPAQUE -> authorship(AuthorshipStage.BLOCKED, Reason.CURRENT_OPAQUE);
-            case VALUE_INCOMPLETE_UNAVAILABLE -> authorship(AuthorshipStage.REQUIRES_CONFIRMATION_WORKFLOW,
-                    Reason.CURRENT_UNAVAILABLE);
-            case WHOLE_STATE_CONFLICT -> authorship(AuthorshipStage.REQUIRES_CONFIRMATION_WORKFLOW,
+            case OPAQUE_CURRENT -> authorship(AuthorshipStage.BLOCKED, Reason.CURRENT_OPAQUE);
+            case CONFLICT -> authorship(AuthorshipStage.REQUIRES_CONFIRMATION_WORKFLOW,
                     Reason.CURRENT_CONFLICT);
-            case NO_KNOWN_CURRENT_STATE -> authorship(AuthorshipStage.CAN_PROCEED_TO_PLAN, Reason.NO_CURRENT_STATE);
-            case SEMANTICALLY_UNAMBIGUOUS -> authorship(AuthorshipStage.CAN_PROCEED_TO_PLAN,
+            case EMPTY -> authorship(AuthorshipStage.CAN_PROCEED_TO_PLAN, Reason.NO_CURRENT_STATE);
+            case UNAMBIGUOUS -> authorship(AuthorshipStage.CAN_PROCEED_TO_PLAN,
                     uniqueValue().status() == 1 ? Reason.ELIGIBLE : Reason.RESTORATION_INTENT_DEFERRED);
         };
     }
 
-    private TokenValue uniqueValue() { return current.distinctReadableValues().iterator().next(); }
+    private TokenValue uniqueValue() { return current.distinctValues().iterator().next(); }
     private Authorship authorship(AuthorshipStage stage, Reason reason) {
         return new Authorship(stage, reason, current.currentHeadIds());
     }

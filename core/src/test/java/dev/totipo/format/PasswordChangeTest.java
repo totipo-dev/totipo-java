@@ -8,7 +8,7 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static dev.totipo.format.PasswordChangeStatus.*;
 import static dev.totipo.format.VaultLifecycleTest.*;
-import static dev.totipo.format.LocalEstablishment.Phase.*;
+
 
 class PasswordChangeTest {
     static final byte[] NEW = CryptoSupport.ascii("new password");
@@ -17,8 +17,7 @@ class PasswordChangeTest {
                 VaultBootstrapWriterTest.field(16, seed), VaultBootstrapWriterTest.field(12, seed));
     }
     static Harness established() throws IOException {
-        var h = new Harness(); h.local(ESTABLISHED); h.store.canonical = candidate(ROOT);
-        h.memory.beforeAppend = () -> fail("Rewrap must never append");
+        var h = new Harness(); h.memory.create(binding(ROOT)); h.store.canonical = candidate(ROOT);
         return h;
     }
     static VaultLifecycle operation(Harness h) {
@@ -26,21 +25,17 @@ class PasswordChangeTest {
             assertNotEquals(32, b.length, "Must never sample a root"); h.entropy.fill(b);
         }, new VaultBootstrapWriter(KDF), new VaultUnlocker(KDF));
     }
-    static void sameJournal(Harness h, byte[] before, SecurityMemoryJournal.Replay replay) {
+    static void sameBinding(Harness h, byte[] before, VaultBindingStore.Binding binding) {
         assertArrayEquals(before, h.memory.bytes);
-        var after = h.replay();
-        assertEquals(replay.sequence(), after.sequence()); assertEquals(replay.digest(), after.digest());
-        assertEquals(replay.establishment(), after.establishment());
-        assertEquals(replay.knowledge().records(), after.knowledge().records());
-        assertEquals(replay.knowledge().continuity(), after.knowledge().continuity());
-        assertEquals(0, h.snapshots); assertEquals(0, h.contentReads);
+        assertArrayEquals(binding.bytes(), h.memory.read().bytes());
+        assertEquals(0,h.snapshots);
     }
     @TestFactory List<DynamicTest> successfulPasswords() {
         var tests = new ArrayList<DynamicTest>();
         for (byte[] next : List.of(NEW, PASSWORD, new byte[0])) {
             tests.add(DynamicTest.dynamicTest("new password length " + next.length, () -> {
                 var h = established(); byte[] old = h.store.canonical.clone(), journal = h.memory.bytes.clone();
-                var replay = h.replay(); byte[] borrowedOld = PASSWORD.clone(), borrowedNew = next.clone();
+                var replay = h.memory.read(); byte[] borrowedOld = PASSWORD.clone(), borrowedNew = next.clone();
                 assertEquals(SUCCESS, operation(h).changePassword(borrowedOld, borrowedNew));
                 assertArrayEquals(PASSWORD, borrowedOld); assertArrayEquals(next, borrowedNew);
                 assertEquals(87, h.store.canonical.length); assertFalse(Arrays.equals(old, h.store.canonical));
@@ -58,7 +53,7 @@ class PasswordChangeTest {
                 }
                 assertEquals(List.of(16,12),h.draws.stream().map(b -> b.length).toList());
                 h.draws.forEach(b -> assertArrayEquals(new byte[b.length],b));
-                sameJournal(h,journal,replay); assertNull(h.store.residue); assertTrue(h.store.stagedClosed);
+                sameBinding(h,journal,replay); assertNull(h.store.residue); assertTrue(h.store.stagedClosed);
                 assertEquals(List.of("canonical","replacement-stage","replacement-read","replace","canonical","cleanup"),h.store.events);
             }));
         }
@@ -85,10 +80,10 @@ class PasswordChangeTest {
                     case "old-invalid" -> { oldPassword = null; expected = CURRENT_INVALID_PASSWORD_INPUT; }
                 }
                 byte[] journal = h.memory.bytes.clone(), canonical = h.store.canonical == null ? null : h.store.canonical.clone();
-                var replay = h.replay();
+                var replay = h.memory.read();
                 assertEquals(expected,operation(h).changePassword(oldPassword,next));
                 assertTrue(h.draws.isEmpty()); assertEquals(0,h.store.stages);
-                assertArrayEquals(canonical,h.store.canonical); sameJournal(h,journal,replay);
+                assertArrayEquals(canonical,h.store.canonical); sameBinding(h,journal,replay);
             }));
         }
         return tests;
@@ -97,7 +92,7 @@ class PasswordChangeTest {
         var tests = new ArrayList<DynamicTest>();
         for (String mode : List.of("stage","staged-read","staged-auth","staged-root","staged-malformed","replace","ambiguous","canonical-read","canonical-auth","canonical-root","canonical-malformed","canonical-absent")) {
             tests.add(DynamicTest.dynamicTest(mode, () -> {
-                var h = established(); byte[] old = h.store.canonical.clone(), journal = h.memory.bytes.clone(); var replay = h.replay();
+                var h = established(); byte[] old = h.store.canonical.clone(), journal = h.memory.bytes.clone(); var replay = h.memory.read();
                 switch (mode) {
                     case "stage" -> h.store.fault = FakeBootstrapStorage.Fault.STAGE;
                     case "staged-read" -> h.store.fault = FakeBootstrapStorage.Fault.STAGED_READ;
@@ -114,7 +109,7 @@ class PasswordChangeTest {
                     case "canonical-absent" -> h.store.beforeCanonical = () -> { if(h.store.installed) h.store.canonical = null; };
                 }
                 assertEquals(REWRAP_INCOMPLETE, operation(h).changePassword(PASSWORD,NEW));
-                sameJournal(h,journal,replay); assertEquals(1,h.store.stages); assertEquals(2,h.draws.size());
+                sameBinding(h,journal,replay); assertEquals(1,h.store.stages); assertEquals(2,h.draws.size());
                 if (mode.startsWith("stage") || mode.equals("replace")) assertArrayEquals(old,h.store.canonical);
                 if (mode.startsWith("stage")) assertFalse(h.store.events.contains("replace"));
                 if (mode.equals("canonical-absent")) assertNull(h.store.canonical);
@@ -123,27 +118,6 @@ class PasswordChangeTest {
                     try (var u = new VaultUnlocker(KDF).unlock(h.store.canonical,NEW)) { assertArrayEquals(ROOT,u.root()); }
                 }
                 assertEquals(!mode.equals("stage"),h.store.stagedClosed);
-            }));
-        }
-        return tests;
-    }
-    @TestFactory List<DynamicTest> localPreconditions() {
-        var tests = new ArrayList<DynamicTest>();
-        for (String mode : List.of("missing","unestablished","pending","zero","corrupt","unsupported","tail")) {
-            tests.add(DynamicTest.dynamicTest(mode, () -> {
-                var h = new Harness(); PasswordChangeStatus expected = LOCAL_SECURITY_MEMORY_INVALID;
-                switch(mode) {
-                    case "missing" -> expected = LOCAL_SECURITY_MEMORY_MISSING;
-                    case "unestablished" -> { h.local(UNESTABLISHED); expected = LOCAL_STATE_NOT_ESTABLISHED; }
-                    case "pending" -> { h.local(PENDING); expected = LOCAL_STATE_NOT_ESTABLISHED; }
-                    case "zero" -> h.memory.bytes = new byte[0];
-                    case "corrupt" -> { h.local(ESTABLISHED); h.memory.bytes[h.memory.bytes.length-1] ^= 1; }
-                    case "unsupported" -> { h.local(ESTABLISHED); h.memory.bytes[11] = 2; }
-                    case "tail" -> { h.local(ESTABLISHED); h.memory.bytes = Arrays.copyOf(h.memory.bytes,h.memory.bytes.length+1); expected = LOCAL_TAIL_REPAIR_REQUIRED; }
-                }
-                byte[] before = h.memory.bytes == null ? null : h.memory.bytes.clone();
-                assertEquals(expected,operation(h).changePassword(PASSWORD,NEW));
-                assertArrayEquals(before,h.memory.bytes); assertTrue(h.store.events.isEmpty()); assertTrue(h.draws.isEmpty());
             }));
         }
         return tests;
@@ -167,13 +141,13 @@ class PasswordChangeTest {
         assertEquals(1,Collections.frequency(h.store.events,"replace"));
     }
     @Test void disappearanceBeforeAtomicSwitchCanSucceedAfterFinalAuthentication() throws Exception {
-        var h = established(); byte[] journal = h.memory.bytes.clone(); var replay = h.replay();
+        var h = established(); byte[] journal = h.memory.bytes.clone(); var replay = h.memory.read();
         h.store.beforeInstall = () -> h.store.canonical = null;
         assertEquals(SUCCESS, operation(h).changePassword(PASSWORD, NEW));
         try (var result = new VaultUnlocker(KDF).unlock(h.store.canonical, NEW)) {
             assertArrayEquals(ROOT, result.root());
         }
-        sameJournal(h, journal, replay);
+        sameBinding(h, journal, replay);
     }
     @Test void replacementStageOwnsStableBytesAndNeverDeletesCanonical() throws Exception {
         var store = new FakeBootstrapStorage(); store.canonical = candidate(ROOT);
@@ -187,24 +161,6 @@ class PasswordChangeTest {
         assertArrayEquals(exact,store.canonical); assertNull(store.residue);
         try (var staged = store.stageReplacement(bytes)) { assertArrayEquals(bytes,VaultLifecycle.read(staged.openRead())); }
         assertArrayEquals(exact,store.canonical); assertNull(store.residue);
-    }
-
-    @Test void unknownContinuityAndActiveOpaqueEvidencePreserveExactJournalAndGraph() throws Exception {
-        for (boolean unknown : List.of(false,true)) {
-            var h = established(); h.memory.beforeAppend = () -> {};
-            var session = SecurityMemorySession.open(h.memory);
-            session.commitRecord(SecurityMemoryJournalTest.token(1));
-            session.commitRecord(SecurityMemoryJournalTest.device(4,1));
-            session.commitRecord(SecurityMemoryJournalTest.opaque(3));
-            if (unknown) assertTrue(session.markUnknown());
-            byte[] journal = h.memory.bytes.clone(); var before = h.replay();
-            assertEquals(unknown ? LocalContinuityStatus.LOCAL_CONTINUITY_UNKNOWN
-                    : LocalContinuityStatus.LOCAL_CONTINUITY_KNOWN,before.knowledge().continuity());
-            assertEquals(3,before.knowledge().size());
-            h.memory.beforeAppend = () -> fail("No append even with UNKNOWN/opaque evidence");
-            assertEquals(SUCCESS,operation(h).changePassword(PASSWORD,NEW));
-            sameJournal(h,journal,before);
-        }
     }
 
     @Test void productionArgon2WriterAndReaderRewrapSameRoot() throws Exception {
@@ -228,16 +184,13 @@ class PasswordChangeTest {
         assertArrayEquals(journal,h.memory.bytes); h.draws.forEach(b -> assertArrayEquals(new byte[b.length],b));
     }
 
-    private static SecurityMemoryStorage readOnlyMemory(Harness h, boolean failRead) {
-        return new SecurityMemoryStorage() {
-            public InputStream openRead() throws IOException {
-                if (failRead) throw new IOException("Unavailable local memory");
-                h.store.events.add("local-replay");
-                return h.memory.openRead();
+    private static VaultBindingStore readOnlyMemory(Harness h, boolean failRead) {
+        return new VaultBindingStore() {
+            public Binding read() throws IOException {
+                if (failRead) throw new IOException("Unavailable binding");
+                h.store.events.add("local-binding"); return h.memory.read();
             }
-            public void initializeDurably(byte[] b) { fail("No initialize"); }
-            public void appendDurably(byte[] b) { fail("No append"); }
-            public void truncateDurably(long n) { fail("No repair"); }
+            public void create(byte[] b) { fail("No binding creation"); }
             public void close() { fail("Borrowed store"); }
         };
     }
@@ -258,12 +211,12 @@ class PasswordChangeTest {
         Argon2idKdf writer = (p,s) -> { h.store.events.add("encode"); return KDF.derive(p,s); };
         var lifecycle = new VaultLifecycle(h.store,readOnlyMemory(h,false),
                 () -> { throw new AssertionError("No semantic scan"); }, b -> {
-                    assertEquals(ESTABLISHED,h.replay().establishment().phase());
+                    assertEquals(VaultBindingStore.State.PRESENT,h.memory.read().state());
                     assertEquals(1,unlocks[0]); // Auth and binding preconditions passed before entropy.
                     assertNotEquals(32,b.length); h.store.events.add("entropy-" + b.length); h.entropy.fill(b);
                 }, new VaultBootstrapWriter(writer),new VaultUnlocker(reader));
         assertEquals(SUCCESS,lifecycle.changePassword(PASSWORD,NEW));
-        assertEquals(List.of("local-replay","canonical","current-unlock","entropy-16","entropy-12",
+        assertEquals(List.of("local-binding","canonical","current-unlock","entropy-16","entropy-12",
                 "encode","self-unlock","replacement-stage","replacement-read","staged-unlock",
                 "replace","canonical","canonical-unlock","cleanup"),h.store.events);
     }
