@@ -31,9 +31,9 @@ class LinuxVaultLifecycleIntegrationTest {
         try (result) { assertEquals(expected, result.status()); assertNull(result.root()); assertNull(result.discovery()); }
     }
     static final class ObservedDiscovery implements DiscoverySource {
-        final LinuxSecureDiscoverySource real; final SecurityMemoryStorage memory;
+        final NioDiscoverySource real; final SecurityMemoryStorage memory;
         int snapshots, reads;
-        ObservedDiscovery(Path root, SecurityMemoryStorage memory) { real = new LinuxSecureDiscoverySource(root); this.memory = memory; }
+        ObservedDiscovery(Path root, SecurityMemoryStorage memory) { real = new NioDiscoverySource(root); this.memory = memory; }
         @Override public Snapshot snapshot() throws IOException {
             snapshots++; var snapshot = real.snapshot();
             return new Snapshot(snapshot.candidates().stream().map(c -> new Candidate(c.id(), () -> {
@@ -68,7 +68,7 @@ class LinuxVaultLifecycleIntegrationTest {
     @Test void establishedWrongPasswordDifferentRootAndAbsentNeverDiscoverOrRewriteLocal() throws Exception {
         Path sync = directory("sync"), local = directory("local");
         try (var memory = LinuxSecurityMemoryStorage.open(local); var vault = LinuxVaultBootstrapStorage.open(sync)) {
-            try (var result = lifecycle(vault, memory, new LinuxSecureDiscoverySource(sync)).createNew(PASSWORD)) {
+            try (var result = lifecycle(vault, memory, new NioDiscoverySource(sync)).createNew(PASSWORD)) {
                 assertEquals(CREATED_ESTABLISHED, result.status());
             }
         }
@@ -101,17 +101,15 @@ class LinuxVaultLifecycleIntegrationTest {
         }
     }
     @Test void realFaultMatrixRetainsPendingAndRecoversActualCanonical() throws Exception {
-        for (String failure : List.of("write", "stage-sync", "link", "post-link-sync", "directory-sync", "unsupported-temp", "unsupported-link")) {
+        for (String failure : List.of("write", "stage-sync", "link", "directory-sync", "temporary")) {
             Path sync = directory("sync-" + failure), local = directory("local-" + failure);
             var faults = new VaultStorageFaults(); faults.fail = failure;
-            if (failure.equals("unsupported-temp")) faults.temporaryErrno = 95;
-            if (failure.equals("unsupported-link")) faults.linkErrno = 95;
             try (var memory = LinuxSecurityMemoryStorage.open(local); var vault = faults.open(sync)) {
                 var source = new ObservedDiscovery(sync, memory);
                 failed(lifecycle(vault, memory, source).createNew(PASSWORD), PUBLICATION_INCOMPLETE);
                 phase(memory, PENDING); assertEquals(1, source.snapshots); assertEquals(0, source.reads);
             }
-            boolean linked = failure.equals("post-link-sync") || failure.equals("directory-sync");
+            boolean linked = failure.equals("directory-sync");
             try (var names = Files.list(sync)) { assertEquals(linked ? List.of("vault") : List.of(), names.map(p -> p.getFileName().toString()).toList()); }
             try (var memory = LinuxSecurityMemoryStorage.open(local); var vault = LinuxVaultBootstrapStorage.open(sync)) {
                 phase(memory, PENDING); var source = new ObservedDiscovery(sync, memory);
@@ -130,7 +128,7 @@ class LinuxVaultLifecycleIntegrationTest {
             var vault = new Forwarding(backend) {
                 @Override public InputStream openCanonicalRead() throws IOException { reads[0]++; return super.openCanonicalRead(); }
             };
-            failed(lifecycle(vault, memory, new LinuxSecureDiscoverySource(sync)).createNew(PASSWORD), PUBLICATION_INCOMPLETE);
+            failed(lifecycle(vault, memory, new NioDiscoverySource(sync)).createNew(PASSWORD), PUBLICATION_INCOMPLETE);
             assertEquals(1, reads[0]); phase(memory, PENDING); assertArrayEquals(existing, Files.readAllBytes(sync.resolve("vault")));
         }
         try (var entries = Files.list(sync)) { assertEquals(1, entries.count()); }
@@ -200,7 +198,7 @@ class LinuxVaultLifecycleIntegrationTest {
     }
     @Test void stageOnlyHaltLeavesPendingAbsentWithoutNamedResidue() throws Exception {
         Path sync = directory("sync"), local = directory("local"); halt("stage", sync, local);
-        try (var entries = Files.list(sync)) { assertEquals(0, entries.count()); }
+        try (var entries = Files.list(sync)) { assertTrue(entries.allMatch(p -> p.getFileName().toString().startsWith(".totipo-vault-"))); }
         try (var memory = LinuxSecurityMemoryStorage.open(local); var vault = LinuxVaultBootstrapStorage.open(sync)) {
             phase(memory, PENDING); var source = new ObservedDiscovery(sync, memory);
             failed(lifecycle(vault, memory, source).openConfigured(PASSWORD), PENDING_CANONICAL_ABSENT);
@@ -259,7 +257,7 @@ class LinuxVaultLifecycleIntegrationTest {
                         catch (BrokenBarrierException | TimeoutException e) { throw new IOException(e); }
                     };
                     try (var memory = LinuxSecurityMemoryStorage.open(local); var vault = faults.open(sync)) {
-                        var lifecycle = new VaultLifecycle(vault, memory, new LinuxSecureDiscoverySource(sync),
+                        var lifecycle = new VaultLifecycle(vault, memory, new NioDiscoverySource(sync),
                                 bytes -> Arrays.fill(bytes, rootByte), new VaultBootstrapWriter(), new VaultUnlocker());
                         try (var result = lifecycle.createNew(PASSWORD)) {
                             assertEquals(result.status() == CREATED_ESTABLISHED ? ESTABLISHED : PENDING,
@@ -275,7 +273,7 @@ class LinuxVaultLifecycleIntegrationTest {
             assertEquals(Set.of(CREATED_ESTABLISHED, PUBLICATION_INCOMPLETE), new HashSet<>(statuses));
             try (var memory = LinuxSecurityMemoryStorage.open(dir.resolve("local" + statuses.indexOf(CREATED_ESTABLISHED)));
                  var vault = LinuxVaultBootstrapStorage.open(sync);
-                 var result = lifecycle(vault, memory, new LinuxSecureDiscoverySource(sync)).openConfigured(PASSWORD)) {
+                 var result = lifecycle(vault, memory, new NioDiscoverySource(sync)).openConfigured(PASSWORD)) {
                 assertEquals(OPENED_ESTABLISHED, result.status());
             }
         }

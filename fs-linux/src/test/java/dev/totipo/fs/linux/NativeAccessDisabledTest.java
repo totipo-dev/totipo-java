@@ -1,15 +1,15 @@
 package dev.totipo.fs.linux;
 
 import dev.totipo.format.DiscoverySource;
-import java.nio.file.Path;
+import java.nio.file.*;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class NativeAccessDisabledTest {
-    @Test void separateDeniedJvmLoadsFallbackAndReportsControlledFailureRepeatedly() throws Exception {
+    @Test void readOnlyNioWorksAndDurabilityFailsInDeniedJvm() throws Exception {
         String classpath = String.join(java.io.File.pathSeparator,
-                location(NativeAccessDisabledTest.class), location(LinuxSecureDiscoverySource.class), location(DiscoverySource.class));
+                location(NativeAccessDisabledTest.class), location(NioDiscoverySource.class), location(DiscoverySource.class));
         var process = new ProcessBuilder(Path.of(System.getProperty("java.home"), "bin", "java").toString(),
                 "--illegal-native-access=deny", "-cp", classpath, Probe.class.getName()).redirectErrorStream(true).start();
         try {
@@ -22,45 +22,23 @@ class NativeAccessDisabledTest {
     }
     public static final class Probe {
         public static void main(String[] args) throws Exception {
-            Class.forName("dev.totipo.fs.linux.NioDiscoverySource");
-            Class.forName("dev.totipo.format.DiscoverySource");
-            Class.forName("dev.totipo.fs.linux.LinuxSecureDiscoverySource");
-            Class.forName("dev.totipo.fs.linux.LinuxSecurityMemoryStorage");
-            Class.forName("dev.totipo.fs.linux.LinuxVaultBootstrapStorage");
-            Class.forName("dev.totipo.fs.linux.LinuxV1ObjectPublicationStore");
-            for (int i = 0; i < 2; i++) {
-                try {
-                    LinuxV1ObjectPublicationStore.open(Path.of("/"));
-                    throw new AssertionError("Native access must be explicit");
-                } catch (java.io.IOException e) {
-                    if (!e.getMessage().equals("OBJECT_PUBLICATION_CAPABILITY_NATIVE_ACCESS_DISABLED")) {
-                        throw new AssertionError(e);
-                    }
-                }
-                try {
-                    LinuxVaultBootstrapStorage.open(Path.of("/"));
-                    throw new AssertionError("Native access must be explicit");
-                } catch (java.io.IOException e) {
-                    if (!e.getMessage().equals("VAULT_STORAGE_CAPABILITY_NATIVE_ACCESS_DISABLED")) {
-                        throw new AssertionError(e);
-                    }
-                }
-            }
+            Path root = Files.createTempDirectory("native-denied-");
             try {
-                LinuxSecurityMemoryStorage.open(Path.of("/"));
-                throw new AssertionError("Native access must be explicit");
-            } catch (java.io.IOException e) {
-                if (!e.getMessage().equals("NATIVE_ACCESS_DISABLED")) { throw new AssertionError(e); }
-            }
-            for (int i = 0; i < 2; i++) {
-                var source = new LinuxSecureDiscoverySource(Path.of("/"));
-                if (source.capability() != LinuxSecureDiscoverySource.Capability.NATIVE_ACCESS_DISABLED) {
-                    throw new AssertionError(source.capability());
+                Files.createDirectory(root.resolve("objects-v1"));
+                Files.write(root.resolve("vault"), new byte[87]);
+                try (var snapshot = new NioDiscoverySource(root).snapshot(); var vault = LinuxVaultBootstrapStorage.open(root)) {
+                    if (snapshot.issue() != DiscoverySource.SnapshotIssue.NONE) throw new AssertionError();
+                    try (var read = vault.openCanonicalRead()) { if (read.readAllBytes().length != 87) throw new AssertionError(); }
+                    try { vault.stageInitial(new byte[87]); throw new AssertionError(); }
+                    catch (java.io.IOException e) { if (!e.getMessage().equals("NATIVE_ACCESS_DISABLED")) throw e; }
                 }
-                try (var snapshot = source.snapshot()) {
-                    if (snapshot.issue() != DiscoverySource.SnapshotIssue.UNSUPPORTED_DIRECTORY_ACCESS) { throw new AssertionError(); }
+                try { LinuxSecurityMemoryStorage.open(root); throw new AssertionError(); }
+                catch (java.io.IOException e) { if (!e.getMessage().equals("NATIVE_ACCESS_DISABLED")) throw e; }
+                try (var publisher = LinuxV1ObjectPublicationStore.open(root)) {
+                    try { publisher.publishDurably(dev.totipo.format.ObjectId.fromFilename("a".repeat(64)), new byte[1024]); throw new AssertionError(); }
+                    catch (java.io.IOException e) { if (!e.getMessage().equals("NATIVE_ACCESS_DISABLED")) throw e; }
                 }
-            }
+            } finally { Files.deleteIfExists(root.resolve("vault")); Files.deleteIfExists(root.resolve("objects-v1")); Files.delete(root); }
         }
     }
 }

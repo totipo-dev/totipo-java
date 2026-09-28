@@ -41,7 +41,7 @@ public final class VaultStorageCrashProcess {
             }
             @Override public void close() throws IOException { backend.close(); }
         };
-        var result = lifecycle(vault, memory, new LinuxSecureDiscoverySource(sync)).createNew(PASSWORD);
+        var result = lifecycle(vault, memory, new NioDiscoverySource(sync)).createNew(PASSWORD);
         if (result.status() != VaultLifecycleResult.Status.CREATED_ESTABLISHED) throw new AssertionError(result.status());
         Runtime.getRuntime().halt(0);
     }

@@ -169,9 +169,14 @@ that future family is not providing rolling-upgrade compatibility to v1 for that
 state. Explicit candidate selection retains its existing mandatory warning even
 on an ordinary supported baseline; sibling names add no warning or semantic block.
 
-The in-memory model does not implement the live adapter's no-follow OS operations,
-crash durability, or concurrent filesystem rebindings. Those remain work for the
-first independent live consumer.
+These in-memory environments model observed storage state and protocol classification.
+They do not model local syscall-level TOCTOU races or crash durability.
+
+Under r14, baseline v1 conformance does not require a live implementation to prove
+immunity to a malicious same-privilege process racing namespace/type/inode changes
+between individual filesystem calls. Static special-file/symlink handling, ordinary
+synchronization churn, bounded reads, and protocol authentication remain required
+as specified. Live crash/durability evidence remains required.
 
 ## r12 hardening workflows
 

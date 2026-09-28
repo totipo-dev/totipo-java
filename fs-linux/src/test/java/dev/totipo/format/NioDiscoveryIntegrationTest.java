@@ -1,6 +1,6 @@
 package dev.totipo.format;
 
-import dev.totipo.fs.linux.LinuxSecureDiscoverySource;
+import dev.totipo.fs.linux.NioDiscoverySource;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ReadableByteChannel;
@@ -13,12 +13,40 @@ import org.junit.jupiter.api.io.TempDir;
 import static dev.totipo.format.NioTestFixtures.*;
 import static org.junit.jupiter.api.Assertions.*;
 
-class LinuxSecureDiscoveryTest {
+class NioDiscoveryIntegrationTest {
     @TempDir Path root;
-    @Test void nonemptySecureDiscoveryIsReadyAndComposesWithM23() throws Exception {
+    @Test void validExistingObjectIsLearnedWithoutNativeDurabilityAccess() throws Exception {
+        var fixture = fixture(TOKEN);
+        Files.write(Files.createDirectory(root.resolve("objects-v1")).resolve(fixture.id().filename()), fixture.bytes());
+        var locations = new ArrayList<String>();
+        for (Class<?> type : List.of(ReadOnlyProbe.class, NioDiscoverySource.class, DiscoverySource.class,
+                Class.forName("org.bouncycastle.crypto.generators.Argon2BytesGenerator")))
+            locations.add(Path.of(type.getProtectionDomain().getCodeSource().getLocation().toURI()).toString());
+        var process = new ProcessBuilder(Path.of(System.getProperty("java.home"), "bin/java").toString(),
+                "--illegal-native-access=deny", "-cp", String.join(java.io.File.pathSeparator, locations),
+                ReadOnlyProbe.class.getName(), root.toString(), java.util.HexFormat.of().formatHex(fixture.root()),
+                fixture.id().filename()).redirectErrorStream(true).start();
+        try {
+            assertTrue(process.waitFor(15, java.util.concurrent.TimeUnit.SECONDS));
+            assertEquals(0, process.exitValue(), new String(process.getInputStream().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8));
+        } finally { process.destroyForcibly(); }
+        assertArrayEquals(fixture.bytes(), Files.readAllBytes(root.resolve("objects-v1").resolve(fixture.id().filename())));
+    }
+    public static final class ReadOnlyProbe {
+        public static void main(String[] args) {
+            int[] commits = {0};
+            var result = DiscoveryCoordinator.discover(new NioDiscoverySource(Path.of(args[0])),
+                    java.util.HexFormat.of().parseHex(args[1]), DurableKnowledgeState.establishedEmpty(),
+                    observation -> { commits[0]++; return DurableKnowledgeState.PersistenceResult.COMMITTED; });
+            if (!result.resourceComplete() || commits[0] != 1
+                    || result.knowledge().record(ObjectId.fromFilename(args[2])) == null)
+                throw new AssertionError("Discovery must authenticate/learn without synchronized-file fsync");
+        }
+    }
+    @Test void nonemptyDiscoveryIsReadyAndComposesWithM23() throws Exception {
         var token = fixture(TOKEN); Path dir = Files.createDirectory(root.resolve("objects-v1"));
         Files.write(dir.resolve(token.id().filename()), token.bytes());
-        var result = run(new LinuxSecureDiscoverySource(root), token.root(), DurableKnowledgeState.establishedEmpty());
+        var result = run(new NioDiscoverySource(root), token.root(), DurableKnowledgeState.establishedEmpty());
         assertTrue(result.resourceComplete()); assertEquals(DiscoveryState.READY, result.discoveryState());
         assertEquals(1, result.knowledge().size());
         assertNotNull(result.topology().record(token.id()));
@@ -36,7 +64,7 @@ class LinuxSecureDiscoveryTest {
             for (var object : order == 0 ? objects : objects.reversed()) {
                 Files.write(dir.resolve(object.id().filename()), object.bytes());
             }
-            var result = run(new LinuxSecureDiscoverySource(sync), token.root(), DurableKnowledgeState.establishedEmpty());
+            var result = run(new NioDiscoverySource(sync), token.root(), DurableKnowledgeState.establishedEmpty());
             assertEquals(DiscoveryState.READY, result.discoveryState()); assertEquals(3, result.knowledge().size());
             assertTrue(result.knowledge().record(unscoped.id()) instanceof OpaqueUnscopedRecord);
             assertEquals(List.of(ObjectDiscovery.Classification.SUPPORTED_VALID,
@@ -54,7 +82,7 @@ class LinuxSecureDiscoveryTest {
         Path dir = Files.createDirectory(root.resolve("objects-v1"));
         int[] sizes = {0, 1023, 1024, 1025, 200_000};
         for (int i = 0; i < sizes.length; i++) { Files.write(dir.resolve(Integer.toHexString(i).repeat(64)), new byte[sizes[i]]); }
-        var source = new LinuxSecureDiscoverySource(root);
+        var source = new NioDiscoverySource(root);
         var readCounts = new ArrayList<AtomicInteger>();
         DiscoverySource counting = () -> {
             var snapshot = source.snapshot(); var candidates = new ArrayList<DiscoverySource.Candidate>();
@@ -81,7 +109,7 @@ class LinuxSecureDiscoveryTest {
     @Test void knownCorruptionRereadsBytesRetainsNodesAndDisappearanceIsIncomplete() throws Exception {
         Path dir = Files.createDirectory(root.resolve("objects-v1")); var token = fixture(TOKEN);
         Path path = dir.resolve(token.id().filename()); Files.write(path, token.bytes());
-        var source = new LinuxSecureDiscoverySource(root);
+        var source = new NioDiscoverySource(root);
         var first = run(source, token.root(), DurableKnowledgeState.establishedEmpty());
         var timestamp = Files.getLastModifiedTime(path);
         for (int size : List.of(1024, 1023)) {
@@ -99,7 +127,7 @@ class LinuxSecureDiscoveryTest {
     @Test void frozenSymlinkReplacementIsIncompleteAndCommitStillRequired() throws Exception {
         Path dir = Files.createDirectory(root.resolve("objects-v1")); var token = fixture(TOKEN);
         Path path = dir.resolve(token.id().filename()); Files.write(path, token.bytes());
-        var source = new LinuxSecureDiscoverySource(root);
+        var source = new NioDiscoverySource(root);
         var failed = DiscoveryCoordinator.discover(source, token.root(), DurableKnowledgeState.establishedEmpty(),
                 observation -> DurableKnowledgeState.PersistenceResult.FAILED);
         assertEquals(DiscoveryState.PROCESSING_INCOMPLETE, failed.discoveryState());
@@ -113,7 +141,7 @@ class LinuxSecureDiscoveryTest {
     @Test void authenticatedPaddingAndIdentityFailuresRetainKnownNode() throws Exception {
         var token = fixture(TOKEN); Path dir = Files.createDirectory(root.resolve("objects-v1"));
         Path path = dir.resolve(token.id().filename()); Files.write(path, token.bytes());
-        var source = new LinuxSecureDiscoverySource(root);
+        var source = new NioDiscoverySource(root);
         var known = run(source, token.root(), DurableKnowledgeState.establishedEmpty()).knowledge();
         byte[] key = CryptoSupport.objectKey(CryptoSupport.objectRoot(CryptoSupport.extract(token.root())), token.id());
         var cipher = javax.crypto.Cipher.getInstance("AES/GCM/NoPadding");

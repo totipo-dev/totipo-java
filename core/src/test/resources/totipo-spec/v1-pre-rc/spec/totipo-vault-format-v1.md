@@ -1,13 +1,13 @@
 # Totipo Vault Format v1
 
-**Status:** design draft, revision 13  
+**Status:** design draft, revision 14  
 **Protocol version:** 1  
-**Revision:** r13  
+**Revision:** r14  
 **Scope:** encrypted append-only TOTP vault format, complete-state token assertions, token-local causal history, device presentation history, durable local rollback evidence, bootstrap semantics, cryptographic construction, canonical encoding, and writer/application safety.
 
 **Historical note:** Earlier Totipo design work used a v0 draft. It was never released as an implemented/deployed protocol and is not a supported predecessor of v1. v1 defines no migration protocol from v0; historical v0 draft artifacts are outside the v1 protocol.
 
-**Revision 13 summary:** v1/r13 completes the r12 recovery/provenance hardening without changing the wire format. It gives `OPAQUE_UNSCOPED` evidence a minimum durable record that retains the exact authenticated 1024-byte object for later compatible reprocessing, makes the destructive consequences of continuity reset explicit, requires provenance re-evaluation when matching DEVICE key material later becomes available, aligns first-DEVICE conformance wording with the report-success gate, defines `resource-complete` scans, and clarifies fold/example and presentation wording. TOKEN/DEVICE semantic encodings, object crypto, `objects-v1/`, routing prefixes, size/capacity rules, and TOTP algorithms remain unchanged.
+**Revision 14 summary:** v1/r14 narrows the baseline local-filesystem threat model without changing wire format, cryptography, synchronized-state semantics, storage-family layout, routing, capacity rules, or TOTP algorithms. Synchronized contents and provider history remain fully untrusted. Baseline conformance trusts the local OS/filesystem execution environment and does not require immunity to an actively malicious same-privilege process racing pathname, file-type, directory-identity, or inode changes between filesystem operations. Bounded parsing, cryptographic authentication, conservative synchronization-churn handling, namespace/family isolation, and crash-safe/no-overwrite publication remain required. Stronger hostile-local-filesystem hardening remains permitted.
 
 ---
 
@@ -120,7 +120,19 @@ The synchronization medium MUST NOT be trusted for confidentiality, integrity, f
 
 An attacker controlling the synchronization medium may read, copy, add, replace, replay, reorder, withhold, or delete files.
 
-Without `K_root`, such an attacker MUST NOT be able to:
+The synchronization medium is untrusted as a source of bytes, directory entries, ordering, history, freshness, completeness, and availability, regardless of whether those synchronized entries are materialized locally by a synchronization client. The synchronization client is not trusted to provide truthful synchronized state.
+
+Baseline v1 does not treat compromise of the client's own local execution environment as part of the synchronization-medium attacker model. The local kernel, filesystem implementation, mount/process namespace, and processes acting with the application's local privileges are part of the trusted computing base for baseline protocol conformance.
+
+In particular, a conforming implementation is not required to prove immunity to an actively malicious same-privilege local process that deliberately races individual filesystem operations by changing pathname targets, file types, directory identities, or already-open inode contents between checks and uses.
+
+Ordinary synchronization churn remains in scope. Files may legitimately appear, disappear, or be replaced while an operation is in progress. Implementations MUST handle such observed changes conservatively as availability/freshness failures, incomplete discovery, or retry/rescan conditions rather than invent authenticated protocol state.
+
+This trust boundary never permits synchronized bytes to be trusted merely because they were obtained from the local filesystem. Protocol objects and bootstraps still require their normal structural and cryptographic validation. Local secret-custody, permissions, and durable security-memory protection obligations remain unchanged.
+
+Stronger defenses against hostile local namespace manipulation, sandbox escape, or same-user local compromise MAY be provided by an implementation but are outside baseline v1 interoperability/conformance requirements.
+
+Without `K_root`, the synchronization-medium attacker MUST NOT be able to:
 
 - decrypt semantic object contents;
 - compute valid object identifiers for guessed plaintext;
@@ -194,6 +206,8 @@ No v1 semantic information appears directly in the directory hierarchy below `ob
 v1 does not define protocol garbage collection of valid historical v1-family objects.
 
 Writers SHOULD publish immutable v1-family objects using a completed temporary file followed by atomic no-replace or equivalent immutable installation where available.
+
+The atomic/no-replace requirement protects immutable publication and crash/concurrency correctness; it does not require defense against an already-compromised same-privilege local execution environment deliberately racing individual filesystem syscalls.
 
 ---
 
@@ -1359,6 +1373,10 @@ Terminal classifications include supported-valid, opaque-routable, opaque-unscop
 
 A candidate that cannot be read/authenticated/classified because required bytes are unavailable or an implementation resource limit is exhausted prevents that pass from being resource-complete.
 
+If an accepted candidate disappears, changes, becomes unreadable, or otherwise cannot supply the required bytes during ordinary synchronization churn, that observation is unavailable for the pass and prevents resource completeness. A later pass may observe the new state.
+
+Resource completeness does not require proving atomic immunity to an actively malicious same-privilege process racing filesystem namespace or inode changes between individual local filesystem operations.
+
 `DISCOVERY_STATE=READY` requires completion of the authoritative discovery work required by Sections 24 and 33.
 
 Ordinary current use and semantic authorship require `READY`.
@@ -1412,6 +1430,8 @@ In that synchronized-corruption case:
 - if its complete supported TOKEN/DEVICE value/presentation bytes are needed and no exact trusted local copy is available, that value/presentation becomes unavailable;
 - for `OPAQUE_UNSCOPED`, the required retained `EXACT_OBJECT_BYTES` remain available for future compatible reprocessing;
 - ordinary/candidate behavior follows the existing availability rules.
+
+An ordinary storage race resulting in unreadable or replaced current bytes is a synchronized availability issue, not a local continuity failure, unless successfully authenticated contradictory evidence is obtained as described above.
 
 Detected durable-record corruption, global-ID inconsistency, or resolved cycles remains a local continuity failure.
 
@@ -1610,6 +1630,8 @@ Wide frontiers use Section 47's fold.
 ## 33. Operation freshness and publication linearization
 
 Every credential-generation or authorship operation has a local freshness point.
+
+This requirement does not require proof that a malicious same-privilege local actor cannot mutate storage immediately afterward. Newly observed synchronized changes still stale or recompute operations as specified here and in Section 27.
 
 ### 33.1 Ordinary current TOTP generation
 
@@ -2428,27 +2450,41 @@ DEVICE presentation incompleteness never changes TOKEN state authority.
 
 ---
 
-## 50. Filesystem safety and family namespace isolation
+## 50. Filesystem robustness, local trust boundary, and family namespace isolation
 
-Implementations SHOULD use bounded reads from stable file handles.
+### 50.1 Baseline trust boundary
 
-They MUST NOT rely solely on attacker-preservable metadata such as file size or timestamp as proof that known bytes are unchanged.
+Synchronized storage contents and history are untrusted under Section 3. The local OS/filesystem execution environment is trusted for baseline v1 conformance.
 
-v1-family object discovery is confined to direct regular-file children of:
+Baseline conformance does not require atomic defense against a malicious local process with the application's privileges deliberately racing pathname, file-type, directory-identity, or inode-content changes between individual filesystem operations. Implementations MAY provide stronger local-filesystem hardening.
 
-```text
-objects-v1/
-```
+### 50.2 Required storage robustness
 
-Implementations MUST NOT recurse into sibling `objects-*` namespaces when performing v1 discovery.
+Implementations MUST bound reads and allocations when processing synchronized storage. They MUST NOT rely solely on attacker-preservable metadata such as file size, timestamp/mtime, or other metadata as proof that known bytes are unchanged.
 
-Where the synchronization root may contain attacker-controlled entries, implementations MUST prevent following untrusted symlinks, operating on special files as protocol objects, namespace escape through path traversal/rebinding, unsafe temporary-file redirection, and unintended blocking/side effects from hostile file types.
+v1-family object discovery MUST remain confined to direct candidates in the exact `objects-v1/` namespace. Only observed regular-file entries with names consisting of exactly 64 lowercase hexadecimal characters become content candidates. Observed symlinks, directories, FIFOs, sockets, and device/special files MUST NOT be treated as protocol objects; implementations MUST NOT deliberately follow an observed symlink as a protocol object or as the `objects-v1/` directory.
 
-A name such as `objects-v2/` is not trusted future-version evidence.
+Implementations MUST stay within the configured logical namespace and MUST NOT recurse into sibling family namespaces. Protocol-derived names are exactly `vault`, `objects-v1`, and the 64-lowercase-hex object filename. Implementations MUST NOT construct protocol paths from arbitrary untrusted path strings in a way that permits `..`, separators, or sibling-family recursion.
 
-A differently sized candidate inside `objects-v1/` is invalid current-family storage evidence, not authenticated opaque state.
+Unrelated, temporary, and synchronization-conflict names MUST be ignored by ordinary discovery. Unknown sibling names have no semantic effect. A differently sized candidate inside `objects-v1/` is invalid current-family storage evidence, never authenticated opaque evidence.
 
-Temporary publication files MUST use safe exclusive creation and no-follow/equivalent protections.
+Implementations SHOULD use ordinary platform no-follow, exclusive-create, atomic-move/no-replace, and stable-handle facilities where they are readily available and useful for robustness. Baseline conformance does not require proving that such mechanisms close every TOCTOU race against an actively malicious local actor.
+
+### 50.3 Ordinary synchronization races
+
+Files and directories may appear, disappear, or be replaced during normal synchronization. Implementations MUST handle observed changes conservatively:
+
+- a failed or unavailable accepted-candidate read makes the observation unavailable and the pass incomplete under Section 24.3;
+- a pathname or type observed to have changed before use requires re-evaluation or failure/retry; an accepted observation whose required bytes cannot be obtained prevents resource completeness for that pass;
+- partial, torn, or malformed bytes undergo normal storage and protocol validation and fail that validation when invalid;
+- filesystem observations MUST NOT invent authenticated knowledge or erase durable authenticated graph knowledge;
+- immutable protocol objects MUST NOT be overwritten merely to repair hostile/current storage.
+
+### 50.4 Publication
+
+Complete bytes MUST be written before authoritative installation. Immutable object publication SHOULD use no-replace or equivalent immutable installation where available, and MUST NOT overwrite an existing immutable protocol object. The canonical mutable `vault` follows Section 9.1 crash-safe publication/replacement, including candidate flush and validation, no-replace initial installation, atomic replacement and containing-directory durability where available, and canonical reopen/authentication; in-place truncate/overwrite is prohibited.
+
+Success MUST be reported only after the required durability acknowledgement; ambiguous or interrupted publication is non-success. Publication-before-durable-graph ordering remains required. Temporary-file handling MUST prevent accidental collisions or clobbering under the normal local environment, using exclusive creation or equivalent protections. Baseline conformance does not require hostile same-privilege redirection/race immunity.
 
 ---
 
@@ -2539,6 +2575,9 @@ objects-v1/ is the exact storage namespace for the Totipo v1 envelope family.
 
 Every valid object in objects-v1/ is exactly 1024 bytes.
 
+Synchronized bytes/history always require normal protocol validation; baseline v1 trusts local execution
+and treats ordinary synchronization races as availability/freshness events, without hostile same-privilege syscall-race immunity.
+
 OBJECT_VERSION versions semantics inside the v1 envelope family; allocation governance
 is specification-controlled, while unsupported routable values are still handled
 conservatively as opaque state.
@@ -2599,6 +2638,14 @@ Before v1 byte-level release-candidate freeze, executable evidence MUST cover at
 - differing-root binding rejection.
 
 ### Storage-family namespace, canonical encoding, and object crypto
+
+Baseline v1 conformance does not require executable proof of immunity to a malicious same-privilege local process deliberately racing namespace or inode changes between filesystem syscalls. Such tests are implementation hardening evidence, not interoperable protocol conformance evidence.
+
+- statically observed symlink/directory/FIFO/socket/device entries are not v1 object candidates;
+- candidate disappearance/change/unavailability during processing produces unavailable/incomplete behavior rather than invented semantic knowledge;
+- bounded reads do not allocate based on hostile metadata;
+- immutable publication does not overwrite an existing object;
+- interrupted/ambiguous publication is not reported as success;
 
 - exact v1-family namespace is `objects-v1/`;
 - v1 discovery ignores unknown sibling namespaces such as `objects-v2/`;
@@ -2793,16 +2840,16 @@ At least two independent implementations MUST consume the frozen v1 vectors befo
 
 ---
 
-## 56. Open work after r13
+## 56. Open work after r14
 
-r13 retains the complete-state/durable-graph, opaque-routing, envelope-family, and r12 hardening architecture while completing durable opaque-unscoped reprocessing, reset consequences, and provenance reclassification semantics.
+r14 preserves the protocol architecture and r13 recovery/provenance semantics while narrowing baseline local-filesystem conformance to the Section 3 trust boundary.
 
 Before v1-rc1:
 
 1. maintain executable conformance coverage for opaque-unscoped exact-object retention/reprocessing, continuity-reset frontier changes, DEVICE all-head convergence, remote-vs-local corruption distinction, first-DEVICE success gating, late provenance reclassification, and signature-context vault binding;
 2. cross-verify P-256 provenance vectors and signing behavior in Java/JCA, Android Keystore, and Apple CryptoKit;
 3. verify durable graph/evidence persistence, continuity reset/re-baseline, discovery resource completeness, candidate-use, confirmation freshness, and bounded-fold interruption across crash/restart and concurrent-client workflows;
-4. test production filesystem behavior including stable bounded no-follow reads, namespace rebinding resistance, immutable object publication, bootstrap replacement ordering, retained opaque-unscoped object storage, and hostile synchronized-byte corruption;
+4. test production filesystem behavior for bounded reads, ordinary synchronization churn/disappearance/replacement, exact family/filename handling, immutable no-overwrite object publication, bootstrap replacement ordering, crash/restart durability, retained opaque-unscoped object storage, and hostile synchronized-byte corruption; stronger hostile-local-namespace race hardening is implementation-specific rather than a baseline v1 release requirement;
 5. verify native/platform password UTF-8 and signing behavior without introducing custom cryptographic implementations;
 6. perform an external specification/security review and independent live-implementation vector consumption before declaring v1 release-candidate freeze.
 
@@ -2839,6 +2886,21 @@ The security goals previously served by those mechanisms are addressed by comple
 ---
 
 ## 58. Revision history
+
+### v1/r14
+
+Fourteenth v1 design draft.
+
+Local-filesystem threat-boundary simplification from r13:
+
+- clarifies that the synchronization medium remains fully untrusted for contents, history, freshness, ordering, completeness, and availability;
+- makes the local OS/filesystem execution environment part of the trusted computing base for baseline v1 conformance;
+- removes the baseline requirement to prove immunity to an actively malicious same-privilege process racing pathname, file-type, directory-identity, or inode-content changes between individual filesystem operations;
+- retains direct-family namespace confinement, exact filename rules, bounded reads, observed symlink/special-file exclusion, conservative handling of synchronization churn, and full cryptographic validation of synchronized bytes;
+- retains immutable no-overwrite object publication, crash-safe VAULT replacement, durability acknowledgement, and publication-before-durable-graph ordering;
+- classifies ordinary synchronization races as availability/freshness conditions causing retry/rescan/incomplete processing rather than invented authenticated state;
+- permits stronger hostile-local-filesystem hardening as an implementation-specific defense rather than an interoperability requirement;
+- does not change TOKEN/DEVICE bytes, cryptographic domains/construction, routing prefixes, `objects-v1/` layout, object size, capacity formulas, graph/state semantics, provenance semantics, or TOTP algorithms.
 
 ### v1/r13
 

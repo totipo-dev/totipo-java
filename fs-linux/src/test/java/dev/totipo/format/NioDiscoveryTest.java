@@ -13,7 +13,6 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
-import java.nio.file.SecureDirectoryStream;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -27,9 +26,6 @@ class NioDiscoveryTest {
 
     @Test
     void safelyAbsentNamespaceIsEmptyAndReaderDoesNotCreateIt() throws Exception {
-        try (var stream = Files.newDirectoryStream(root)) {
-            assumeTrue(stream instanceof SecureDirectoryStream<?>);
-        }
         var a = fixture(TOKEN);
         var result = run(new NioDiscoverySource(root), a.root(), DurableKnowledgeState.establishedEmpty());
         assertTrue(result.resourceComplete());
@@ -39,17 +35,10 @@ class NioDiscoveryTest {
         assertEquals(0, result.knowledge().size());
     }
 
-    @Test
-    void existingNamespaceCannotBeOpenedAuthoritativelyByPathEvenWhenEmpty() throws Exception {
+    @Test void emptyNamespaceIsComplete() throws Exception {
         Files.createDirectory(root.resolve("objects-v1"));
         var result = run(new NioDiscoverySource(root), new byte[32], DurableKnowledgeState.establishedEmpty());
-        assertFalse(result.resourceComplete());
-        assertEquals(DiscoveryState.PROCESSING_INCOMPLETE, result.discoveryState());
-        assertEquals(DiscoverySource.SnapshotIssue.UNSUPPORTED_DIRECTORY_ACCESS, result.snapshotIssue());
-        // If a platform has already safely bound the namespace, empty enumeration is complete.
-        var empty = run(() -> boundSnapshot(root.resolve("objects-v1")), new byte[32], DurableKnowledgeState.establishedEmpty());
-        assertTrue(empty.resourceComplete());
-        assertEquals(DiscoveryState.READY, empty.discoveryState());
+        assertTrue(result.resourceComplete()); assertEquals(DiscoveryState.READY, result.discoveryState());
     }
 
     @Test
@@ -88,13 +77,9 @@ class NioDiscoveryTest {
         assertEquals(List.of(a.id().filename(), b.id().filename()).stream().sorted().toList(),
                 snapshot.candidates().stream().map(c -> c.id().filename()).toList());
         var result = run(() -> snapshot, a.root(), DurableKnowledgeState.establishedEmpty());
-        assertFalse(result.resourceComplete());
+        assertTrue(result.resourceComplete());
         assertEquals(2, result.observations().size());
-        for (var o : result.observations()) {
-            assertEquals(ObjectDiscovery.Classification.UNAVAILABLE, o.classification());
-            assertEquals(ObjectDiscovery.Detail.UNSUPPORTED_SAFE_OPEN, o.detail());
-            assertNull(o.authenticated());
-        }
+        assertTrue(result.observations().stream().allMatch(o -> o.classification() == ObjectDiscovery.Classification.SUPPORTED_VALID));
     }
 
     @Test
@@ -116,13 +101,13 @@ class NioDiscoveryTest {
 
     @Test
     void staticUnixSocketIsNotAProtocolObjectOrSafeNamespace() throws Exception {
-        // Use the short JUnit directory itself as the prebound namespace fixture;
-        // Unix socket addresses have a small OS path-length limit.
-        Path namespace = root;
+        Path shortRoot = Files.createTempDirectory("s-");
+        Path namespace = Files.createDirectory(shortRoot.resolve("objects-v1"));
+        Path socketPath = namespace.resolve("a".repeat(64));
         try (var socket = unixSocket()) {
-            socket.bind(UnixDomainSocketAddress.of(namespace.resolve("a".repeat(64))));
+            socket.bind(UnixDomainSocketAddress.of(socketPath));
             assertTrue(boundSnapshot(namespace).candidates().isEmpty());
-        }
+        } finally { Files.deleteIfExists(socketPath); Files.delete(namespace); Files.delete(shortRoot); }
         Path second = Files.createDirectory(root.resolve("other-root"));
         try (var socket = unixSocket()) {
             socket.bind(UnixDomainSocketAddress.of(second.resolve("objects-v1")));
@@ -156,9 +141,7 @@ class NioDiscoveryTest {
         assertEquals(2, result.readable().evidence().size());
         assertTrue(result.knowledge().record(unscoped.id()) instanceof OpaqueUnscopedRecord);
         assertFalse(new VaultReadiness(result.knowledge(), result.discoveryState()).authoritativeVaultReady());
-        // Production source refuses the same files; fixture trust does not confer live safety.
-        var refused = run(() -> boundSnapshot(namespace), a.root(), two.knowledge());
-        assertTrue(refused.observations().stream().allMatch(o -> o.classification() == ObjectDiscovery.Classification.UNAVAILABLE));
+
     }
 
     @Test
@@ -195,27 +178,9 @@ class NioDiscoveryTest {
     }
 
     static DiscoverySource.Snapshot boundSnapshot(Path namespace) throws IOException {
-        // Test controls this directory and excludes concurrent rebinding while opening it.
-        try (var stream = Files.newDirectoryStream(namespace)) {
-            assumeTrue(stream instanceof SecureDirectoryStream<?>);
-            return NioDiscoverySource.boundNamespace((SecureDirectoryStream<Path>) stream).snapshot();
-        }
+        return new NioDiscoverySource(namespace.getParent()).snapshot();
     }
-
-    static DiscoverySource controlledFiles(Path namespace) {
-        return () -> {
-            var snapshot = boundSnapshot(namespace);
-            var candidates = new ArrayList<DiscoverySource.Candidate>();
-            for (var c : snapshot.candidates()) {
-                // TEST ONLY: controlled regular fixtures, no hostile type/rebinding race.
-                // This is not an implementation of §50 safe open. No production option
-                // can enable these path-based candidate opens.
-                candidates.add(new DiscoverySource.Candidate(c.id(), () -> Files.newByteChannel(
-                        namespace.resolve(c.id().filename()), StandardOpenOption.READ, LinkOption.NOFOLLOW_LINKS)));
-            }
-            return new DiscoverySource.Snapshot(candidates, snapshot.issue());
-        };
-    }
+    static DiscoverySource controlledFiles(Path namespace) { return new NioDiscoverySource(namespace.getParent()); }
 
     static void symlink(Path link, Path target) throws IOException {
         try { Files.createSymbolicLink(link, target); }

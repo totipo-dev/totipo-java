@@ -5,18 +5,18 @@ This is an **exact snapshot pin of the moving v1 pre-RC profile**.
 
 - Upstream repository: https://github.com/totipo-dev/totipo-spec
 - Source branch: `main`
-- Exact upstream Git commit: `618ced33487aebf768e908923abfd7ae34537a35`
-- Snapshot date/time (UTC): `2026-09-27T03:29:02.019098+00:00`
+- Exact upstream Git commit: `0b63f77886f95cf9bab3ceb9cbb0916177fe3589`
+- Snapshot date/time (UTC): `2026-09-28T10:57:00.513551+00:00`
 - Protocol: Totipo Vault Format v1
 - Protocol version: 1
-- Design revision: r13
+- Design revision: r14
 - Profile status: `moving-pre-rc` (moving pre-RC)
 - Normative specification: `spec/totipo-vault-format-v1.md`
-- Specification SHA-256: `513426313c7850b998239ed19a3d7399b32de203994931ae2d873516717ae228`
+- Specification SHA-256: `a60cf63a742b4855b5742e5280ac15cdf6a08e60c81b1a6242b1dea10a1630fb`
 - Moving profile: `requirements/v1-pre-rc.json`
-- Profile file SHA-256: `115dfd42fd6534aab7348c6bce9f4d8927f4823f16b419e0b6f85f3349edf108`
+- Profile file SHA-256: `e6f11dfd93f64589a88b373009710dad50133d412702c305ad6c20dfc2682895`
 - Manifest: `vectors/manifest.json`
-- Manifest SHA-256: `da289e75ccb2a8d73080cb8cc6ebcc2a6d39623edf2bfcbccce84b6b67dba8bd`
+- Manifest SHA-256: `2776ed6a8c62609384f0f5e34747b4ce80359fb1abc956137cc64e1ad92def41`
 - Manifest schema: `vectors/manifest.schema.json`
 - Manifest schema SHA-256: `59bdc9165b1c7e940031c447c2da640185774a6e4fd52fa0fee0b245061e0440`
 - Case schema: `vectors/case.schema.json`

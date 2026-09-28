@@ -22,7 +22,7 @@ public final class ObjectPublicationCrashProcess {
         var keys = LinuxDeviceProvenanceKeyStore.open(local);
         var identity = DeviceIdentityLifecycle.loadExisting(session.head(), keys);
         if (mode.equals("full") || mode.equals("pregraph")) {
-            var discovery = DiscoveryCoordinator.discover(new LinuxSecureDiscoverySource(sync), ROOT, session);
+            var discovery = DiscoveryCoordinator.discover(new NioDiscoverySource(sync), ROOT, session);
             var store = new V1ObjectPublicationStore() {
                 public PublicationResult publishDurably(ObjectId id, byte[] bytes) throws IOException {
                     var result = publisher.publishDurably(id, bytes);

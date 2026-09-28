@@ -8,7 +8,7 @@ import java.util.Objects;
 
 import static dev.totipo.format.VaultLifecycleResult.Status.*;
 
-/** r13 §§8–10 orchestration. Synchronous, thread-confined, scoped operations.
+/** r14 §§8–10 orchestration. Synchronous, thread-confined, scoped operations.
  * Borrows explicit stores/source/password; caller keeps exclusive local storage
  * ownership throughout and closes stores afterward. All streams/snapshots/staged
  * handles are closed here. No live session escapes; reopen/replay for another pass.

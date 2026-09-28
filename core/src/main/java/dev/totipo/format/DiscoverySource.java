@@ -7,13 +7,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 
-/**
- * Storage trust boundary. Freeze accepted direct, no-follow regular-file names before
- * returning. Openers must provide stable, bounded-read-capable handles without following
- * links, escaping the bound namespace, or opening hostile special files. If this cannot
- * be guaranteed, throw UnsupportedOperationException before attempting an open.
- * The caller closes each snapshot, including any retained directory bindings.
- */
+/** Storage observation boundary. Freeze exact direct-child names observed as regular
+ * files without following final symlinks. Synchronized contents may be malformed,
+ * stale, conflicting, missing, replayed, replaced or withheld. Local OS, filesystem,
+ * mount/process namespace and same-privilege processes are trusted for baseline operation.
+ * Readers remain bounded and cryptographically authenticated; ordinary I/O races
+ * make observations unavailable/incomplete and can be retried by a later pass.
+ * The caller closes each snapshot and read handle. */
 public interface DiscoverySource {
     Snapshot snapshot() throws IOException;
 

@@ -7,7 +7,7 @@ import java.util.Arrays;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
-/** Stateless r13 §40 calculation only; the caller must enforce credential-use policy. */
+/** Stateless r14 §40 calculation only; the caller must enforce credential-use policy. */
 final class Totp {
     private Totp() {}
 

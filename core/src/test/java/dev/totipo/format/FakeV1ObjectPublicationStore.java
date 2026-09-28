@@ -8,7 +8,7 @@ import java.util.Objects;
 
 /** Contract model only: in-memory acknowledgements are not crash durability evidence. */
 final class FakeV1ObjectPublicationStore implements V1ObjectPublicationStore {
-    enum Fault { NONE, BEFORE_INSTALL, AFTER_INSTALL, DIFFERENT, WRONG_SIZE, UNSAFE }
+    enum Fault { NONE, BEFORE_INSTALL, AFTER_INSTALL, EXISTING_ACKNOWLEDGEMENT, DIFFERENT, WRONG_SIZE, UNSAFE }
     private final Map<ObjectId, byte[]> objects = new HashMap<>();
     Fault fault = Fault.NONE;
     boolean closed;
@@ -34,6 +34,8 @@ final class FakeV1ObjectPublicationStore implements V1ObjectPublicationStore {
         byte[] old = objects.get(id);
         if (old != null) {
             if (!Arrays.equals(exact, old)) { throw new IOException("Collision"); }
+            // Model exact bytes plus completed backend durability, not discovery-like existence.
+            if (fault == Fault.EXISTING_ACKNOWLEDGEMENT) { throw new IOException("Existing durability not acknowledged"); }
             return PublicationResult.ALREADY_PRESENT_EXACT;
         }
         objects.put(id, exact);

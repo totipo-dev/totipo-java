@@ -52,7 +52,7 @@ class LinuxDeviceIdentityIntegrationTest {
             assertArrayEquals(journalBefore, journal(local)); assertArrayEquals(hash, keyHash(local));
             try (var vault = LinuxVaultBootstrapStorage.open(sync)) {
                 assertEquals(PasswordChangeStatus.SUCCESS,
-                        changing(vault, memory, new LinuxSecureDiscoverySource(sync), 41).changePassword(PASSWORD, NEW_PASSWORD));
+                        changing(vault, memory, new NioDiscoverySource(sync), 41).changePassword(PASSWORD, NEW_PASSWORD));
             }
             assertArrayEquals(journalBefore, journal(local)); assertEquals(objectsBefore, objects(sync)); assertArrayEquals(hash, keyHash(local));
             assertTrue(SecurityMemorySession.open(memory).markUnknown());
@@ -156,7 +156,7 @@ class LinuxDeviceIdentityIntegrationTest {
             } finally { process.destroyForcibly(); }
             try (var store = LinuxDeviceProvenanceKeyStore.open(local); var key = store.openExisting()) {
                 if (mode.equals("staged")) {
-                    assertNull(key); try (var entries = Files.list(local)) { assertEquals(0, entries.count()); }
+                    assertNull(key); try (var entries = Files.list(local)) { assertTrue(entries.allMatch(p -> p.getFileName().toString().startsWith(".totipo-device-key-"))); }
                 } else {
                     assertNotNull(key); assertArrayEquals(new byte[32], key.vaultBinding());
                     byte[] publicKey = key.publicKeyX963(), message = {7};
@@ -189,7 +189,7 @@ class LinuxDeviceIdentityIntegrationTest {
                 byte[] message = {1}; assertTrue(P256.verify(key.publicKeyX963(), message, key.signSha256Ecdsa(message)));
                 assertArrayEquals(hash, keyHash(local));
             }
-            try (var entries = Files.list(local)) { assertEquals(List.of(NAME), entries.map(p -> p.getFileName().toString()).toList()); }
+            try (var entries = Files.list(local)) { assertEquals(List.of(NAME), entries.map(p -> p.getFileName().toString()).filter(n -> !n.startsWith(".totipo-device-key-")).toList()); }
         } finally { a.destroyForcibly(); b.destroyForcibly(); }
     }
 }

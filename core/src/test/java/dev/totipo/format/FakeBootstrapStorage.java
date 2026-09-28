@@ -74,7 +74,7 @@ final class FakeBootstrapStorage implements VaultBootstrapReplacementStorage {
                 usable(); if (attempted) { throw new IOException("Replacement already attempted"); }
                 attempted = true; beforeInstall.run(); events.add("replace");
                 if (collision != null) { canonical = collision.clone(); }
-                if (canonical == null || fault == Fault.INSTALL) { throw new IOException("Replacement failed"); }
+                if (fault == Fault.INSTALL) { throw new IOException("Replacement failed"); }
                 canonical = completed.clone(); // Single atomic model switch, no partial representation.
                 installed = true;
                 if (fault == Fault.INSTALL_AFTER_PUBLICATION) { throw new IOException("Ambiguous replacement"); }

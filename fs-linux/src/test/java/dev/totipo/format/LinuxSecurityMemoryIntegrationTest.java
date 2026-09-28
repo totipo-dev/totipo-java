@@ -1,7 +1,7 @@
 package dev.totipo.format;
 
 import dev.totipo.fs.linux.LinuxSecurityMemoryStorage;
-import dev.totipo.fs.linux.LinuxSecureDiscoverySource;
+import dev.totipo.fs.linux.NioDiscoverySource;
 import dev.totipo.fs.linux.StorageFaults;
 import dev.totipo.fs.linux.LocalStorageTempDirectory;
 import java.io.*;
@@ -209,7 +209,7 @@ class LinuxSecurityMemoryIntegrationTest {
         Path local=Files.createDirectory(dir.resolve("local")); Path sync=Files.createDirectory(dir.resolve("sync"));
         Path objects=Files.createDirectory(sync.resolve("objects-v1")); var f=fixture(TOKEN);
         Files.write(objects.resolve(f.id().filename()),f.bytes());
-        var source=new LinuxSecureDiscoverySource(sync); DurableKnowledgeState prior;
+        var source=new NioDiscoverySource(sync); DurableKnowledgeState prior;
         try(var storage=LinuxSecurityMemoryStorage.open(local)) {
             var s=established(storage); var result=DiscoveryCoordinator.discover(source,f.root(),s);
             assertEquals(DiscoveryState.READY,result.discoveryState()); prior=result.knowledge();
@@ -240,7 +240,7 @@ class LinuxSecurityMemoryIntegrationTest {
                     var scoped=new ObjectDiscovery().classify(f.id(),f.bytes(),f.root()).authenticated();
                     assertEquals(DurableKnowledgeState.Outcome.RECLASSIFICATION_REQUIRED,s.commit(scoped).outcome());
                 }
-                var result=DiscoveryCoordinator.discover(new LinuxSecureDiscoverySource(sync),f.root(),s);
+                var result=DiscoveryCoordinator.discover(new NioDiscoverySource(sync),f.root(),s);
                 assertEquals(DiscoveryState.PROCESSING_INCOMPLETE,result.discoveryState());
                 assertTrue(result.readable().evidence().isEmpty());
                 assertFalse(new VaultReadiness(result.knowledge(),result.discoveryState()).authoritativeVaultReady());

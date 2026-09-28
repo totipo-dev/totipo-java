@@ -95,7 +95,7 @@ class PasswordChangeTest {
     }
     @TestFactory List<DynamicTest> replacementFailureMatrix() {
         var tests = new ArrayList<DynamicTest>();
-        for (String mode : List.of("stage","staged-read","staged-auth","staged-root","staged-malformed","disappears","replace","ambiguous","canonical-read","canonical-auth","canonical-root","canonical-malformed","canonical-absent")) {
+        for (String mode : List.of("stage","staged-read","staged-auth","staged-root","staged-malformed","replace","ambiguous","canonical-read","canonical-auth","canonical-root","canonical-malformed","canonical-absent")) {
             tests.add(DynamicTest.dynamicTest(mode, () -> {
                 var h = established(); byte[] old = h.store.canonical.clone(), journal = h.memory.bytes.clone(); var replay = h.replay();
                 switch (mode) {
@@ -104,7 +104,7 @@ class PasswordChangeTest {
                     case "staged-auth" -> h.store.stagedSubstitution = encoded(PASSWORD,ROOT,2);
                     case "staged-root" -> h.store.stagedSubstitution = encoded(NEW,new byte[32],2);
                     case "staged-malformed" -> h.store.stagedSubstitution = new byte[88];
-                    case "disappears" -> h.store.beforeInstall = () -> h.store.canonical = null;
+
                     case "replace" -> h.store.fault = FakeBootstrapStorage.Fault.INSTALL;
                     case "ambiguous" -> h.store.fault = FakeBootstrapStorage.Fault.INSTALL_AFTER_PUBLICATION;
                     case "canonical-read" -> h.store.fault = FakeBootstrapStorage.Fault.CANONICAL_READ;
@@ -117,7 +117,7 @@ class PasswordChangeTest {
                 sameJournal(h,journal,replay); assertEquals(1,h.store.stages); assertEquals(2,h.draws.size());
                 if (mode.startsWith("stage") || mode.equals("replace")) assertArrayEquals(old,h.store.canonical);
                 if (mode.startsWith("stage")) assertFalse(h.store.events.contains("replace"));
-                if (mode.equals("disappears") || mode.equals("canonical-absent")) assertNull(h.store.canonical);
+                if (mode.equals("canonical-absent")) assertNull(h.store.canonical);
                 if (mode.equals("ambiguous")) {
                     assertTrue(h.store.installed); assertEquals(1,h.store.reads);
                     try (var u = new VaultUnlocker(KDF).unlock(h.store.canonical,NEW)) { assertArrayEquals(ROOT,u.root()); }
@@ -165,6 +165,15 @@ class PasswordChangeTest {
         assertEquals(SUCCESS,operation(h).changePassword(PASSWORD,NEW));
         assertArrayEquals(h.store.installedSubstitution,h.store.canonical); assertNotNull(h.store.residue);
         assertEquals(1,Collections.frequency(h.store.events,"replace"));
+    }
+    @Test void disappearanceBeforeAtomicSwitchCanSucceedAfterFinalAuthentication() throws Exception {
+        var h = established(); byte[] journal = h.memory.bytes.clone(); var replay = h.replay();
+        h.store.beforeInstall = () -> h.store.canonical = null;
+        assertEquals(SUCCESS, operation(h).changePassword(PASSWORD, NEW));
+        try (var result = new VaultUnlocker(KDF).unlock(h.store.canonical, NEW)) {
+            assertArrayEquals(ROOT, result.root());
+        }
+        sameJournal(h, journal, replay);
     }
     @Test void replacementStageOwnsStableBytesAndNeverDeletesCanonical() throws Exception {
         var store = new FakeBootstrapStorage(); store.canonical = candidate(ROOT);

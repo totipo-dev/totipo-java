@@ -61,7 +61,7 @@ class LinuxObjectPublicationIntegrationTest {
             var session = SecurityMemorySession.open(memory); var counted = new CountedKey(keys.openExisting());
             try (var identity = DeviceIdentityResult.bound(DeviceIdentityResult.Status.AVAILABLE_BOUND, counted,
                     counted.vaultBinding(), counted.publicKeyX963())) {
-                var discovery = DiscoveryCoordinator.discover(new LinuxSecureDiscoverySource(sync), ROOT, session);
+                var discovery = DiscoveryCoordinator.discover(new NioDiscoverySource(sync), ROOT, session);
                 assertEquals(DiscoveryState.READY, discovery.discoveryState());
                 assertEquals(0, session.knowledge().size()); assertFalse(Files.exists(sync.resolve("objects-v1")));
                 var result = publish(session, identity, discovery.discoveryState(), publisher);
@@ -82,12 +82,12 @@ class LinuxObjectPublicationIntegrationTest {
         try (var memory = LinuxSecurityMemoryStorage.open(local)) {
             var session = SecurityMemorySession.open(memory);
             assertEquals(initiallyPresent ? expected : null, session.knowledge().record(id));
-            var discovery = DiscoveryCoordinator.discover(new LinuxSecureDiscoverySource(sync), ROOT, session);
+            var discovery = DiscoveryCoordinator.discover(new NioDiscoverySource(sync), ROOT, session);
             assertEquals(DiscoveryState.READY, discovery.discoveryState());
             assertEquals(expected, session.knowledge().record(id));
             assertEquals(Set.of(id), discovery.topology().currentDeviceHeads(expected.deviceId()));
             var before = Files.readAllBytes(local.resolve("security-memory-v1.bin"));
-            var again = DiscoveryCoordinator.discover(new LinuxSecureDiscoverySource(sync), ROOT, session);
+            var again = DiscoveryCoordinator.discover(new NioDiscoverySource(sync), ROOT, session);
             assertEquals(DiscoveryState.READY, again.discoveryState());
             assertArrayEquals(before, Files.readAllBytes(local.resolve("security-memory-v1.bin")));
             assertEquals(expected, SecurityMemorySession.open(memory).knowledge().record(id));
@@ -105,21 +105,16 @@ class LinuxObjectPublicationIntegrationTest {
             }
         }
     }
-    @ParameterizedTest @ValueSource(strings = {"stage-sync", "root-sync", "post-link-sync", "directory-sync", "replace", "graph"})
+    @ParameterizedTest @ValueSource(strings = {"stage-sync", "root-sync", "post-link-sync", "directory-sync", "graph"})
     void realFailuresNeverReportOperationSuccessAndOrphansRecover(String failure) throws Exception {
         establish(); var faults = new ObjectPublicationFaults(); var memoryFaults = new StorageFaults();
-        if (!failure.equals("graph") && !failure.equals("replace")) faults.fail = failure;
-        if (failure.equals("replace")) faults.action = point -> {
-            if (point.equals("before-link")) {
-                Files.move(sync.resolve("objects-v1"), sync.resolve("detached")); Files.createDirectory(sync.resolve("objects-v1"));
-            }
-        };
+        if (!failure.equals("graph")) faults.fail = failure;
         try (var memory = memoryFaults.open(local); var keys = LinuxDeviceProvenanceKeyStore.open(local);
              var publisher = faults.open(sync)) {
             var session = SecurityMemorySession.open(memory);
             try (var identity = DeviceIdentityLifecycle.loadExisting(session.head(), keys)) {
-                var discovery = DiscoveryCoordinator.discover(new LinuxSecureDiscoverySource(sync), ROOT, session);
-                if (failure.equals("graph")) faults.action = point -> { if (point.equals("final-read")) memoryFaults.failWrite = true; };
+                var discovery = DiscoveryCoordinator.discover(new NioDiscoverySource(sync), ROOT, session);
+                if (failure.equals("graph")) faults.action = point -> { if (point.equals("directory-sync")) memoryFaults.failWrite = true; };
                 var result = publish(session, identity, discovery.discoveryState(), publisher);
                 assertEquals(failure.equals("graph") ? KNOWLEDGE_PERSISTENCE_FAILED : PUBLICATION_INCOMPLETE, result.status());
                 assertEquals(0, session.knowledge().size());
@@ -133,18 +128,38 @@ class LinuxObjectPublicationIntegrationTest {
             }
         } else try (var files = Files.list(sync.resolve("objects-v1"))) { assertEquals(0, files.count()); }
     }
-    @ParameterizedTest @ValueSource(strings = {"exact", "collision", "existing-sync", "existing-directory-sync"})
+    @ParameterizedTest @ValueSource(strings = {"exact", "collision", "existing-file-sync", "existing-directory-sync", "changed", "missing"})
     void fixedSignedFixtureExactRecoveryAndCollisionWithRealGraph(String mode) throws Exception {
         var fixture = NioTestFixtures.fixture("v1.crypto.device-root.001");
         sync = Files.createDirectory(dir.resolve("sync")); local = Files.createDirectory(dir.resolve("local"));
         create(sync, local, fixture.root());
-        try (var first = LinuxV1ObjectPublicationStore.open(sync)) {
-            assertEquals(V1ObjectPublicationStore.PublicationResult.PUBLISHED_NEW, first.publishDurably(fixture.id(), fixture.bytes()));
-        }
+        Path target = Files.createDirectory(sync.resolve("objects-v1")).resolve(fixture.id().filename());
+        Files.write(target, fixture.bytes()); // Existence alone is not the writer acknowledgement.
         var faults = new ObjectPublicationFaults(); faults.fail = mode;
         if (mode.equals("collision")) Files.write(sync.resolve("objects-v1").resolve(fixture.id().filename()), new byte[1024]);
-        try (var fresh = faults.open(sync); var memory = LinuxSecurityMemoryStorage.open(local)) {
+        var memoryFaults = new StorageFaults();
+        try (var fresh = faults.open(sync); var memory = memoryFaults.open(local)) {
             var session = SecurityMemorySession.open(memory); assertEquals(0, session.knowledge().size());
+            boolean[] acknowledged = {false};
+            faults.action = point -> {
+                assertEquals(0, memoryFaults.writes, "graph must wait for EXACT acknowledgement");
+                if (point.equals("existing-reread")) {
+                    if (mode.equals("changed")) Files.write(target, new byte[1024]);
+                    if (mode.equals("missing")) Files.delete(target);
+                }
+            };
+            var ordered = new V1ObjectPublicationStore() {
+                public PublicationResult publishDurably(ObjectId id, byte[] bytes) throws IOException {
+                    var result = fresh.publishDurably(id, bytes);
+                    assertEquals(PublicationResult.ALREADY_PRESENT_EXACT, result);
+                    assertEquals(List.of("existing-read", "existing-file-sync", "existing-directory-sync", "existing-reread"),
+                            faults.events.stream().filter(e -> e.startsWith("existing-")).toList());
+                    assertEquals(0, memoryFaults.writes); assertEquals(0, session.knowledge().size());
+                    acknowledged[0] = true;
+                    return result;
+                }
+                public void close() {}
+            };
             var read = EnvelopeReader.open(fixture.id().filename(), fixture.bytes(), fixture.root());
             var assertion = AssertionValidator.validate(read);
             assertEquals(ProvenanceStatus.VERIFIED, ProvenanceEvaluator.evaluate(assertion.object(), fixture.root(), VerificationKeyMaterial.available(List.of())));
@@ -160,15 +175,18 @@ class LinuxObjectPublicationIntegrationTest {
                     signer.vaultBinding(), signer.publicKeyX963())) {
                 var result = InitialDeviceAdvertisement.publish(fixture.root(),
                         () -> new InitialDeviceAdvertisement.Context(session, DiscoveryState.READY, 0), identity,
-                        "Fixture device", new byte[8], fresh);
+                        "Fixture device", new byte[8], ordered);
                 assertEquals(mode.equals("exact") ? PUBLISHED_AND_REMEMBERED : PUBLICATION_INCOMPLETE, result.status());
+                assertEquals(mode.equals("exact"), acknowledged[0]);
+                assertEquals(mode.equals("exact") ? 1 : 0, memoryFaults.writes);
                 if (mode.equals("exact")) {
                     assertEquals(fixture.id(), result.objectId());
                     assertEquals(V1ObjectPublicationStore.PublicationResult.ALREADY_PRESENT_EXACT, result.publication());
                     assertEquals(observation.record(), SecurityMemorySession.open(memory).knowledge().record(fixture.id()));
                 } else assertEquals(0, SecurityMemorySession.open(memory).knowledge().size());
-                assertArrayEquals(mode.equals("collision") ? new byte[1024] : fixture.bytes(),
-                        Files.readAllBytes(sync.resolve("objects-v1").resolve(fixture.id().filename())));
+                if (mode.equals("missing")) assertFalse(Files.exists(target));
+                else assertArrayEquals(Set.of("collision", "changed").contains(mode) ? new byte[1024] : fixture.bytes(),
+                        Files.readAllBytes(target));
             }
         }
     }
@@ -193,7 +211,8 @@ class LinuxObjectPublicationIntegrationTest {
         assertArrayEquals(keyBytes, Files.readAllBytes(local.resolve("device-provenance-v1.bin")));
         if (mode.equals("open")) { assertFalse(Files.exists(sync.resolve("objects-v1"))); return; }
         if (mode.equals("staged")) {
-            try (var files = Files.list(sync.resolve("objects-v1"))) { assertEquals(0, files.count()); } return;
+            try (var files = Files.list(sync.resolve("objects-v1"))) { assertTrue(files.allMatch(p -> p.getFileName().toString().startsWith(".totipo-object-"))); }
+            try (var snapshot = new NioDiscoverySource(sync).snapshot()) { assertTrue(snapshot.candidates().isEmpty()); } return;
         }
         ObjectId id = ObjectId.fromFilename(output);
         try (var keys = LinuxDeviceProvenanceKeyStore.open(local); var key = keys.openExisting()) {

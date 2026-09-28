@@ -78,7 +78,7 @@ class LinuxDeviceProvenanceKeyStoreTest {
         try (var other = LinuxDeviceProvenanceKeyStore.open(Files.createDirectory(root.resolve("other")));
              var independent = other.createDurably(original)) { assertFalse(Arrays.equals(publicKey, independent.publicKeyX963())); }
     }
-    @Test void rootContractAndBoundDirectorySurviveRename() throws Exception {
+    @Test void rootContractAndInputValidation() throws Exception {
         assertThrows(IllegalArgumentException.class, () -> LinuxDeviceProvenanceKeyStore.open(Path.of("relative")));
         assertThrows(IOException.class, () -> LinuxDeviceProvenanceKeyStore.open(root.resolve("missing")));
         assertFalse(Files.exists(root.resolve("missing")));
@@ -91,9 +91,7 @@ class LinuxDeviceProvenanceKeyStoreTest {
         try (var store = LinuxDeviceProvenanceKeyStore.open(configured)) {
             assertThrows(NullPointerException.class, () -> store.createDurably(null));
             assertThrows(IllegalArgumentException.class, () -> store.createDurably(new byte[31]));
-            Files.move(configured, moved); Files.createDirectory(configured);
-            try (var key = store.createDurably(new byte[32])) { verify(key); }
-            assertTrue(Files.exists(moved.resolve(NAME))); assertFalse(Files.exists(configured.resolve(NAME)));
+
         }
     }
     @Test void onlyExactFilenameCounts() throws Exception {
@@ -123,13 +121,12 @@ class LinuxDeviceProvenanceKeyStoreTest {
                     switch (form) {
                         case "symlink" -> Files.createSymbolicLink(path, Path.of("/dev/zero"));
                         case "directory" -> Files.createDirectory(path);
-                        case "fifo" -> LinuxSecureSourceTest.fifo(path);
+                        case "fifo" -> StaticFiles.fifo(path);
                         case "socket" -> socket.bind(UnixDomainSocketAddress.of(path));
                         default -> throw new AssertionError();
                     }
                     assertThrows(GeneralSecurityException.class, store::openExisting);
-                    assertEquals(LinuxAbi.EEXIST, assertThrows(LinuxLibc.NativeFailure.class,
-                            () -> store.createDurably(new byte[32])).errno);
+                    assertThrows(FileAlreadyExistsException.class, () -> store.createDurably(new byte[32]));
                     assertTrue(Files.exists(path, LinkOption.NOFOLLOW_LINKS)); Files.delete(path);
                 }
             }
@@ -159,24 +156,7 @@ class LinuxDeviceProvenanceKeyStoreTest {
             assertEquals(1L << 40, Files.size(file()));
         }
     }
-    @Test void pinAndLoadedHandleStayWithOriginalInode() throws Exception {
-        byte[] original = create();
-        Path replacement = Files.createDirectory(root.resolve("replacement"));
-        byte[] nextPublic;
-        try (var store = LinuxDeviceProvenanceKeyStore.open(replacement); var key = store.createDurably(new byte[32])) { nextPublic = key.publicKeyX963(); }
-        var faults = new DeviceKeyFaults();
-        faults.action = name -> {
-            if (name.equals("pinned")) {
-                Files.move(replacement.resolve(NAME), file(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-                faults.action = ignored -> {};
-            }
-        };
-        try (var store = faults.open(root); var old = store.openExisting(); var next = store.openExisting()) {
-            assertArrayEquals(Arrays.copyOfRange(original, 44, 109), old.publicKeyX963());
-            assertArrayEquals(nextPublic, next.publicKeyX963()); verify(old); verify(next);
-            Files.delete(file()); verify(old); verify(next); assertNull(store.openExisting());
-        }
-    }
+
     @Test void faultMatrixWipesSerializationAndPreservesAmbiguousPublication() throws Exception {
         for (String failure : List.of("temporary", "write", "partial-write", "zero", "initial-sync", "staged-read", "validation", "link", "post-link-sync", "directory-sync", "persisted-reopen")) {
             Path dir = Files.createDirectory(root.resolve(failure));
@@ -201,11 +181,11 @@ class LinuxDeviceProvenanceKeyStoreTest {
         for (int offset : new int[]{0, 12, 44, 111}) {
             Path dir = Files.createDirectory(root.resolve("corrupt-" + offset));
             var operations = new LinuxDeviceProvenanceKeyStore.Operations() {
-                @Override int write(LinuxLibc libc, LinuxFd fd, ByteBuffer bytes) throws IOException {
+                @Override int write(java.nio.channels.FileChannel channel, ByteBuffer bytes) throws IOException {
                     byte[] bad = new byte[bytes.remaining()]; bytes.duplicate().get(bad); bad[offset] ^= 1;
                     try {
                         var altered = ByteBuffer.wrap(bad);
-                        while (altered.hasRemaining()) if (libc.write(fd, altered) <= 0) throw new IOException("no progress");
+                        while (altered.hasRemaining()) if (channel.write(altered) <= 0) throw new IOException("no progress");
                         bytes.position(bytes.limit()); return bad.length;
                     } finally { Arrays.fill(bad, (byte) 0); }
                 }
@@ -291,7 +271,7 @@ class LinuxDeviceProvenanceKeyStoreTest {
                 try (var store = faults.open(root)) {
                     assertNull(store.openExisting());
                     try (var key = store.createDurably(new byte[32])) { verify(key); return key.publicKeyX963(); }
-                    catch (LinuxLibc.NativeFailure e) { assertEquals(LinuxAbi.EEXIST, e.errno); return null; }
+                    catch (FileAlreadyExistsException e) { return null; }
                     finally { assertEquals(1, faults.generations); }
                 }
             }));

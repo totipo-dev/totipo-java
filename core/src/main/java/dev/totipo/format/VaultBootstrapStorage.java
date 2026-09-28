@@ -4,12 +4,12 @@ import java.io.IOException;
 import java.io.InputStream;
 
 /** Opaque synchronized bootstrap storage, separate from local security memory.
- * Implementations bind a safe, fixed canonical namespace; alternate/conflict/temp
+ * Implementations use the exact configured canonical namespace; alternate/conflict/temp
  * names are never automatic bootstrap inputs. No method mutates caller arrays.
  * The caller owns this store and closes it after all staged handles and reads.
  */
 public interface VaultBootstrapStorage extends AutoCloseable {
-    /** Stable bounded-memory snapshot of canonical vault only. Null means proven
+    /** Bounded byte observation of canonical vault only. Null means observed
      * absence, never unreadability. Caller closes the stream. */
     InputStream openCanonicalRead() throws IOException;
 

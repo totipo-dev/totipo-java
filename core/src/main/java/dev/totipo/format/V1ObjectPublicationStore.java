@@ -4,12 +4,12 @@ import java.io.IOException;
 
 /**
  * Immutable publication into the bound vault's exact {@code objects-v1/} namespace.
- * Implementations own safe namespace binding/creation and platform durability barriers;
+ * Implementations own namespace validation/creation and platform durability barriers;
  * they never receive a root key or interpret object cryptography or semantic content.
  * This interface specifies outcomes, not a staging mechanism.
  */
 public interface V1ObjectPublicationStore extends AutoCloseable {
-    /** Both outcomes acknowledge completion of all required backend durability barriers. */
+    /** Both outcomes acknowledge the required publication durability barriers. */
     enum PublicationResult { PUBLISHED_NEW, ALREADY_PRESENT_EXACT }
 
     /**
@@ -19,9 +19,11 @@ public interface V1ObjectPublicationStore extends AutoCloseable {
      * Null arguments are rejected, and a non-1024-byte input is rejected before mutation.
      *
      * PUBLISHED_NEW means the exact immutable target and required file/directory
-     * durability barriers are complete. ALREADY_PRESENT_EXACT requires a safe, stable
-     * read proving a regular v1-family candidate of exactly 1024 identical bytes, plus
-     * the backend's durability acknowledgement. Different bytes, wrong size, symlinks,
+     * durability barriers are complete. ALREADY_PRESENT_EXACT means an observed regular
+     * target equals the supplied exact 1024 bytes, and the backend has completed the
+     * durability acknowledgement required for that existing object to satisfy this
+     * publication operation. Unlike ordinary discovery, matching bytes alone do not
+     * establish publication success. Different bytes, wrong size, symlinks,
      * directories, special files and unsafe/unreadable targets fail closed, never overwrite.
      * No temporary name is authoritative. A successful return is the §36 boundary after
      * which core may durably remember graph knowledge. An IOException may be ambiguous:

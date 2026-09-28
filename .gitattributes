@@ -1,3 +1,3 @@
-/src/test/resources/totipo-spec/v1-pre-rc/** -text
+/core/src/test/resources/totipo-spec/v1-pre-rc/** -text
 # Preserve upstream Markdown hard line breaks during snapshot diff checks.
-/src/test/resources/totipo-spec/v1-pre-rc/**/*.md whitespace=-blank-at-eol
+/core/src/test/resources/totipo-spec/v1-pre-rc/**/*.md whitespace=-blank-at-eol

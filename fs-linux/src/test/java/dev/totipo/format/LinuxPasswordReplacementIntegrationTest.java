@@ -28,7 +28,7 @@ class LinuxPasswordReplacementIntegrationTest {
     static void create(Path sync, Path local) throws Exception { create(sync, local, ROOT); }
     static void create(Path sync, Path local, byte[] root) throws Exception {
         try (var memory = LinuxSecurityMemoryStorage.open(local); var vault = LinuxVaultBootstrapStorage.open(sync)) {
-            var lifecycle = new VaultLifecycle(vault, memory, new LinuxSecureDiscoverySource(sync), bytes -> {
+            var lifecycle = new VaultLifecycle(vault, memory, new NioDiscoverySource(sync), bytes -> {
                 if (bytes.length == 32) System.arraycopy(root, 0, bytes, 0, 32); else Arrays.fill(bytes, (byte) 37);
             }, new VaultBootstrapWriter(), new VaultUnlocker());
             try (var result = lifecycle.createNew(PASSWORD)) {
@@ -76,7 +76,7 @@ class LinuxPasswordReplacementIntegrationTest {
         create(sync, local, root);
         Files.write(Files.createDirectory(sync.resolve("objects-v1")).resolve(fixture.id().filename()), fixture.bytes());
         try (var memory = LinuxSecurityMemoryStorage.open(local); var vault = LinuxVaultBootstrapStorage.open(sync);
-             var opened = lifecycle(vault, memory, new LinuxSecureDiscoverySource(sync)).openConfigured(PASSWORD)) {
+             var opened = lifecycle(vault, memory, new NioDiscoverySource(sync)).openConfigured(PASSWORD)) {
             assertEquals(OPENED_ESTABLISHED, opened.status()); assertEquals(1, replay(memory).knowledge().size());
         }
         byte[] old = Files.readAllBytes(sync.resolve("vault"));
@@ -96,7 +96,7 @@ class LinuxPasswordReplacementIntegrationTest {
             authenticates(old, PASSWORD, root); authenticates(Files.readAllBytes(sync.resolve("historical")), PASSWORD, root);
         }
         try (var memory = LinuxSecurityMemoryStorage.open(local); var vault = LinuxVaultBootstrapStorage.open(sync);
-             var result = lifecycle(vault, memory, new LinuxSecureDiscoverySource(sync)).openConfigured(NEW_PASSWORD)) {
+             var result = lifecycle(vault, memory, new NioDiscoverySource(sync)).openConfigured(NEW_PASSWORD)) {
             assertEquals(OPENED_ESTABLISHED, result.status()); assertArrayEquals(root, result.root());
         }
     }
@@ -115,29 +115,18 @@ class LinuxPasswordReplacementIntegrationTest {
         }
     }
     @Test void realFaultStatusMatrixLeavesJournalUnchangedAndReopensActualCanonical() throws Exception {
-        for (String failure : List.of("exchange", "post-exchange-sync", "directory-sync", "unlink", "delete", "unsupported")) {
+        for (String failure : List.of("move", "directory-sync", "unsupported", "delete")) {
             Path sync = directory("sync-" + failure), local = directory("local-" + failure); create(sync, local);
             var faults = new ReplacementStorageFaults(); faults.fail = failure;
-            if (failure.equals("delete")) faults.beforeExchange = () -> Files.delete(sync.resolve("vault"));
-            if (failure.equals("unsupported")) faults.unsupportedExchange();
+            faults.unsupported = failure.equals("unsupported");
+            if (failure.equals("delete")) faults.beforeMove = () -> Files.delete(sync.resolve("vault"));
             try (var memory = LinuxSecurityMemoryStorage.open(local); var vault = faults.open(sync)) {
-                var before = Remembered.capture(local, memory); var source = new LinuxVaultLifecycleIntegrationTest.ObservedDiscovery(sync, memory);
-                assertEquals(failure.equals("unlink") ? SUCCESS : REWRAP_INCOMPLETE,
-                        changing(vault, memory, source, 41).changePassword(PASSWORD, NEW_PASSWORD));
-                before.unchanged(local, memory); assertEquals(0, source.snapshots); assertEquals(0, source.reads);
-                boolean published = List.of("post-exchange-sync", "directory-sync", "unlink").contains(failure);
-                if (!failure.equals("delete")) {
-                    byte[] password = published ? NEW_PASSWORD : PASSWORD;
-                    authenticates(Files.readAllBytes(sync.resolve("vault")), password, ROOT);
-                    try (var opened = lifecycle(vault, memory, new LinuxSecureDiscoverySource(sync)).openConfigured(password)) {
-                        assertEquals(OPENED_ESTABLISHED, opened.status());
-                    }
-                } else assertFalse(Files.exists(sync.resolve("vault")));
-                if (failure.equals("unlink")) {
-                    assertTrue(Files.exists(sync.resolve(faults.linkedName)));
-                    authenticates(Files.readAllBytes(sync.resolve(faults.linkedName)), PASSWORD, ROOT);
-                }
+                var before = Remembered.capture(local, memory);
+                assertEquals(failure.equals("delete") ? SUCCESS : REWRAP_INCOMPLETE,
+                        changing(vault, memory, () -> { throw new AssertionError("discovery"); }, 41).changePassword(PASSWORD, NEW_PASSWORD));
                 before.unchanged(local, memory);
+                authenticates(Files.readAllBytes(sync.resolve("vault")),
+                        List.of("delete", "directory-sync").contains(failure) ? NEW_PASSWORD : PASSWORD, ROOT);
             }
         }
     }
@@ -155,37 +144,17 @@ class LinuxPasswordReplacementIntegrationTest {
             }
         }
     }
-    @Test void hostileCanonicalSubstitutionMapsToIncompleteWithoutJournalMutation() throws Exception {
-        for (String type : List.of("regular", "symlink", "directory")) {
-            Path sync = directory("sync-" + type), local = directory("local-" + type); create(sync, local);
-            var faults = new ReplacementStorageFaults();
-            faults.beforeExchange = () -> {
-                Path canonical = sync.resolve("vault"); Files.delete(canonical);
-                switch (type) {
-                    case "regular" -> Files.write(canonical, new byte[]{9});
-                    case "symlink" -> Files.createSymbolicLink(canonical, Path.of("/dev/zero"));
-                    case "directory" -> Files.write(Files.createDirectory(canonical).resolve("child"), new byte[]{9});
-                }
-            };
-            try (var memory = LinuxSecurityMemoryStorage.open(local); var vault = faults.open(sync)) {
-                var before = Remembered.capture(local, memory); var source = new LinuxVaultLifecycleIntegrationTest.ObservedDiscovery(sync, memory);
-                assertEquals(REWRAP_INCOMPLETE, changing(vault, memory, source, 41).changePassword(PASSWORD, NEW_PASSWORD));
-                before.unchanged(local, memory); assertEquals(0, source.snapshots); assertEquals(0, source.reads);
-                assertEquals(0, faults.unlinks); assertTrue(Files.exists(sync.resolve(faults.linkedName), LinkOption.NOFOLLOW_LINKS));
-                authenticates(Files.readAllBytes(sync.resolve("vault")), NEW_PASSWORD, ROOT);
-            }
-        }
-    }
+
     static void await(CountDownLatch latch) throws IOException {
         try { if (!latch.await(60, TimeUnit.SECONDS)) throw new IOException("barrier timeout"); }
         catch (InterruptedException e) { Thread.currentThread().interrupt(); throw new IOException(e); }
     }
-    @Test void twoRealLifecyclesCanBothExchangeAndOnlyFinalPostconditionsDetermineSuccess() throws Exception {
+    @Test void twoRealLifecyclesCanBothReplaceAndOnlyFinalPostconditionsDetermineSuccess() throws Exception {
         for (boolean samePassword : new boolean[]{false, true}) {
             Path sync = directory("sync" + samePassword), firstLocal = directory("first" + samePassword), secondLocal = directory("second" + samePassword);
             create(sync, firstLocal);
             try (var memory = LinuxSecurityMemoryStorage.open(secondLocal); var vault = LinuxVaultBootstrapStorage.open(sync);
-                 var result = lifecycle(vault, memory, new LinuxSecureDiscoverySource(sync)).configureExisting(PASSWORD)) {
+                 var result = lifecycle(vault, memory, new NioDiscoverySource(sync)).configureExisting(PASSWORD)) {
                 assertEquals(OPENED_ESTABLISHED, result.status());
             }
             byte[] secondPassword = samePassword ? NEW_PASSWORD : CryptoSupport.ascii("other-new-password");
@@ -196,9 +165,9 @@ class LinuxPasswordReplacementIntegrationTest {
                     final int index = i; Path local = i == 0 ? firstLocal : secondLocal;
                     results.add(executor.submit(() -> {
                         var faults = new ReplacementStorageFaults();
-                        faults.afterLink = () -> {
+                        faults.afterStage = () -> {
                             bothStaged.countDown(); await(bothStaged);
-                            // Before backend pre-pin: second must observe first's published inode.
+                            // Order two ordinary password changes after both have staged.
                             if (index == 1) await(firstDurable);
                         };
                         faults.afterDirectory = () -> {
@@ -208,7 +177,7 @@ class LinuxPasswordReplacementIntegrationTest {
                         try (var memory = LinuxSecurityMemoryStorage.open(local); var vault = faults.open(sync)) {
                             var before = Remembered.capture(local, memory); var source = new LinuxVaultLifecycleIntegrationTest.ObservedDiscovery(sync, memory);
                             var result = changing(vault, memory, source, 41 + index).changePassword(PASSWORD, index == 0 ? NEW_PASSWORD : secondPassword);
-                            before.unchanged(local, memory); assertEquals(1, faults.exchanges);
+                            before.unchanged(local, memory); assertEquals(1, faults.moves);
                             assertEquals(0, source.snapshots); assertEquals(0, source.reads); return result;
                         } finally { if (index == 0) firstDurable.countDown(); else secondDurable.countDown(); }
                     }));
@@ -220,16 +189,7 @@ class LinuxPasswordReplacementIntegrationTest {
             try (var paths = Files.list(sync)) { assertEquals(List.of("vault"), paths.map(p -> p.getFileName().toString()).toList()); }
         }
     }
-    @Test void realRewrapUsesBoundOriginalRootAfterConfiguredPathReplacement() throws Exception {
-        Path sync = directory("sync"), local = directory("local"), moved = dir.resolve("moved"); create(sync, local);
-        try (var memory = LinuxSecurityMemoryStorage.open(local); var vault = LinuxVaultBootstrapStorage.open(sync)) {
-            var before = Remembered.capture(local, memory); Files.move(sync, moved); Files.createDirectory(sync);
-            Files.write(sync.resolve("vault"), new byte[]{9});
-            assertEquals(SUCCESS, changing(vault, memory, () -> { throw new AssertionError("discovery"); }, 41).changePassword(PASSWORD, NEW_PASSWORD));
-            before.unchanged(local, memory); assertArrayEquals(new byte[]{9}, Files.readAllBytes(sync.resolve("vault")));
-            authenticates(Files.readAllBytes(moved.resolve("vault")), NEW_PASSWORD, ROOT);
-        }
-    }
+
     void halt(String mode, Path sync, Path local) throws Exception {
         var paths = new ArrayList<String>();
         for (Class<?> type : List.of(VaultReplacementCrashProcess.class, LinuxVaultBootstrapStorage.class,
@@ -243,29 +203,29 @@ class LinuxPasswordReplacementIntegrationTest {
             assertEquals(0, child.exitValue(), new String(child.getInputStream().readAllBytes(), StandardCharsets.UTF_8));
         } finally { child.destroyForcibly(); }
     }
-    @Test void allFiveHaltBoundariesPreserveEstablishedJournalAndOnlyCanonicalIsOpened() throws Exception {
-        for (String mode : List.of("stage", "linked", "exchanged", "backend", "full")) {
+    @Test void crashBoundariesPreserveEstablishedJournalAndOnlyCanonicalIsOpened() throws Exception {
+        for (String mode : List.of("stage", "backend", "full")) {
             Path sync = directory("sync-" + mode), local = directory("local-" + mode); create(sync, local);
             byte[] journal = journal(local), old = Files.readAllBytes(sync.resolve("vault")); halt(mode, sync, local);
             assertArrayEquals(journal, journal(local)); assertArrayEquals(SecurityMemoryJournal.hash(journal), SecurityMemoryJournal.hash(journal(local)));
-            boolean exchanged = List.of("exchanged", "backend", "full").contains(mode);
+            boolean exchanged = List.of("backend", "full").contains(mode);
             byte[] password = exchanged ? NEW_PASSWORD : PASSWORD;
             authenticates(Files.readAllBytes(sync.resolve("vault")), password, ROOT);
             List<Path> residue;
-            try (var paths = Files.list(sync)) { residue = paths.filter(p -> p.getFileName().toString().startsWith(".totipo-vault-rewrap-")).toList(); }
-            assertEquals(List.of("linked", "exchanged").contains(mode) ? 1 : 0, residue.size());
-            if (!residue.isEmpty()) authenticates(Files.readAllBytes(residue.getFirst()), exchanged ? PASSWORD : NEW_PASSWORD, ROOT);
+            try (var paths = Files.list(sync)) { residue = paths.filter(p -> p.getFileName().toString().startsWith(".totipo-vault-")).toList(); }
+            assertEquals(mode.equals("stage") ? 1 : 0, residue.size());
+            if (!residue.isEmpty()) authenticates(Files.readAllBytes(residue.getFirst()), NEW_PASSWORD, ROOT);
             if (!exchanged) assertArrayEquals(old, Files.readAllBytes(sync.resolve("vault")));
             try (var memory = LinuxSecurityMemoryStorage.open(local); var vault = LinuxVaultBootstrapStorage.open(sync)) {
                 var before = Remembered.capture(local, memory);
-                try (var result = lifecycle(vault, memory, new LinuxSecureDiscoverySource(sync)).openConfigured(password)) {
+                try (var result = lifecycle(vault, memory, new NioDiscoverySource(sync)).openConfigured(password)) {
                     assertEquals(OPENED_ESTABLISHED, result.status()); assertArrayEquals(ROOT, result.root());
                 }
                 before.unchanged(local, memory);
                 // Alternate valid representation is never adopted when canonical disappears.
                 if (!residue.isEmpty()) {
                     Files.delete(sync.resolve("vault"));
-                    try (var result = lifecycle(vault, memory, new LinuxSecureDiscoverySource(sync)).openConfigured(password)) {
+                    try (var result = lifecycle(vault, memory, new NioDiscoverySource(sync)).openConfigured(password)) {
                         assertEquals(CANONICAL_VAULT_ABSENT, result.status());
                     }
                     assertEquals(CURRENT_CANONICAL_ABSENT, changing(vault, memory, () -> { throw new AssertionError("scan"); }, 42).changePassword(password, NEW_PASSWORD));

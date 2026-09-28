@@ -21,6 +21,7 @@ dependencies {
 
 val snapshot = rootProject.layout.projectDirectory.dir("core/src/test/resources/totipo-spec/v1-pre-rc")
 tasks.test {
+    // Native access is used only by the explicit file/directory fsync helper.
     jvmArgs("--enable-native-access=ALL-UNNAMED", "--illegal-native-access=deny")
     inputs.dir(snapshot)
     systemProperty("totipo.test.snapshot", snapshot.asFile.absolutePath)

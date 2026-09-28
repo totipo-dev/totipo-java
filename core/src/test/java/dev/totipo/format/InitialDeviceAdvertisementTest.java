@@ -142,7 +142,8 @@ class InitialDeviceAdvertisementTest {
             assertEquals(1, h.keys.signs); assertEquals(0, h.store.calls); assertEquals(before, h.memory.appends);
         }
     }
-    @ParameterizedTest @EnumSource(value = FakeV1ObjectPublicationStore.Fault.class, names = "NONE", mode = EnumSource.Mode.EXCLUDE)
+    @ParameterizedTest @EnumSource(value = FakeV1ObjectPublicationStore.Fault.class,
+            names = {"NONE", "EXISTING_ACKNOWLEDGEMENT"}, mode = EnumSource.Mode.EXCLUDE)
     void publicationFailuresNeverCommitOrRetry(FakeV1ObjectPublicationStore.Fault fault) throws Exception {
         try (var h = new Harness()) {
             h.store.fault = fault; byte[] before = h.memory.bytes.clone();
@@ -195,7 +196,7 @@ class InitialDeviceAdvertisementTest {
             assertEquals(change.equals("head") || change.equals("opaqueHead") ? 1 : 0, h.session.knowledge().size());
         }
     }
-    @Test void exactExistingCandidateMayCompleteGraphAfterFailedAppend() throws Exception {
+    @Test void durablyAcknowledgedExactExistingObjectMayCompleteGraphAfterFailedAppend() throws Exception {
         var root = DeviceWriterTest.root();
         var memory = DeviceIdentityLifecycleTest.established(DeviceIdentityLifecycleTest.binding(root));
         var session = SecurityMemorySession.open(memory);
@@ -208,6 +209,14 @@ class InitialDeviceAdvertisementTest {
         assertEquals(KNOWLEDGE_PERSISTENCE_FAILED, first.status());
         memory.failAppend = false;
         var restarted = SecurityMemorySession.open(memory);
+        store.fault = FakeV1ObjectPublicationStore.Fault.EXISTING_ACKNOWLEDGEMENT;
+        int beforeRetry = memory.appends;
+        var failed = InitialDeviceAdvertisement.publish(root, () -> new InitialDeviceAdvertisement.Context(restarted, DiscoveryState.READY, 0),
+                key.identity(), "Fixture device", new byte[8], store);
+        assertEquals(PUBLICATION_INCOMPLETE, failed.status());
+        assertEquals(beforeRetry, memory.appends); assertEquals(0, restarted.knowledge().size());
+        // Fake EXACT now models successful durability acknowledgement of the existing bytes.
+        store.fault = FakeV1ObjectPublicationStore.Fault.NONE;
         var retry = InitialDeviceAdvertisement.publish(root, () -> new InitialDeviceAdvertisement.Context(restarted, DiscoveryState.READY, 0),
                 key.identity(), "Fixture device", new byte[8], store);
         assertEquals(PUBLISHED_AND_REMEMBERED, retry.status());

@@ -25,13 +25,12 @@ public final class DeviceKeyFaults extends LinuxDeviceProvenanceKeyStore.Operati
         events.add(name); action.run(name);
         if (name.equals(fail)) throw new IOException("injected " + name);
     }
-    @Override void pinned() throws IOException { action.run("pinned"); }
-    @Override int write(LinuxLibc libc, LinuxFd fd, ByteBuffer bytes) throws IOException {
+    @Override int write(java.nio.channels.FileChannel channel, ByteBuffer bytes) throws IOException {
         observed = bytes.duplicate(); observed.clear();
         boundary("write"); if (fail.equals("zero")) return 0;
         int limit = bytes.limit(); bytes.limit(Math.min(limit, bytes.position() + writeLimit));
         try {
-            int result = super.write(libc, fd, bytes);
+            int result = super.write(channel, bytes);
             if (fail.equals("partial-write")) throw new IOException("partial write");
             return result;
         } finally { bytes.limit(limit); }

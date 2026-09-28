@@ -18,8 +18,9 @@ public interface VaultBootstrapReplacementStorage extends VaultBootstrapStorage 
         InputStream openRead() throws IOException;
 
         /** Attempt replacement once, atomically where supported, using the staged
-         * candidate. Canonical must already exist at replacement time: absence
-         * fails without installation. Never truncate/overwrite canonical in place.
+         * candidate. Check that canonical is present and regular before replacement;
+         * ordinary disappearance before the atomic move may still install the candidate.
+         * Never truncate/overwrite canonical in place.
          * Success includes required containing-directory durability, but does not
          * imply password-change success: core must reopen/authenticate canonical.
          * Failure may be ambiguous about which representation is present; callers

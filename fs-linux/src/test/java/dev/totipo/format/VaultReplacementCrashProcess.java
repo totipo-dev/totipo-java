@@ -12,8 +12,6 @@ public final class VaultReplacementCrashProcess {
     public static void main(String[] args) throws Exception {
         String mode = args[0]; Path sync = Path.of(args[1]), local = Path.of(args[2]);
         var faults = new ReplacementStorageFaults();
-        if (mode.equals("linked")) faults.afterLink = () -> Runtime.getRuntime().halt(0);
-        if (mode.equals("exchanged")) faults.afterExchange = () -> Runtime.getRuntime().halt(0);
         var backend = faults.open(sync);
         var memory = LinuxSecurityMemoryStorage.open(local);
         var vault = new VaultBootstrapReplacementStorage() {

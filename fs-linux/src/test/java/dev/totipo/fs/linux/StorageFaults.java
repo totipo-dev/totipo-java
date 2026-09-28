@@ -13,8 +13,8 @@ public final class StorageFaults extends LinuxSecurityMemoryStorage.Operations {
     public int forces;
     public int writes;
     public final java.util.List<String> adoption = new java.util.ArrayList<>();
-    @Override void syncJournal(LinuxLibc libc,LinuxFd fd) throws IOException {
-        super.syncJournal(libc,fd); adoption.add("journal");
+    @Override void syncJournal(Path path) throws IOException {
+        super.syncJournal(path); adoption.add("journal");
     }
     @Override void syncDirectory(Path directory) throws IOException {
         super.syncDirectory(directory); adoption.add("directory");

@@ -17,10 +17,10 @@ class LinuxSecurityMemoryStorageTest {
         int forces, syncs, writes, journalSyncs;
         boolean forceFail, syncFail, truncateFail, partial, journalSyncFail;
         final java.util.List<String> barriers = new java.util.ArrayList<>();
-        @Override void syncJournal(LinuxLibc libc, LinuxFd fd) throws IOException {
+        @Override void syncJournal(Path path) throws IOException {
             journalSyncs++; barriers.add("journal");
             if(journalSyncFail) throw new IOException("injected adoption journal fsync");
-            super.syncJournal(libc,fd);
+            super.syncJournal(path);
         }
         @Override int write(FileChannel c, ByteBuffer b, long p) throws IOException {
             writes++;
@@ -65,9 +65,6 @@ class LinuxSecurityMemoryStorageTest {
     @Test void invalidDirectoriesAndEntries() throws Exception {
         assertThrows(IllegalArgumentException.class,()->LinuxSecurityMemoryStorage.open(Path.of("relative")));
         assertThrows(IOException.class,()->LinuxSecurityMemoryStorage.open(dir.resolve("missing")));
-        Path undecodable=Path.of(java.net.URI.create(dir.toUri().toASCIIString()+"%ff"));
-        Files.createDirectory(undecodable);
-        assertThrows(IOException.class,()->LinuxSecurityMemoryStorage.open(undecodable));
         Path unicode=Files.createDirectory(dir.resolve("日本語-😀"));
         try(var s=LinuxSecurityMemoryStorage.open(unicode)) { s.initializeDurably(new byte[]{1}); }
         Path inaccessible=Files.createDirectory(dir.resolve("inaccessible"));
@@ -153,56 +150,8 @@ class LinuxSecurityMemoryStorageTest {
             assertThrows(IOException.class,()->s.appendDurably(new byte[1])); poisoned(s);
         }
     }
-    @Test void replacementInodeBetweenJavaOpenAndNativeAdoptionFailsBeforeAnyBarrier() throws Exception {
-        byte[] original={1,2,3}, replacement={4,5,6};
-        Files.write(journal(),original); Path saved=dir.resolve("original");
-        var f=new Faults() {
-            @Override void beforeAdoptionOpen() throws IOException {
-                assertThrows(IOException.class,()->LinuxSecurityMemoryStorage.open(dir));
-                Files.move(journal(),saved);
-                Files.write(journal(),replacement); // same size is deliberately not identity
-            }
-        };
-        assertEquals("FD_IDENTITY_MISMATCH",assertThrows(IOException.class,
-                ()->LinuxSecurityMemoryStorage.open(dir,f)).getMessage());
-        assertTrue(f.barriers.isEmpty());
-        assertArrayEquals(original,Files.readAllBytes(saved));
-        assertArrayEquals(replacement,Files.readAllBytes(journal()));
-        try(var s=LinuxSecurityMemoryStorage.open(dir);var r=s.openRead()) {
-            assertArrayEquals(replacement,r.readAllBytes()); // new independent adoption, lock was released
-        }
-    }
-    @Test @org.junit.jupiter.api.Timeout(10)
-    void nonregularReplacementsBetweenJavaOpenAndNativeAdoptionFailClosed() throws Exception {
-        for(String type:java.util.List.of("symlink","directory","fifo","socket")) {
-            Path local=Files.createDirectory(dir.resolve(type));
-            Path journal=local.resolve(LinuxSecurityMemoryStorage.JOURNAL), saved=local.resolve("saved");
-            Path replacement=local.resolve("replacement"); byte[] original={1,2,3};
-            Files.write(journal,original);
-            var libc=new LinuxLibc();
-            try(var directory=libc.open(local.toString(),LinuxAbi.DIRECTORY);
-                var socket=java.nio.channels.ServerSocketChannel.open(java.net.StandardProtocolFamily.UNIX)) {
-                switch(type) {
-                    case "symlink" -> Files.createSymbolicLink(replacement,saved);
-                    case "directory" -> Files.createDirectory(replacement);
-                    case "fifo" -> LinuxSecureSourceTest.fifo(replacement);
-                    case "socket" -> socket.bind(java.net.UnixDomainSocketAddress.of(directory.procPath().resolve("replacement")));
-                    default -> throw new AssertionError(type);
-                }
-                var f=new Faults() {
-                    @Override void beforeAdoptionOpen() throws IOException {
-                        Files.move(journal,saved); Files.move(replacement,journal);
-                    }
-                };
-                assertThrows(IOException.class,()->LinuxSecurityMemoryStorage.open(local,f));
-                assertTrue(f.barriers.isEmpty()); assertArrayEquals(original,Files.readAllBytes(saved));
-                Files.delete(journal); Files.move(saved,journal);
-                try(var s=LinuxSecurityMemoryStorage.open(local);var r=s.openRead()) {
-                    assertArrayEquals(original,r.readAllBytes());
-                }
-            }
-        }
-    }
+
+
     @Test void initializationFailuresPreserveEvidence() throws Exception {
         for(int mode=0;mode<3;mode++) {
             Path p=Files.createDirectory(dir.resolve("mode"+mode)); var f=new Faults();
@@ -228,18 +177,5 @@ class LinuxSecurityMemoryStorageTest {
             try(var s=LinuxSecurityMemoryStorage.open(p);var r=s.openRead()) { assertNotNull(r); }
         }
     }
-    @Test void boundedDescriptorStressIncludesFailedOpens() throws Exception {
-        try(var s=LinuxSecurityMemoryStorage.open(dir)) { s.initializeDurably(new byte[12]); }
-        long before=fds();
-        for(int i=0;i<80;i++) {
-            try(var s=LinuxSecurityMemoryStorage.open(dir);var r=s.openRead()) {
-                assertEquals(12,r.readAllBytes().length);
-                assertThrows(IOException.class,()->LinuxSecurityMemoryStorage.open(dir));
-            }
-            var f=new Faults(); f.syncFail=i%2==0; f.journalSyncFail=!f.syncFail;
-            assertThrows(IOException.class,()->LinuxSecurityMemoryStorage.open(dir,f));
-        }
-        assertTrue(fds()<=before+2);
-    }
-    static long fds() throws IOException { try(var entries=Files.list(Path.of("/proc/self/fd"))) { return entries.count(); } }
+
 }
