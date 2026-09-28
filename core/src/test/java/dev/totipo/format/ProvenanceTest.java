@@ -84,8 +84,9 @@ class ProvenanceTest {
                                 assertTrue(events.stream().allMatch(e -> Set.of("report-success", "advertise",
                                         "publish-token", "restart-workflow").contains(e.field("action").string())));
                                 System.out.println(c.id() + " expected=PASS writer durable/report-success gate; "
-                                        + "actual=DEFERRED; M1.4 reader expectations in this case: none");
-                                Assumptions.assumeTrue(false, "DEFERRED: durable writer publication/report-success");
+                                        + "actual=DEFERRED; M3.1a DEVICE prerequisite exists; TOKEN writer absent");
+                                Assumptions.assumeTrue(false, "DEFERRED: TOKEN publication/report-success gate; "
+                                        + "portable DEVICE authoring and abstract publication exist");
                             }
                             default -> fail("Unhandled provenance operation");
                         }
