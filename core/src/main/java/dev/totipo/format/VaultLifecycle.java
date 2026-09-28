@@ -12,7 +12,7 @@ import static dev.totipo.format.VaultLifecycleResult.Status.*;
  * Borrows explicit stores/source/password; caller keeps exclusive local storage
  * ownership throughout and closes stores afterward. All streams/snapshots/staged
  * handles are closed here. No live session escapes; reopen/replay for another pass.
- * No retained candidate/root recovery, replacement, or application session. */
+ * No retained candidate/root recovery or application session. */
 final class VaultLifecycle {
     private final VaultBootstrapStorage bootstrap;
     private final SecurityMemoryStorage memory;
@@ -106,6 +106,80 @@ final class VaultLifecycle {
     VaultLifecycleResult openConfigured(byte[] password) { return open(password, Intent.OPEN_CONFIGURED); }
 
     private enum Intent { CONFIGURE_EXISTING, OPEN_CONFIGURED }
+
+    /** Rewrap only the established root. Passwords are synchronously borrowed.
+     * Local memory is read-only; no discovery or semantic policy is evaluated.
+     * Historical bootstrap/password copies remain usable; this is not revocation. */
+    PasswordChangeStatus changePassword(byte[] currentPassword, byte[] newPassword) {
+        if (!(bootstrap instanceof VaultBootstrapReplacementStorage replacement)) {
+            return PasswordChangeStatus.REPLACEMENT_UNSUPPORTED;
+        }
+        SecurityMemorySession session;
+        try { session = SecurityMemorySession.open(memory); }
+        catch (IOException e) { return PasswordChangeStatus.LOCAL_STORAGE_UNAVAILABLE; }
+        switch (session.head().status()) {
+            case ABSENT: return PasswordChangeStatus.LOCAL_SECURITY_MEMORY_MISSING;
+            case CORRUPT, UNSUPPORTED_LOCAL_FORMAT: return PasswordChangeStatus.LOCAL_SECURITY_MEMORY_INVALID;
+            case INCOMPLETE_TAIL: return PasswordChangeStatus.LOCAL_TAIL_REPAIR_REQUIRED;
+            case CLEAN: break;
+        }
+        if (session.establishment().phase() != LocalEstablishment.Phase.ESTABLISHED) {
+            return PasswordChangeStatus.LOCAL_STATE_NOT_ESTABLISHED;
+        }
+        byte[] canonical;
+        try { canonical = read(bootstrap.openCanonicalRead()); }
+        catch (IOException e) { return PasswordChangeStatus.BOOTSTRAP_STORAGE_UNAVAILABLE; }
+        if (canonical == null) { return PasswordChangeStatus.CURRENT_CANONICAL_ABSENT; }
+        if (currentPassword == null) { return PasswordChangeStatus.CURRENT_INVALID_PASSWORD_INPUT; }
+        try (var current = unlocker.unlock(canonical, currentPassword)) {
+            switch (current.status()) {
+                case AUTHENTICATION_FAILED: return PasswordChangeStatus.CURRENT_AUTHENTICATION_FAILED;
+                case INVALID_FORMAT: return PasswordChangeStatus.CURRENT_INVALID_BOOTSTRAP;
+                case INVALID_PASSWORD_INPUT: return PasswordChangeStatus.CURRENT_INVALID_PASSWORD_INPUT;
+                case UNLOCKED: break;
+            }
+            byte[] binding = session.establishment().binding().bytes();
+            if (!MessageDigest.isEqual(binding, current.binding())) {
+                return PasswordChangeStatus.ESTABLISHED_BINDING_MISMATCH;
+            }
+            if (newPassword == null || !PasswordBytes.valid(newPassword)) {
+                return PasswordChangeStatus.INVALID_NEW_PASSWORD_INPUT;
+            }
+            byte[] root = current.root(), salt = new byte[16], nonce = new byte[12];
+            try {
+                byte[] candidate;
+                try {
+                    entropy.fill(salt); entropy.fill(nonce);
+                    candidate = writer.encode(newPassword, root, salt, nonce);
+                    if (!matches(candidate, newPassword, root, binding)) {
+                        return PasswordChangeStatus.CRYPTO_CONSTRUCTION_FAILED;
+                    }
+                } finally {
+                    Arrays.fill(salt, (byte) 0); Arrays.fill(nonce, (byte) 0);
+                }
+                VaultBootstrapReplacementStorage.StagedReplacement staged = null;
+                try {
+                    staged = replacement.stageReplacement(candidate);
+                    if (!matches(read(staged.openRead()), newPassword, root, binding)) {
+                        return PasswordChangeStatus.REWRAP_INCOMPLETE;
+                    }
+                    staged.replaceCanonicalDurably();
+                    byte[] installed = read(bootstrap.openCanonicalRead());
+                    if (installed == null || !matches(installed, newPassword, root, binding)) {
+                        return PasswordChangeStatus.REWRAP_INCOMPLETE;
+                    }
+                    return PasswordChangeStatus.SUCCESS;
+                } catch (IOException | RuntimeException e) {
+                    return PasswordChangeStatus.REWRAP_INCOMPLETE;
+                } finally {
+                    if (staged != null) {
+                        try { staged.close(); }
+                        catch (IOException | RuntimeException e) { /* Nonauthoritative residue. */ }
+                    }
+                }
+            } finally { Arrays.fill(root, (byte) 0); }
+        } catch (RuntimeException e) { return PasswordChangeStatus.CRYPTO_CONSTRUCTION_FAILED; }
+    }
 
     private VaultLifecycleResult open(byte[] password, Intent intent) {
         SecurityMemorySession session;
