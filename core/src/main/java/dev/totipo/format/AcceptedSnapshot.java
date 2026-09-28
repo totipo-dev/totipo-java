@@ -27,7 +27,9 @@ final class AcceptedSnapshot {
     AcceptedSnapshot accepting(AcceptedObject object) {
         var next = new HashMap<>(objects);
         var old = next.putIfAbsent(object.objectId(), object);
-        return new AcceptedSnapshot(next, incomplete, conflictingEvidence || old != null && !old.equals(object));
+        boolean conflict = old != null && !AcceptedObject.sameEvidence(old, object);
+        if (old != null && !conflict) { next.put(object.objectId(), object); }
+        return new AcceptedSnapshot(next, incomplete, conflictingEvidence || conflict);
     }
     GraphTopology topology() { return new GraphTopology(this); }
     VerificationKeyMaterial verificationKeys() {

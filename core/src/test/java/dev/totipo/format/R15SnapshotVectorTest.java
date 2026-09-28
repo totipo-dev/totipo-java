@@ -10,7 +10,7 @@ import org.junit.jupiter.api.TestFactory;
 import static org.junit.jupiter.api.Assertions.*;
 
 /** Symbolic graph evidence exercises production topology/policy; plans use real signed writers.
- * DEVICE presentation/rename has topology-only coverage, documented in the milestone report.
+ * DEVICE rename publishes and independently authenticates real writer output.
  * Corruption actions model exclusion; real byte rejection is tested separately with NIO.
  */
 class R15SnapshotVectorTest {
@@ -27,7 +27,7 @@ class R15SnapshotVectorTest {
         int cursor;
         Runner(List<Node> steps){this.steps=steps;}
         ObjectId id(String name){return ids.computeIfAbsent(name,n->new ObjectId(CryptoSupport.sha256(CryptoSupport.ascii(n))));}
-        SecurityBytes identity(String name){return new SecurityBytes(id("identity:"+name).bytes(),32);}
+        SecurityBytes identity(String name){return name.equals("D") ? new SecurityBytes(identity.deviceId(),32) : new SecurityBytes(id("identity:"+name).bytes(),32);}
         List<ObjectId> parents(Node n){return n.isNull()?List.of():DeviceWriter.canonicalParents(n.array().stream().map(x->id(x.string())).toList());}
         TokenValue value(Node n){byte[] secret=n.field("secret_hex").hex();return new TokenValue(n.field("status").string().equals("LIVE")?1:2,
                 n.field("issuer").string(),n.field("account").string(),new TokenValue.Credential(n.field("algorithm").integer().intValueExact(),
@@ -43,7 +43,9 @@ class R15SnapshotVectorTest {
             if(n.field("type").string().equals("TOKEN"))return new AcceptedToken(id(name),supported?1:2,status,identity(n.field("identity").string()),
                     parents(n.field("parents")),identity("author"),time,supported?value(step.field("value")):null);
             return new AcceptedDevice(id(name),supported?1:2,status,identity(n.field("identity").string()),parents(n.field("parents")),time,
-                    supported?new SecurityBytes(DeviceWriterTest.KEY,65):null);
+                    supported?new SecurityBytes(DeviceWriterTest.KEY,65):null,
+                    supported?(step.has("value")&&step.field("value").has("display_name")?step.field("value").field("display_name").string():""):null,
+                    supported&&step.has("value")&&step.field("value").has("provenance")?ProvenanceStatus.valueOf(step.field("value").field("provenance").string()):ProvenanceStatus.UNRESOLVED);
         }
         void run() throws Exception {try(identity){while(cursor<steps.size())apply(steps.get(cursor++));}}
         void apply(Node step) throws Exception {
@@ -62,11 +64,16 @@ class R15SnapshotVectorTest {
                 case "query" -> query(step);
                 case "plan" -> plan(step);
                 case "rename" -> {
-                    // Lower-layer coverage only: no DEVICE rename orchestration is claimed.
                     var d=(AcceptedDevice)object(step);var heads=session.snapshot().topology().currentDeviceHeads(d.deviceId());
-                    boolean understood=heads.stream().allMatch(x->((AcceptedDevice)session.snapshot().object(x)).semanticStatus()==SemanticStatus.SUPPORTED_VALID);
-                    assertEquals(step.field("success").bool(),understood);
-                    if(understood)session.accept(new AcceptedDevice(d.objectId(),1,d.semanticStatus(),d.deviceId(),DeviceWriter.canonicalParents(heads),d.authorTime(),d.publicKeyX963()));
+                    var store=new FakeV1ObjectPublicationStore();
+                    var result=DevicePresentationUpdate.publish(DeviceWriterTest.root(),session,identity,d.displayName(),new byte[8],store);
+                    assertEquals(step.field("success").bool(),result.status()==DevicePresentationUpdate.Status.PUBLISHED);
+                    if(result.objectId()!=null){
+                        var read=DevicePresentationUpdateTest.read(result.objectId(),store.get(result.objectId()));
+                        assertEquals(heads,Set.copyOf(read.parents()));assertEquals(d.displayName(),read.displayName());
+                        assertEquals(read,session.snapshot().object(result.objectId()));
+                        ids.put(step.field("node").field("id").string(),result.objectId());
+                    }else{assertEquals(DevicePresentationUpdate.Status.OPAQUE_DEVICE_HEAD,result.status());assertEquals(0,store.calls);}
                 }
                 case "state-query" -> {
                     var e=step.field("state_expect");var q=step.field("query");
@@ -136,7 +143,8 @@ class R15SnapshotVectorTest {
                 case "UNKNOWN_FUTURE_EVIDENCE" -> assertTrue(session.snapshot().hasUnscopedEvidence());
                 default -> fail("Unclaimed warning");
             }
-            // Presentation is not implemented by the baseline graph layer; topology is checked by state-query.
+            if(e.has("presentation"))assertEquals(e.field("presentation").string(),
+                    DevicePresentation.evaluate(session.snapshot(),identity(q.field("device").string())).state().name());
         }
     }
 }

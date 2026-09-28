@@ -36,8 +36,8 @@ final class DiscoveryCoordinator {
                 observations.add(observation);
                 if (observation.authenticated() != null) {
                     var object = observation.authenticated().record();
-                    var old = accepted.putIfAbsent(object.objectId(), object);
-                    if (old != null && !old.equals(object)) { throw new IllegalStateException("Conflicting authenticated object identity"); }
+                    var old = accepted.put(object.objectId(), object);
+                    if (old != null && !AcceptedObject.sameEvidence(old, object)) { throw new IllegalStateException("Conflicting authenticated object identity"); }
                 }
             }
         } finally {

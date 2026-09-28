@@ -8,7 +8,8 @@ documented in [SPEC_PIN.md](SPEC_PIN.md). Java implements the r15 baseline state
 no optional `advisory-history` capability is claimed. The corpus contains 105 cases:
 93 baseline and 12 conditional advisory-history cases. All remain hash-verified;
 conditional cases are excluded from baseline consumers without JUnit skips.
-Existing TOKEN wide-frontier folds are implemented. DEVICE rename/fold and application CRUD APIs remain deferred.
+Existing TOKEN wide-frontier folds and ordinary fitting-frontier DEVICE presentation/rename
+are implemented. DEVICE wide-frontier folding and application CRUD APIs remain deferred.
 
 ## Toolchain
 
@@ -93,6 +94,16 @@ planned object. Conflict confirmation binds TOKEN identity, supported heads, com
 alternatives, desired value, and typed intent. A process-local per-TOKEN semantic observation
 generation preserves sensitivity to relevant information learned then removed. Unrelated
 TOKENs, DEVICE presentation, provenance, and diagnostics do not stale confirmation.
+
+DEVICE rename uses the bound local identity and every current same-DEVICE supported head,
+including presentation-inert rejected/unresolved heads. Only verified current heads supply
+authenticated names; differing names are conflicted, equal names remain unambiguous.
+Opaque current DEVICE heads make presentation incomplete and block v1 rename (§49),
+without changing TOKEN validity or credential generation. A rename captures one accepted
+snapshot; late branches create normal concurrency. Frontiers exceeding the conservative
+one-object capacity return `FOLD_REQUIRED`; DEVICE folding is deferred to M3.4b.
+The rejected-head and future-DEVICE baseline cases now exercise presentation evaluation
+and production rename/publication or its opaque-head rejection, with independent reader checks.
 Unambiguous TOMBSTONE-to-LIVE restoration requires explicit restoration intent.
 
 Writers validate typed inputs, encode canonically, sign once, encrypt, compute OBJECT_ID,
@@ -151,13 +162,14 @@ BC 1.86 is the only external production dependency. Existing TOKEN wide-frontier
 ordinary immutable TOKEN stages with one complete value and common AUTHOR_TIME. They reduce
 frontier width without deleting or compacting history. Ordinary folds retain their planning
 snapshot; confirmed folds require renewed confirmation for new TOKEN-relevant information
-under r15 §47.4. Interrupted stages remain ordinary history, with no journal or rollback. DEVICE rename/fold
-orchestration, full DEVICE presentation, alternate-bootstrap recovery, Android platform
-integration and application APIs remain deferred. DEVICE graph topology and current key
-material are implemented. Cross-run advisory history and rollback/regression warnings are
+under r15 §47.4. Interrupted stages remain ordinary history, with no journal or rollback.
+DEVICE wide-frontier folding, alternate-bootstrap recovery, Android platform integration
+and application APIs remain deferred. DEVICE presentation, fitting-frontier rename,
+graph topology and current key material are implemented. Cross-run advisory history and rollback/regression warnings are
 not implemented or required by baseline r15. No cross-run TOKEN/DEVICE/head/opaque cache exists.
 
 The single r15 corpus is under `core/src/test/resources/totipo-spec`; production JARs contain
-no corpus. `SPEC_PIN.md` is the repository-wide pin authority. Some DEVICE presentation and
-rename vector expectations have lower-layer topology coverage only; no full end-to-end
-conformance claim is made for those deferred surfaces.
+no corpus. `SPEC_PIN.md` is the repository-wide pin authority. DEVICE graph vectors use
+symbolic accepted input evidence and real signed rename output; byte-level crypto/routing
+fixtures and Linux discovery tests separately cover authenticated input classification.
+Temporary unresolved DEVICE provenance is exercised at the semantic boundary.

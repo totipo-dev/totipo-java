@@ -42,7 +42,9 @@ final class ObjectDiscovery {
                     yield failure(id, Classification.INVALID, Detail.SEMANTIC);
                 }
                 yield new Observation(id, Classification.SUPPORTED_VALID, Detail.NONE,
-                        AuthenticatedObservation.supported(assertion.object()));
+                        AuthenticatedObservation.supported(assertion.object(),
+                                assertion.object().plaintext().device() == null ? ProvenanceStatus.UNRESOLVED
+                                        : ProvenanceEvaluator.evaluate(assertion.object(), establishedRoot, VerificationKeyMaterial.keys())));
             }
         };
     }

@@ -18,7 +18,7 @@ final class DeviceAdvertisementReader {
             return null;
         }
         if (store.publish(id, exact) == null) { return null; }
-        return TokenPublicationSuccessGate.acknowledged((AcceptedDevice) AuthenticatedObservation.supported(assertion.object()).record(),
+        return TokenPublicationSuccessGate.acknowledged((AcceptedDevice) AuthenticatedObservation.supported(assertion.object(), ProvenanceStatus.VERIFIED).record(),
                 new SecurityBytes(CryptoSupport.hmac(root, CryptoSupport.ascii("totipo/v1/local-vault-binding")), 32));
     }
 }

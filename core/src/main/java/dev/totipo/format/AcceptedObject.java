@@ -9,6 +9,17 @@ import java.util.Objects;
 sealed interface AcceptedObject permits AcceptedToken, AcceptedDevice, OpaqueUnscopedRecord {
     ObjectId objectId();
 
+    /** Temporary verification availability is not a different authenticated meaning. */
+    static boolean sameEvidence(AcceptedObject a, AcceptedObject b) {
+        if (a instanceof AcceptedDevice d && b instanceof AcceptedDevice e) {
+            return d.objectId().equals(e.objectId()) && d.objectVersion() == e.objectVersion()
+                    && d.semanticStatus() == e.semanticStatus() && d.deviceId().equals(e.deviceId())
+                    && d.parents().equals(e.parents()) && d.authorTime().equals(e.authorTime())
+                    && Objects.equals(d.publicKeyX963(), e.publicKeyX963()) && Objects.equals(d.displayName(), e.displayName());
+        }
+        return a.equals(b);
+    }
+
     /** Reject impossible record construction; this does not validate an assertion. */
     static void checkNode(ObjectId id, int version, SemanticStatus status, SecurityBytes identity,
                           List<ObjectId> parents, BigInteger authorTime) {
@@ -28,4 +39,3 @@ sealed interface AcceptedObject permits AcceptedToken, AcceptedDevice, OpaqueUns
         }
     }
 }
-
