@@ -89,6 +89,15 @@ artifacts downloaded during bootstrap.
   file. This is exportable filesystem custody, not hardware-backed protection.
   Core's provider-neutral SPI also permits future Android/non-exportable backends.
   Key availability does not advertise a DEVICE or enable TOKEN authoring.
+  `LinuxV1ObjectPublicationStore.open(Path)` provides real immutable v1 object
+  publication into exact `objects-v1/`, composing with core's initial DEVICE lifecycle
+  and durable graph insertion. It binds the explicit existing synchronization root;
+  opening leaves storage unchanged. First publication safely creates/binds the namespace
+  lazily and fsyncs it and its parent. Exact 1024-byte objects use `O_TMPFILE`, byte
+  read-back, no-replace `linkat`, file/directory fsync and final identity checks.
+  This requires the supported local-filesystem durability boundary described below;
+  it does not guarantee future availability against a synchronization actor. Orphans
+  remain recoverable through discovery. No TOKEN writer or DEVICE rename/fold exists yet.
   `LinuxVaultBootstrapStorage.open(Path)` binds an explicit existing synchronized root
   and reads only exact canonical `vault`. Initial publication uses an unnamed owner-only
   `O_TMPFILE`, pre-link file fsync, no-replace procfd `linkat`, post-link inode fsync,

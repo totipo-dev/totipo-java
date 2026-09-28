@@ -9,6 +9,7 @@ import java.nio.file.Path;
 public final class StorageFaults extends LinuxSecurityMemoryStorage.Operations {
     public boolean failForce;
     public boolean partialWrite;
+    public boolean failWrite;
     public int forces;
     public int writes;
     public final java.util.List<String> adoption = new java.util.ArrayList<>();
@@ -26,6 +27,7 @@ public final class StorageFaults extends LinuxSecurityMemoryStorage.Operations {
     }
     @Override int write(FileChannel channel,ByteBuffer bytes,long offset) throws IOException {
         writes++;
+        if (failWrite) throw new IOException("injected before journal write");
         if(partialWrite) {
             var prefix=bytes.slice(); prefix.limit(Math.min(55,prefix.remaining()));
             channel.write(prefix,offset); throw new IOException("injected partial write");

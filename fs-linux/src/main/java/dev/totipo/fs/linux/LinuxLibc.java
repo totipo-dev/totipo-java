@@ -10,7 +10,7 @@ import java.nio.charset.StandardCharsets;
 
 /** Small instance-owned binding; constructing it is restricted, loading this class is not. */
 final class LinuxLibc {
-    private final MethodHandle open, openat, openatMode, statx, read, write, linkat, close, fsync;
+    private final MethodHandle open, openat, openatMode, statx, read, write, linkat, close, fsync, mkdirat;
     private final SymbolLookup replacementSymbols;
     private MethodHandle renameat2, unlinkat;
     static final FunctionDescriptor EXCHANGE_DESCRIPTOR = FunctionDescriptor.of(ValueLayout.JAVA_INT,
@@ -43,6 +43,8 @@ final class LinuxLibc {
         linkat = bind(linker, "linkat", FunctionDescriptor.of(i, i, p, i, p, i), -1);
         close = bind(linker, "close", FunctionDescriptor.of(i, i), -1);
         fsync = bind(linker, "fsync", FunctionDescriptor.of(i, i), -1);
+        // glibc 2.42 sys/stat.h, bits/typesizes.h: mode_t is unsigned int on amd64.
+        mkdirat = bind(linker, "mkdirat", FunctionDescriptor.of(i, i, p, i), -1);
     }
     @SuppressWarnings("restricted")
     void prepareReplacement() throws IOException {
@@ -115,6 +117,16 @@ final class LinuxLibc {
             catch (Throwable e) { throw invocation(e); }
             if (result < 0) { throw failure(error); }
             return LinuxStatx.decode(buffer);
+        }
+    }
+    void mkdirAt(LinuxFd parent, String child, int mode) throws IOException {
+        try (var arena = Arena.ofConfined()) {
+            var name = arena.allocateFrom(ValueLayout.JAVA_BYTE, utf8(child));
+            var error = arena.allocate(state);
+            int result;
+            try { result = (int) mkdirat.invokeExact(error, parent.number(), name, mode); }
+            catch (Throwable e) { throw invocation(e); }
+            if (result < 0) { throw failure(error); } // No ambiguous namespace-mutation retry.
         }
     }
     LinuxFd temporary(LinuxFd root) throws IOException {

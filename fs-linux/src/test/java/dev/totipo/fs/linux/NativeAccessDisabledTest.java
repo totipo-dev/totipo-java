@@ -27,7 +27,16 @@ class NativeAccessDisabledTest {
             Class.forName("dev.totipo.fs.linux.LinuxSecureDiscoverySource");
             Class.forName("dev.totipo.fs.linux.LinuxSecurityMemoryStorage");
             Class.forName("dev.totipo.fs.linux.LinuxVaultBootstrapStorage");
+            Class.forName("dev.totipo.fs.linux.LinuxV1ObjectPublicationStore");
             for (int i = 0; i < 2; i++) {
+                try {
+                    LinuxV1ObjectPublicationStore.open(Path.of("/"));
+                    throw new AssertionError("Native access must be explicit");
+                } catch (java.io.IOException e) {
+                    if (!e.getMessage().equals("OBJECT_PUBLICATION_CAPABILITY_NATIVE_ACCESS_DISABLED")) {
+                        throw new AssertionError(e);
+                    }
+                }
                 try {
                     LinuxVaultBootstrapStorage.open(Path.of("/"));
                     throw new AssertionError("Native access must be explicit");

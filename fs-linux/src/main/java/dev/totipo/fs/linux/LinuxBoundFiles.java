@@ -40,6 +40,24 @@ final class LinuxBoundFiles {
             identity.requireSame(libc.stat(view));
         }
     }
+    /** Pins one exact child; never follows its final component. Caller owns the result. */
+    static Directory bindChildDirectory(LinuxLibc libc, LinuxFd parent, String child) throws IOException {
+        if (child.isEmpty() || child.equals(".") || child.equals("..") || child.indexOf('/') >= 0) {
+            throw new IllegalArgumentException("EXACT_CHILD_REQUIRED");
+        }
+        var fd = libc.openAt(parent, child, LinuxAbi.DIRECTORY);
+        try {
+            var identity = libc.stat(fd);
+            if (identity.type() != LinuxAbi.S_IFDIR) { throw new IOException("NOT_DIRECTORY"); }
+            return new Directory(fd, identity);
+        } catch (IOException | RuntimeException | Error e) {
+            try { fd.close(); } catch (IOException close) { e.addSuppressed(close); }
+            throw e;
+        }
+    }
+    record Directory(LinuxFd fd, LinuxStatx identity) implements AutoCloseable {
+        @Override public void close() throws IOException { fd.close(); }
+    }
     static LinuxFd reopen(LinuxLibc libc, LinuxFd pin, LinuxStatx identity,
                           UnaryOperator<LinuxStatx> inspected) throws IOException {
         if (!identity.regular()) { throw new IOException("NOT_REGULAR"); }
