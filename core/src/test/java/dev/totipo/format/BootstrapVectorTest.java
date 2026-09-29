@@ -29,7 +29,7 @@ class BootstrapVectorTest {
                 v.context(), () -> check(v))).toList();
     }
 
-    private static void check(Case vector) throws Exception {
+    static void check(Case vector) throws Exception {
         assertEquals("VALID", vector.expected());
         var b = vector.data().field("bootstrap");
         byte[] password = b.field("password_hex").hex();

@@ -10,6 +10,19 @@ record TokenValue(int status, String issuer, String account, Credential credenti
         Objects.requireNonNull(credential);
     }
 
+    /** Intrinsic r16 bounds, required by the complete TOKEN model and codec. */
+    void validate() {
+        if (status != 1 && status != 2) throw new IllegalArgumentException("Invalid status");
+        StrictUtf8.encode(issuer, 256);
+        StrictUtf8.encode(account, 256);
+        if (credential.algorithm() < 1 || credential.algorithm() > 3
+                || credential.digits() < 6 || credential.digits() > 8
+                || credential.period() < 1 || credential.period() > 0xffff_ffffL
+                || credential.secret().size() < 1 || credential.secret().size() > 128) {
+            throw new IllegalArgumentException("Invalid credential");
+        }
+    }
+
     /** Atomic credential equality includes every field, with owned content-equal bytes. */
     record Credential(int algorithm, int digits, long period, SecurityBytes secret) {
         Credential { Objects.requireNonNull(secret); }

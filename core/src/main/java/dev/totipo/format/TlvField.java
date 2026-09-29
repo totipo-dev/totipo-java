@@ -17,4 +17,7 @@ record TlvField(int tag, byte[] value) {
     int length() {
         return value.length;
     }
+
+    /** Owner-only disposal after a field has been consumed. */
+    void clear() { java.util.Arrays.fill(value, (byte) 0); }
 }

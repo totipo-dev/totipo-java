@@ -29,7 +29,12 @@ final class TlvReader {
             // The complete header was checked above. copy checks length against the
             // remaining slice BEFORE allocation; no offset+wireLength sum can overflow.
             // u16 length <=65535, so even 4+length is representable as an int.
-            return new Result(Status.FIELD, new TlvField(tag, bytes.copy(length)));
+            byte[] value = bytes.copy(length);
+            try {
+                return new Result(Status.FIELD, new TlvField(tag, value));
+            } finally {
+                java.util.Arrays.fill(value, (byte) 0);
+            }
         } catch (ByteCursor.TruncatedInput e) {
             return finish(headerComplete ? Status.TRUNCATED_VALUE : Status.TRUNCATED_HEADER);
         }
