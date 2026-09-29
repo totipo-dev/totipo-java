@@ -172,6 +172,14 @@ public final class VectorCaseLoader {
             return value instanceof Map<?, ?> fields && fields.containsKey(name);
         }
 
+        /** Allows semantic consumers to reject unhandled expectation fields. */
+        public java.util.Set<String> fieldNames() {
+            if (!(value instanceof Map<?, ?> fields)) throw error("Expected object");
+            var names = new HashSet<String>();
+            for (Object key : fields.keySet()) names.add((String) key);
+            return java.util.Set.copyOf(names);
+        }
+
         public boolean bool() {
             if (!(value instanceof Boolean result)) { throw error("Expected boolean"); }
             return result;

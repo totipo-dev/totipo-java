@@ -10,15 +10,17 @@ import org.junit.jupiter.api.Test;
 /** Executed coverage accounting, derived from the manifest rather than a case-ID allowlist. */
 class Phase2ConformanceTest {
     @Test void everyImplementedCaseExecutesWithoutSkipping() throws Throwable {
-        Set<String> implemented = Set.of("bootstrap", "crypto", "encoding", "metadata", "size", "totp");
-        Set<String> deferred = Set.of("fold", "graph", "storage", "vault");
+        Set<String> implemented = Set.of("bootstrap", "crypto", "encoding", "fold", "graph", "metadata", "size", "totp");
+        Set<String> deferred = Set.of("storage", "vault");
         var expected = new HashSet<String>();
         var executed = new HashSet<String>();
         var categories = new HashSet<String>();
+        var counts = new java.util.HashMap<String, Integer>();
         var trials = new TotpVectorTest().everyPinnedTrial();
         for (var vector : VectorCaseLoader.allCases()) {
             String category = vector.path().split("/")[1];
             categories.add(category);
+            counts.merge(category, 1, Integer::sum);
             if (!implemented.contains(category)) {
                 assertTrue(deferred.contains(category), "Unaccounted category: " + category);
                 continue;
@@ -28,6 +30,8 @@ class Phase2ConformanceTest {
                 switch (category) {
                     case "bootstrap" -> BootstrapVectorTest.check(vector);
                     case "crypto", "encoding", "metadata", "size" -> TokenVectorChecks.check(vector);
+                    case "graph" -> GraphFoldVectorChecks.graph(vector);
+                    case "fold" -> GraphFoldVectorChecks.fold(vector);
                     case "totp" -> {
                         // Execute the existing RFC trial assertions, retaining their original test cases.
                         var selected = trials.stream().filter(t -> t.getDisplayName().startsWith(vector.context() + " row ")).toList();
@@ -46,6 +50,8 @@ class Phase2ConformanceTest {
         all.addAll(deferred);
         assertEquals(all, categories);
         assertEquals(expected, executed);
-        assertFalse(executed.isEmpty());
+        assertEquals(69, executed.size());
+        assertEquals(java.util.Map.of("bootstrap", 4, "crypto", 5, "encoding", 30, "fold", 6,
+                "graph", 13, "metadata", 7, "size", 1, "totp", 3, "storage", 13, "vault", 8), counts);
     }
 }

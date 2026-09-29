@@ -4,10 +4,11 @@ Portable Java libraries targeting Totipo Vault Format v1, revision **r16**.
 The exact committed specification and language-neutral corpus are pinned in
 [SPEC_PIN.md](SPEC_PIN.md).
 
-This repository is in a staged r16 migration. Phase 2 adds the exact TOKEN model
-and canonical codec to the Phase 1 cryptographic and storage foundation. Byte-level
-consumers cover all 50 bootstrap, crypto, encoding, metadata, size, and TOTP cases.
-Graph, fold, authorship, and storage/vault workflow reconciliation remain deferred.
+This repository is in a staged r16 migration. Phase 3 adds pure causal graph/state
+evaluation and fixed linear-carry fold construction to the exact TOKEN codec.
+Consumers cover all 69 bootstrap, crypto, encoding, fold, graph, metadata, size,
+and TOTP cases. Authorship/publication orchestration and storage/vault workflow
+reconciliation remain deferred.
 Snapshot/profile integrity tests separately verify all 90 target cases. There is no full Java API stability
 promise yet; most core implementation types remain package-private.
 
@@ -15,7 +16,8 @@ The two production modules are:
 
 - `core`: portable Java 17 Totipo primitives and protocol foundation: bootstrap and
   Argon2id, root/object crypto, private keyed object identity, authenticated fixed
-  envelopes, exact TOKEN semantics and TLV codec, password handling, Java credential values, TOTP, entropy,
+  envelopes, exact TOKEN semantics and TLV codec, causal groups and current heads,
+  deterministic fold construction, password handling, Java credential values, TOTP, entropy,
   and storage observation/publication/bootstrap SPIs.
 - `storage-nio`: portable Java 17 configured-store filesystem implementation:
   direct-child discovery, immutable object publication, bootstrap storage, and an
@@ -63,6 +65,8 @@ See [R16_PHASE1_RECONCILIATION_REPORT.md](R16_PHASE1_RECONCILIATION_REPORT.md) f
 validation, deletions, and remaining phases. See
 [R16_PHASE2_TOKEN_CODEC_REPORT.md](R16_PHASE2_TOKEN_CODEC_REPORT.md) for exact codec
 coverage, validation evidence, and the Phase 3 boundary.
+See [R16_PHASE3_GRAPH_FOLD_REPORT.md](R16_PHASE3_GRAPH_FOLD_REPORT.md) for graph/fold
+semantics, corpus coverage, validation evidence, and the Phase 4 boundary.
 
 To intentionally refresh build reproducibility inputs, use `bootstrap-m0.sh` and
 review the resulting wrapper, Nix lock, module dependency locks, and verification
