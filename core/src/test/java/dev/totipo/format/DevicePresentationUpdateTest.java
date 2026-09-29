@@ -88,7 +88,7 @@ class DevicePresentationUpdateTest {
     }
     @Test void pinnedCapacityDecidesBeforeSigning() throws Exception {
         for(var fixture:VectorCaseLoader.cases("size")) {
-            if(!Set.of("v1.size.device-max-14.001","v1.size.device-max-15-fold.001").contains(fixture.id()))continue;
+            if(!Set.of("v1.size.device-max-14.001","v1.size.device-max-15-fold.001","v1.size.short-der-no-extra-parent.001").contains(fixture.id()))continue;
             var input=fixture.data().field("input");var s=session();
             for(var parent:input.field("parents").array()) {
                 var id=new ObjectId(Base64.getDecoder().decode(parent.string()));
@@ -99,9 +99,9 @@ class DevicePresentationUpdateTest {
             try(var identity=key.identity()) {
                 var result=DevicePresentationUpdate.publish(ROOT,s,identity,input.field("display_name").string(),new byte[8],store);
                 boolean fits=fixture.data().field("size").field("fits").bool();
-                assertEquals(fits?PUBLISHED:FOLD_REQUIRED,result.status());assertEquals(fits?1:0,key.calls);assertEquals(fits?1:0,store.calls);
+                assertEquals(PUBLISHED,result.status());assertEquals(fits?1:2,key.calls);assertEquals(fits?1:2,store.calls);
                 if(fits)assertEquals(heads,Set.copyOf(read(result.objectId(),store.get(result.objectId())).parents()));
-                else assertEquals(heads,s.snapshot().topology().currentDeviceHeads(DEVICE));
+                else DeviceFoldTest.verify(store,result.objectId(),heads,input.field("display_name").string(),new byte[8]);
             }
         }
     }
@@ -188,7 +188,7 @@ class DevicePresentationUpdateTest {
     }
 
     @Test void realRenameLeavesTokenConsentValuesProvenanceAndTotpUnchanged() throws Exception {
-        var s=session();s.accept(node(900,"old",ProvenanceStatus.VERIFIED));
+        var s=session();for(int i=900;i<933;i++)s.accept(node(i,"old",ProvenanceStatus.VERIFIED));
         var a=R15SnapshotTest.token(1,R15SnapshotTest.value("a"));var b=R15SnapshotTest.token(2,R15SnapshotTest.value("b"));
         s.accept(a);s.accept(b);var heads=s.snapshot().topology().currentTokenHeads(a.tokenId());
         var desired=R15SnapshotTest.value("chosen");var c=a.value().credential();
@@ -201,7 +201,9 @@ class DevicePresentationUpdateTest {
             var signed=TokenWriter.signed(ROOT,identity,a.tokenId().bytes(),a.value(),new byte[8],List.of());
             var assertion=ProvenanceTest.valid(signed,ROOT);
             assertEquals(ProvenanceStatus.VERIFIED,ProvenanceEvaluator.evaluate(assertion,ROOT,s.snapshot().verificationKeys()));
-            update(s,identity,"new");
+            var store=new FakeV1ObjectPublicationStore();
+            assertEquals(PUBLISHED,DevicePresentationUpdate.publish(ROOT,s,identity,"new".repeat(85),new byte[8],store).status());
+            assertEquals(3,store.calls);
             assertEquals(ProvenanceStatus.VERIFIED,ProvenanceEvaluator.evaluate(assertion,ROOT,s.snapshot().verificationKeys()));
             assertEquals(heads,s.snapshot().topology().currentTokenHeads(a.tokenId()));
             assertEquals(a,s.snapshot().object(a.objectId()));assertEquals(b,s.snapshot().object(b.objectId()));

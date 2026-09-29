@@ -8,8 +8,8 @@ documented in [SPEC_PIN.md](SPEC_PIN.md). Java implements the r15 baseline state
 no optional `advisory-history` capability is claimed. The corpus contains 105 cases:
 93 baseline and 12 conditional advisory-history cases. All remain hash-verified;
 conditional cases are excluded from baseline consumers without JUnit skips.
-Existing TOKEN wide-frontier folds and ordinary fitting-frontier DEVICE presentation/rename
-are implemented. DEVICE wide-frontier folding and application CRUD APIs remain deferred.
+Existing TOKEN wide-frontier folds and DEVICE presentation/rename including wide-frontier
+folding are implemented. Application/session APIs remain deferred.
 
 ## Toolchain
 
@@ -101,7 +101,14 @@ authenticated names; differing names are conflicted, equal names remain unambigu
 Opaque current DEVICE heads make presentation incomplete and block v1 rename (§49),
 without changing TOKEN validity or credential generation. A rename captures one accepted
 snapshot; late branches create normal concurrency. Frontiers exceeding the conservative
-one-object capacity return `FOLD_REQUIRED`; DEVICE folding is deferred to M3.4b.
+one-object capacity use a linear sequence of ordinary DEVICE objects, each with the chosen
+name and common caller-supplied AUTHOR_TIME. Capacity reserves 72 signature bytes: a
+256-byte name permits 14 parents, an empty name 22. Each stage incorporates the prior stage
+and a maximal chunk of remaining original heads, selected in unsigned ObjectId order;
+the actual parent array is independently canonical-sorted. Each publication is acknowledged
+before local acceptance and construction of the next stage. Interruption leaves ordinary
+DEVICE history, possibly with conflicting names; a fresh update uses its current snapshot.
+There is no fold journal, rollback, or reconciliation fence, and peers may see stages out of order.
 The rejected-head and future-DEVICE baseline cases now exercise presentation evaluation
 and production rename/publication or its opaque-head rejection, with independent reader checks.
 Unambiguous TOMBSTONE-to-LIVE restoration requires explicit restoration intent.
@@ -163,8 +170,8 @@ ordinary immutable TOKEN stages with one complete value and common AUTHOR_TIME. 
 frontier width without deleting or compacting history. Ordinary folds retain their planning
 snapshot; confirmed folds require renewed confirmation for new TOKEN-relevant information
 under r15 §47.4. Interrupted stages remain ordinary history, with no journal or rollback.
-DEVICE wide-frontier folding, alternate-bootstrap recovery, Android platform integration
-and application APIs remain deferred. DEVICE presentation, fitting-frontier rename,
+Alternate-bootstrap recovery, Android platform integration, key rotation/revocation/membership,
+and application/session APIs remain deferred. DEVICE presentation, wide-frontier rename,
 graph topology and current key material are implemented. Cross-run advisory history and rollback/regression warnings are
 not implemented or required by baseline r15. No cross-run TOKEN/DEVICE/head/opaque cache exists.
 

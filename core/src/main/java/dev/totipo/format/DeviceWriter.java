@@ -33,6 +33,19 @@ final class DeviceWriter {
         }
     }
 
+    /** Guaranteed fan-in with the Section 45 72-byte signature reservation. */
+    static int parentCapacity(int nameBytes) {
+        requireCapacity(nameBytes, 0);
+        int capacity = 0;
+        while (capacity < 32) {
+            try { requireCapacity(nameBytes, capacity + 1); }
+            catch (IllegalArgumentException e) { break; }
+            capacity++;
+        }
+        if (capacity < 2) { throw new IllegalStateException("DEVICE fold cannot make progress"); }
+        return capacity;
+    }
+
     /** Owns all mutable inputs and fixes shape before the only signing call. */
     static byte[] signed(byte[] root, DeviceIdentityResult identity, String name,
                          byte[] authorTime, Collection<ObjectId> parents) throws GeneralSecurityException {
