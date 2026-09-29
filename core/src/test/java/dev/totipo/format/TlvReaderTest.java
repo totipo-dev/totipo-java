@@ -3,25 +3,18 @@ package dev.totipo.format;
 import static dev.totipo.format.TlvTestBytes.*;
 import static org.junit.jupiter.api.Assertions.*;
 
-import dev.totipo.conformance.VectorCaseLoader;
 import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class TlvReaderTest {
     @Test
-    void everyByteTruncationOfEveryPinnedCanonicalFieldIsBounded() throws Exception {
-        for (var vector : VectorCaseLoader.encodingCases()) {
-            if (!vector.expected().equals("SUPPORTED_VALID")) {
-                continue;
-            }
-            for (var tlv : fields(vector.semanticBytes())) {
-                checkTruncations(field(tlv.tag(), tlv.value()));
-                if (tlv.tag() == 0x0106) {
-                    for (var nested : fields(tlv.value())) {
-                        checkTruncations(field(nested.tag(), nested.value()));
-                    }
-                }
+    void everyByteTruncationOfGenericFieldsIsBounded() {
+        for (int tag : new int[]{0, 1, 0x8000, 0xffff}) {
+            for (int length : new int[]{0, 1, 32, 1006}) {
+                byte[] value = new byte[length];
+                Arrays.fill(value, (byte) 0xff);
+                checkTruncations(field(tag, value));
             }
         }
     }
@@ -42,6 +35,8 @@ class TlvReaderTest {
     @Test
     void concatenatedFieldsAdvanceExactlyWithoutImposingASchemaOrOrder() {
         byte[] bytes = join(field(0xffff, (byte) 0x80), field(0), field(0x8000, (byte) 0x7f, (byte) 0xff));
+        assertArrayEquals(bytes, new TlvWriter().field(0xffff, new byte[]{(byte) 0x80})
+                .field(0, new byte[0]).field(0x8000, new byte[]{0x7f, (byte) 0xff}).bytes());
         byte[] wrapped = join(new byte[7], bytes, new byte[3]);
         var reader = new TlvReader(wrapped, 7, bytes.length);
         for (int tag : new int[]{0xffff, 0, 0x8000}) {

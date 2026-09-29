@@ -1,0 +1,104 @@
+{
+  "format": "totipo-case-v1",
+  "id": "v1.graph.same-id-defensive.001",
+  "operation": "graph",
+  "expected": "PASS",
+  "notes": "Abstract validated TOKEN facts; symbolic IDs and cycles are not encrypted collision fixtures.",
+  "graph": {
+    "steps": [
+      {
+        "action": "add",
+        "node": {
+          "id": "A",
+          "identity": "T",
+          "parents": null,
+          "canonical": "A/T/X/",
+          "value": "X"
+        }
+      },
+      {
+        "action": "add",
+        "node": {
+          "id": "A",
+          "identity": "T",
+          "parents": null,
+          "canonical": "A/T/Y/",
+          "value": "Y"
+        },
+        "integrity_error": true
+      },
+      {
+        "action": "add",
+        "node": {
+          "id": "B",
+          "identity": "T",
+          "parents": [
+            "A"
+          ],
+          "canonical": "B/T/Z/A",
+          "value": "Z"
+        }
+      },
+      {
+        "action": "add",
+        "node": {
+          "id": "U",
+          "identity": "U",
+          "parents": null,
+          "canonical": "U/U/W/",
+          "value": "W"
+        }
+      },
+      {
+        "action": "evaluate",
+        "identity": "T",
+        "expect": {
+          "heads": [
+            "B"
+          ],
+          "head_objects": [
+            {
+              "id": "B",
+              "identity": "T",
+              "parents": [
+                "A"
+              ],
+              "canonical": "B/T/Z/A",
+              "value": "Z"
+            }
+          ],
+          "values": [
+            "Z"
+          ],
+          "unresolved": [
+            "A"
+          ],
+          "conflicting": false
+        }
+      },
+      {
+        "action": "evaluate",
+        "identity": "U",
+        "expect": {
+          "heads": [
+            "U"
+          ],
+          "head_objects": [
+            {
+              "id": "U",
+              "identity": "U",
+              "parents": null,
+              "canonical": "U/U/W/",
+              "value": "W"
+            }
+          ],
+          "values": [
+            "W"
+          ],
+          "unresolved": [],
+          "conflicting": false
+        }
+      }
+    ]
+  }
+}

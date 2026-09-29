@@ -1,0 +1,19 @@
+{
+  "format": "totipo-case-v1",
+  "id": "v1.vault.create-ambiguous.001",
+  "operation": "workflow",
+  "expected": "PASS",
+  "workflow": {
+    "action": "create",
+    "kind": "absent",
+    "existing_hex": "",
+    "intended_hex": "",
+    "base_hex": "",
+    "readable": false,
+    "complete": true,
+    "durable": false,
+    "orphan_objects": true,
+    "parents_available": false,
+    "result": "FAILED"
+  }
+}

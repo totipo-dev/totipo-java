@@ -3,70 +3,54 @@
   "id": "v1.graph.sequential.001",
   "operation": "graph",
   "expected": "PASS",
+  "notes": "Abstract validated TOKEN facts; symbolic IDs and cycles are not encrypted collision fixtures.",
   "graph": {
     "steps": [
       {
-        "action": "learn",
+        "action": "add",
         "node": {
-          "id": "a",
-          "version": 1,
-          "type": "TOKEN",
+          "id": "A",
           "identity": "T",
-          "class": "SUPPORTED_VALID",
           "parents": null,
-          "author_time": 0,
-          "semantic_digest": "bytes-a"
-        },
-        "value": {
-          "status": "LIVE",
-          "issuer": "Example",
-          "account": "alice",
-          "algorithm": 1,
-          "digits": 6,
-          "period": 30,
-          "secret_hex": "3132333435"
+          "canonical": "A/T/X/",
+          "value": "X"
         }
       },
       {
-        "action": "learn",
+        "action": "add",
         "node": {
-          "id": "b",
-          "version": 1,
-          "type": "TOKEN",
+          "id": "B",
           "identity": "T",
-          "class": "SUPPORTED_VALID",
           "parents": [
-            "a"
+            "A"
           ],
-          "author_time": 0,
-          "semantic_digest": "bytes-b"
-        },
-        "value": {
-          "status": "LIVE",
-          "issuer": "Example",
-          "account": "bob",
-          "algorithm": 1,
-          "digits": 6,
-          "period": 30,
-          "secret_hex": "3132333435"
+          "canonical": "B/T/Y/A",
+          "value": "Y"
         }
       },
       {
-        "action": "query",
-        "query": {
-          "identity": "T",
-          "candidate": "a"
-        },
+        "action": "evaluate",
+        "identity": "T",
         "expect": {
           "heads": [
-            "b"
+            "B"
           ],
-          "value_state": "UNAMBIGUOUS",
-          "ordinary": true,
-          "author": true,
-          "candidate": true,
-          "candidate_warning": true,
-          "integrity_failure": false
+          "head_objects": [
+            {
+              "id": "B",
+              "identity": "T",
+              "parents": [
+                "A"
+              ],
+              "canonical": "B/T/Y/A",
+              "value": "Y"
+            }
+          ],
+          "values": [
+            "Y"
+          ],
+          "unresolved": [],
+          "conflicting": false
         }
       }
     ]

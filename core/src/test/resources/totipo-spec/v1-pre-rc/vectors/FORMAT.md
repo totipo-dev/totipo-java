@@ -1,208 +1,121 @@
-# Portable v1 case contract
+# Portable v1/r16 case contract
 
-`manifest.schema.json` defines the manifest. `case.schema.json` defines case JSON.
-All JSON integers are exact integers; consumers must preserve unsigned 64-bit
-`author_time` without converting through floating point or signed date APIs.
-All cryptographic `*_hex` strings and object IDs use lowercase hexadecimal.
-The `input` object and `future.routing` use padded RFC 4648 base64 for binary
-fields (`identity`, `author`, parents, secret, public key, signature), as indicated
-in the schema. `null` parent arrays mean empty; a null signature means zero bytes.
-This representation has no Go-specific serialized types.
+`manifest.schema.json` and `case.schema.json` define strict JSON contracts.
+Unknown members, mixed operation payloads, invalid enum values, and omitted
+required expectations reject. JSON integers are exact; CLIENT_TIME must preserve
+unsigned 64-bit values without passing through floating point or signed date APIs.
+Cryptographic `*_hex` and object ID strings use lowercase hex. The `input` object's
+binary identity, parents, and secret use padded RFC 4648 base64; arrays of parents
+are explicit. Optional metadata is omitted when absent; an empty string or numeric
+zero is a present value. JSON is a fixture representation, not the protocol wire.
 
-Each manifest entry identifies one real case file, its SHA-256, category, kind,
-expected outcome, normative status, and specification sections. Pre-RC IDs may be replaced with documented semantic changes.
-Kinds distinguish exact bytes, negative parser inputs, and semantic/state cases.
-The moving baseline profile pins the complete manifest hash and baseline case hashes. The manifest pins conditional case hashes too. Reordering or
-changing cases requires a reviewed profile update.
+Every physical case appears once in the manifest with ID, category, kind (`bytes`,
+`negative`, or `semantic`), sections, expected outcome, path, and SHA-256. The moving
+profile requires exactly that set and pins both schemas, manifest, and specification.
+Pre-RC changes need reviewed case classifications. No capability or SKIP mechanism
+exists in this corpus.
 
-## Case applicability
+## Byte cases
 
-Every manifest entry declares exactly one strict applicability object:
+`crypto` cases provide root, canonical semantic plaintext, input field values,
+and all crypto intermediates: derived ID/key roots, OBJECT_ID/key, nonce, AAD,
+semantic length, padded plaintext, ciphertext, tag, and complete 1024-byte object.
+The consumer compares every intermediate, opens the committed bytes, checks the
+keyed identity, and validates/re-encodes the exact TOKEN.
 
-```json
-{"kind":"baseline"}
+`dispatch` negative cases use genuinely authenticated envelopes over deliberately
+invalid semantic plaintext. Expected `INVALID` means no TOKEN state, regardless of
+authentication. Wrong-size and failed-AEAD storage cases remain separate from invalid grammar.
+
+`post-aead` negative cases carry a valid canonical `semantic_hex` P, a filename
+`object_id`, exact 1008-byte `encryption_plaintext_hex`, full 1024-byte `object_hex`,
+and a named `defect`. The three defects are nonzero padding, keyed-ID mismatch,
+and declared semantic length 1007. The generator directly authenticates the
+malformed plaintext with the filename-derived key/nonce/AAD; it does not weaken
+the canonical writer API. For keyed-ID mismatch, the filename deliberately differs
+from HMAC(K_id, P), and encryption uses that different ID consistently. This is
+not a collision fixture.
+
+The consumer first proves the committed bytes pass raw GCM authentication and
+contain the claimed isolated defect. It then requires the normal strict reader to
+reject them and storage observation to yield `INVALID_STORAGE` with no semantic
+state. A failed AEAD tag does not satisfy a post-AEAD case. This checks distinct
+physical-size, authentication, length, padding, keyed-ID, and grammar boundaries.
+Unit tests additionally exercise malformed names, wrong roots, and fixture tampering.
+
+`bootstrap` provides exact password/root/salt/nonce, Argon2id wrap key, header,
+87-byte record, and VAULT_FINGERPRINT. Rewrap uses the same root with a different
+password/salt/nonce and retains the fingerprint. Fixed random values are public
+test material and must never be reused by live creation or rewrap.
+
+`totp` preserves the RFC 6238 Appendix B known answers for SHA-1/256/512, each with
+six rows. It includes the algorithm-specific ASCII secret, time, counter, exact
+u64be counter bytes, and decimal code. Expected codes come from the RFC, not the
+generator. The linked source in each case records their origin.
+
+## Graph and fold cases
+
+`graph` steps start with an empty observed set. `add` supplies an already validated
+TOKEN fact; `remove` models loss from observation; `evaluate` compares head IDs and complete head records, distinct values,
+unresolved IDs, and conflict. Each `head_objects` record retains parents, value, and optional
+client metadata exactly while that object is represented; it is not merged when
+semantic values are equal. This adds no persistent retention requirement. IDs and
+complete values are symbolic.
+`canonical` labels the exact immutable plaintext represented by a fact. Repeated
+IDs with differing labels exercise defensive identity failure. Cycles/SCCs and
+same-ID cases do not claim encrypted collision fixtures. A failed identity is
+excluded for that model evaluation context, without a persisted recovery state.
+
+Expected results are written from the specification independently of the Go graph
+evaluator. Cycles retain all members as current until a strict descendant supersedes
+the group; unavailable intermediates never supply inferred paths.
+
+`fold` supplies one complete `token` operation, sorted original 32-byte IDs,
+modeled stage IDs, and exact sorted parent sets per stage. First stage takes four originals, later stages previous fold
+plus up to three originals. Separate tests construct real encrypted stages, check
+complete-value preservation, and inject later-stage failure. Every stage preserves
+the operation’s exact CLIENT_NAME and CLIENT_TIME presence and values, including absence, present-empty name, and numeric zero.
+
+## Storage and workflow cases
+
+`storage` supplies root, namespace kind, and exact relative paths with observed entry
+kinds and optional bytes/read failures. No case path is opened on the host filesystem.
+The expected class sequence describes candidate observations: `SUPPORTED_VALID`,
+authenticated invalid grammar `INVALID`, or size/authentication failure
+`INVALID_STORAGE`. Ignored entries produce no class. Read/namespace errors are
+reported by the diagnostic flag; processing may still retain validated objects.
+
+`workflow` models backend outcomes for `publish`, `create`, or `replace`. Creation
+and replacement operate on exact lowercase `vault`; uppercase conceptual VAULT
+refers to its representation, never a pathname alias.
+The replacement workflow's `kind` describes the newly observed canonical entry;
+only `regular` permits comparison/replacement. A namespace observation accepts only
+`directory`; wrong types produce diagnostics and are not traversed. These observed
+entry-type rules do not mandate host race-hardening primitives.
+
+`durable` means the backend believes its required persistence work succeeded;
+`complete` means complete replacement/bootstrap bytes were constructed separately.
+Exact-existing publication succeeds with no new durability work, while non-exact
+existing entries remain untouched. Ambiguous failure returns `FAILED` without
+asserting absence. Parent availability and orphan-object presence are supplied
+independently and deliberately do not gate publication or creation.
+
+Replace compares freshly observed bytes to `base_hex`. These workflow byte strings
+are abstract representations, not bootstrap crypto fixtures. Unequal bytes mean
+`STALE`; inability to compare means failure. This models compare-before-replace,
+not atomic CAS, real filesystem effects, persistent pending state, or crash proof.
+
+## Deliberate maintenance
+
+Normal checks never write cases. The explicit generator is:
+
+```sh
+go run ./conformance/cmd/generate-vectors -root .
 ```
 
-or:
-
-```json
-{"kind":"conditional","capability":"advisory-history"}
-```
-
-Unknown properties/capabilities reject. Baseline cannot include a capability;
-conditional requires this recognized capability. `expected` remains a real outcome
-when applicable. No SKIP or optional PASS state is used. The baseline profile's
-required set equals only baseline manifest entries; every physical case file must
-appear exactly once in the complete manifest.
-
-`make conformance` runs baseline with no optional capability. To claim the optional
-feature, use `make conformance-all` or `go run ./conformance/cmd/totipo-conformance -root . -capability advisory-history`.
-Output separates baseline from `capability=advisory-history`; the reference model
-explicitly declares support. No protocol feature-negotiation API or wire change is
-implied. `make check` executes both baseline and full reference suites.
-
-## Dispatch and full crypto
-
-`dispatch` and `crypto` cases provide `root_hex`, exact `semantic_hex`, an expected
-compatibility class, and a `crypto` diagnostic record. All such cases use the same
-1024-byte envelope, including malformed semantic and synthetic future cases.
-
-The diagnostic record provides the root-derived keys, object ID/key, nonce, AAD,
-semantic length, padded plaintext, ciphertext, tag, and complete object bytes.
-The consumer compares every intermediate, decrypts the committed object, verifies
-its keyed identity, and then dispatches the exact authenticated semantics.
-
-Supported exact objects also provide input field values. Full signed fixtures
-add the fixed test private/public key, unsigned semantic bytes, signature input,
-and canonical DER signature. Consumers verify the supplied signature. They must
-not reproduce ECDSA signatures by signing the same message again. The fixture
-private key is the public test scalar 1 and must never be used for real vaults.
-
-Future cases provide `future.routing` and `opaque_tail_hex`. They use semantic
-version 2, the frozen prefix, and deliberately malformed-as-v1 tail bytes. The
-consumer rebuilds the prefix/tail bytes but never parses that tail as v1. Unknown
-types and malformed future prefixes are authenticated opaque-unscoped evidence;
-they are distinct from failed authentication or malformed supported bodies.
-
-## Provenance, capacity, bootstrap
-
-`provenance` cases carry a supported input, root, optional public key, and expected
-`VERIFIED`, `REJECTED`, or `UNRESOLVED`. The corpus includes fixed valid 70-byte
-and 72-byte DER signatures. Signature validity never determines TOKEN assertion
-validity. Separate unit tests cover malformed signatures and invalid curve points.
-
-`size` cases specify the complete shape, planned byte count, maximum parent fan-in,
-and `FITS`/`FOLD` result. Planning always reserves 72 bytes. The short-DER case has
-15 DEVICE parents and a 254-byte name: its fixed valid signature allows actual
-bytes to fit, but its 1007-byte reserved size forbids that writer shape. Reader
-acceptance and writer planning are deliberately distinct.
-
-`bootstrap` cases provide password bytes, root, salt, nonce, Argon2id wrapping key,
-header, full 87-byte record, and local vault binding. Empty and Unicode password
-bytes are included. Salt/nonce/root values are fixed public fixture material.
-Tests additionally exercise malformed inputs and authentication failures.
-
-## TOTP known answers
-
-`totp` cases execute the [RFC 6238 Appendix B](https://www.rfc-editor.org/rfc/rfc6238.html#appendix-B)
-known answers, with the explicit 20/32/64-byte secrets used by Appendix A for
-SHA-1/SHA-256/SHA-512. Each case carries source/notes, raw secret hex, the section
-40 algorithm number, digits, period, `t0`, and six timestamp rows. Each row pins
-Unix seconds, the integer counter, its exact eight-byte big-endian hex encoding,
-and the zero-padded decimal code. The runner checks both counter derivation and
-actual code generation. These fixtures use `t0=0`, period 30, and eight digits.
-Expected codes are transcribed from the RFC, not computed by the generator.
-
-## Graph steps
-
-Graph cases are compact, language-neutral symbolic models. IDs such as `a`, `b`,
-`T`, and `D` stand for already authenticated object and logical identities, not wire
-hex values. `semantic_digest` names the exact immutable byte string represented
-by the symbolic object. Learning is assumed to follow storage authentication and
-intrinsic classification; the graph evaluator is not an alternate byte parser.
-
-Each case begins with an empty accepted snapshot. `remember`, `history-lost`,
-`history-clear`, and `cache-write-fails` require the conditional advisory-history
-capability. Other actions operate on baseline protocol state. Actions:
-
-- `learn`: accept supplied authenticated immutable evidence; repeated current IDs
-  must agree. `integrity_error` expects a concrete contradiction or resolved cycle.
-- `disappear` / `remote-unavailable`: subsequent observation excludes that object;
-  remote reasons distinguish absent, unreadable, wrong-size, AEAD, padding, or ID failure.
-- `remember`: optional advisory memory copies current IDs for regression warnings.
-- `history-lost`: detected loss/corruption of previously retained/expected advisory memory; discard it, emit a diagnostic, retain current objects. Mere absence of the feature is not this event.
-- `history-clear`: explicitly forget advisory memory/diagnostics without changing current graph state.
-- `optional-cache-failure`: baseline hypothetical non-authoritative failure notification; cannot undo acknowledged publication and requires no cache implementation or diagnostic API.
-- `cache-write-fails`: accept the object and expose a cache warning without blocking.
-- `discovery-incomplete`: set the incomplete-view diagnostic to `flag`.
-- `plan`: supply TOKEN node, complete desired value, intent, and confirmation `flag`;
-  compare eligibility `success` and exact chosen `parents` against the snapshot.
-- `publish`: supply acknowledgement `flag`; compare publication `success`. Ordinary
-  plans survive later observations; confirmed conflicts recheck TOKEN context.
-- `rename`: incorporate all supported DEVICE heads, including presentation-inert ones.
-- `query` / `state-query`: compare complete current results without mutating state.
-
-Results expose accepted heads, complete value/conflict state, ordinary authorship
-eligibility, explicit candidate eligibility, optional `requires_confirmation`, and
-optional warning expectations. `integrity_ok` describes concrete graph consistency,
-not a global readiness predicate. Warnings never silently add nodes or values.
-The timestamp fold case checks shared time, not a complete production fold writer.
-
-## Deliberate fixture maintenance
-
-Normal checks never generate fixtures. Fixed canonical bytes, signatures, signature
-inputs, ciphertexts, IDs, VAULT bytes, and TOTP answers are immutable in r15. The old
-monolithic generator was removed with its obsolete state semantics. Edit semantic
-cases explicitly from the specification, review the before/after matrix, and update
-manifest/profile pins only after checking the exact changed files. Do not derive
-expected results from the Go evaluator just to make it pass. Independent consumers
-remain necessary before RC freeze.
-
-## Storage-family environments (r10)
-
-`storage` cases separate a filesystem environment from authenticated semantic
-fixtures and expected observations/state. `storage.root_hex` supplies the test
-vault key, and `namespace_kind` describes the un-followed `objects-v1` directory.
-`entries` use exact slash-separated paths relative to the configured synchronization
-root and explicit kinds (`regular`, `directory`, `symlink`, `fifo`, `socket`,
-`device`). No environment path is opened on the host filesystem.
-
-A regular entry provides either `fixture_case` (an existing manifest envelope case),
-`data_hex`, or `zero_bytes` (a bounded synthetic zero-filled file length). Omitted
-content means empty bytes. Fixture references resolve only to hash-verified crypto
-or dispatch cases in the same corpus and vault; recursive storage references,
-missing IDs, duplicate paths, and mixed content descriptions fail verification.
-Content readers are invoked only for exact v1-family candidates. Thus the runner
-never decrypts or interprets ignored sibling representations.
-
-`expect` records candidate observations and their classes, sorted learned IDs,
-opaque-unscoped IDs, concrete graph integrity, and a query result from the existing
-graph model. `INVALID_STORAGE` is unauthenticated/incorrectly sized storage evidence;
-`INVALID` is failed supported semantic grammar. Neither becomes accepted semantic
-knowledge. Query expectations are authored independently of the evaluator.
-
-`objects-v1/` identifies the v1 envelope/storage family, while `OBJECT_VERSION`
-identifies semantic versions within it. Every valid v1-family object is 1024 bytes.
-Unknown sibling namespace names are not authenticated future-version evidence.
-`objects-v2/` examples illustrate arbitrary future layouts, not a defined v2 format.
-
-A future family claiming rolling compatibility publishes authenticated compatibility
-assertions into `objects-v1/`. The shadow case reuses an existing authenticated
-future TOKEN fixture and exercises scoped opaque degradation. The no-shadow case
-learns nothing from the sibling and remains equivalent to its supported baseline:
-that future family is not providing rolling-upgrade compatibility to v1 for that
-state. Explicit candidate selection retains its existing mandatory warning even
-on an ordinary supported baseline; sibling names add no warning or semantic block.
-
-These in-memory environments model observed storage state and protocol classification.
-They do not model local syscall-level TOCTOU races or crash durability.
-
-Under r15, baseline v1 conformance does not require a live implementation to prove
-immunity to a malicious same-privilege process racing namespace/type/inode changes
-between individual filesystem calls. Static special-file/symlink handling, ordinary
-synchronization churn, bounded reads, and protocol authentication remain required
-as specified. Authoritative local VAULT/binding/private-key durability still requires platform evidence. Synchronized-object flushing is reliability guidance.
-
-## Publication, binding, and provenance workflows
-
-`publication` carries device/key identity and events. `advertise` supplies matching
-identity, assertion validity, correct self-signature (`verified`), and local
-`acknowledged` outcome; `publish-token` supplies its acknowledgement. Reported setup
-success requires both. TOKEN-before-DEVICE visibility is allowed. These booleans
-are construction/API outcomes, not mandatory runtime self-reader checks or fsyncs.
-
-`local` trials model simple local API obligations. For `install`, `exact` targets
-contain the intended 1024 abstract bytes (0x42 repeated), `different` contains 0x43,
-and absent/symlink are explicit entry kinds. Exact ordinary-file bytes acknowledge
-presence without an existing-file barrier; mismatched targets remain unchanged.
-An unacknowledged absent-target attempt is UNKNOWN and may later be observed.
-For `binding`, the derived anchor is 32 abstract 0x11 bytes; different is 0x12 and
-corrupt is one byte. Authentication and authoritative durability outcomes are
-explicit inputs. Absence allows first open, corruption requires recovery, mismatch
-rejects. These abstract fixtures do not allocate or regenerate protocol bytes.
-
-`signature-context` and `late-provenance` retain their fixed signed fixtures.
-Context verification binds signatures to the vault. Late matching key arrival
-updates UNRESOLVED to VERIFIED/REJECTED without changing complete values or ancestry.
-Optional retained opaque bytes and their storage format are implementation choices;
-there is no mandatory retention/reset case operation in r15.
+It regenerates r16 fixtures and exact moving pins, preserves RFC TOTP files, and
+removes physical cases no longer in its declared corpus. Review its inputs and all
+before/after bytes. It uses the Go crypto primitives shared with the consumer;
+this is reproducibility evidence, not an independent cryptographic implementation.
+Use independent implementations before RC freeze. The existing Unicode bootstrap
+password is retained as an explicit source fixture.

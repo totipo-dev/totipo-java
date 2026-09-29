@@ -1,0 +1,27 @@
+{
+  "format": "totipo-case-v1",
+  "id": "v1.fold.width-0.001",
+  "operation": "fold",
+  "expected": "PASS",
+  "notes": "Symbolic stage IDs test fixed fold planning with one complete operation. Every stage must preserve the token value and exact client metadata. Integration tests also construct and open encrypted stages.",
+  "fold": {
+    "token": {
+      "identity": "IiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiI=",
+      "parents": [],
+      "status": 1,
+      "issuer": "Example",
+      "account": "alice@example.test",
+      "algorithm": 1,
+      "digits": 6,
+      "period": 30,
+      "secret": "MTIzNDU2Nzg5MDEyMzQ1Njc4OTA="
+    },
+    "frontier": [],
+    "stage_ids": [
+      "6464646464646464646464646464646464646464646464646464646464646464"
+    ],
+    "parents": [
+      []
+    ]
+  }
+}

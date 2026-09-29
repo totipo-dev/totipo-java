@@ -7,15 +7,15 @@ import java.util.Arrays;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
-/** Stateless r15 §40 calculation only; the caller must enforce credential-use policy. */
+/** Stateless RFC 6238 calculation over a Java credential value. */
 final class Totp {
     private Totp() {}
 
-    static String generate(V1Plaintext.Credential credential, long unixSeconds) {
+    static String generate(TokenValue.Credential credential, long unixSeconds) {
         return generate(credential, BigInteger.valueOf(unixSeconds));
     }
 
-    static String generate(V1Plaintext.Credential credential, BigInteger unixSeconds) {
+    static String generate(TokenValue.Credential credential, BigInteger unixSeconds) {
         // Reject invalid time/counter before obtaining a secret or starting HMAC.
         byte[] counter = encodeCounter(timeStep(unixSeconds, credential.period()));
         byte[] secret = null;
@@ -28,7 +28,7 @@ final class Totp {
                 default -> throw new IllegalArgumentException("Unsupported credential algorithm");
             };
             checkDigits(credential.digits());
-            secret = credential.secret();
+            secret = credential.secret().bytes();
             if (secret.length < 1 || secret.length > 128) {
                 throw new IllegalArgumentException("Invalid credential secret length");
             }

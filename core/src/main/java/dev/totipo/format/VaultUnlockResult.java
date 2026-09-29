@@ -1,6 +1,6 @@
 package dev.totipo.format;
 
-/** Cryptographic unwrap result only; UNLOCKED does not mean durably established. */
+/** Cryptographic unwrap result with an owned root; no storage lifecycle is implied. */
 final class VaultUnlockResult implements AutoCloseable {
     enum Status { UNLOCKED, INVALID_FORMAT, INVALID_PASSWORD_INPUT, AUTHENTICATION_FAILED }
 
@@ -32,13 +32,13 @@ final class VaultUnlockResult implements AutoCloseable {
     /** Caller owns the copy. No key bytes appear in toString, errors, or logs. */
     byte[] root() { requireOpen(); return root == null ? null : root.clone(); }
 
-    /** Pure r15 §10 derivation, without any durable establishment or comparison. */
-    byte[] binding() {
+    /** Exact r16 fingerprint of the authenticated root; caller owns the result. */
+    byte[] fingerprint() {
         requireOpen();
         if (root == null) {
             throw new IllegalStateException("No authenticated root");
         }
-        return CryptoSupport.hmac(root, CryptoSupport.ascii("totipo/v1/local-vault-binding"));
+        return CryptoSupport.vaultFingerprint(root);
     }
 
     private void requireOpen() {

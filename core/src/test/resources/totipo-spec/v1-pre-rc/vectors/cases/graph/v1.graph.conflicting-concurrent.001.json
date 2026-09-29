@@ -3,73 +3,61 @@
   "id": "v1.graph.conflicting-concurrent.001",
   "operation": "graph",
   "expected": "PASS",
+  "notes": "Abstract validated TOKEN facts; symbolic IDs and cycles are not encrypted collision fixtures.",
   "graph": {
     "steps": [
       {
-        "action": "learn",
+        "action": "add",
         "node": {
-          "id": "a",
-          "version": 1,
-          "type": "TOKEN",
+          "id": "A",
           "identity": "T",
-          "class": "SUPPORTED_VALID",
           "parents": null,
-          "author_time": 0,
-          "semantic_digest": "bytes-a"
-        },
-        "value": {
-          "status": "LIVE",
-          "issuer": "Example",
-          "account": "alice",
-          "algorithm": 1,
-          "digits": 6,
-          "period": 30,
-          "secret_hex": "3132333435"
+          "canonical": "A/T/X/",
+          "value": "X"
         }
       },
       {
-        "action": "learn",
+        "action": "add",
         "node": {
-          "id": "b",
-          "version": 1,
-          "type": "TOKEN",
+          "id": "B",
           "identity": "T",
-          "class": "SUPPORTED_VALID",
           "parents": null,
-          "author_time": 0,
-          "semantic_digest": "bytes-b"
-        },
-        "value": {
-          "status": "LIVE",
-          "issuer": "Example",
-          "account": "bob",
-          "algorithm": 1,
-          "digits": 6,
-          "period": 30,
-          "secret_hex": "3132333435"
+          "canonical": "B/T/Y/",
+          "value": "Y"
         }
       },
       {
-        "action": "query",
-        "query": {
-          "identity": "T",
-          "candidate": "a"
-        },
+        "action": "evaluate",
+        "identity": "T",
         "expect": {
           "heads": [
-            "a",
-            "b"
+            "A",
+            "B"
           ],
-          "value_state": "CONFLICT",
-          "ordinary": false,
-          "author": false,
-          "candidate": true,
-          "candidate_warning": true,
-          "integrity_failure": false,
-          "requires_confirmation": true
+          "head_objects": [
+            {
+              "id": "A",
+              "identity": "T",
+              "parents": null,
+              "canonical": "A/T/X/",
+              "value": "X"
+            },
+            {
+              "id": "B",
+              "identity": "T",
+              "parents": null,
+              "canonical": "B/T/Y/",
+              "value": "Y"
+            }
+          ],
+          "values": [
+            "X",
+            "Y"
+          ],
+          "unresolved": [],
+          "conflicting": true
         }
       }
-    ],
-    "notes": "r15: evaluate accepted current objects; retained history supplies warnings only. Ordinary authorship requires one value; visible conflict requires confirmation."
+    ]
   }
 }

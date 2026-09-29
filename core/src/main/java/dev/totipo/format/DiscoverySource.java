@@ -8,11 +8,11 @@ import java.util.List;
 import java.util.Objects;
 
 /** Storage observation boundary. Freeze exact direct-child names observed as regular
- * files without following final symlinks. Synchronized contents may be malformed,
+ * files without following final symlinks. Configured durable-store bytes are hostile: malformed,
  * stale, conflicting, missing, replayed, replaced or withheld. Local OS, filesystem,
  * mount/process namespace and same-privilege processes are trusted for baseline operation.
  * Readers remain bounded and cryptographically authenticated; ordinary I/O races
- * make observations unavailable/incomplete and can be retried by a later pass.
+ * make observations unavailable/incomplete diagnostically; no global operation gate is implied.
  * The caller closes each snapshot and read handle. */
 public interface DiscoverySource {
     Snapshot snapshot() throws IOException;
@@ -25,7 +25,7 @@ public interface DiscoverySource {
         @Override public String toString() { return "Candidate[" + id.filename() + "]"; }
     }
 
-    enum SnapshotIssue { NONE, ENUMERATION_UNAVAILABLE, UNSUPPORTED_DIRECTORY_ACCESS, UNSAFE_NAMESPACE }
+    enum SnapshotIssue { NONE, ENUMERATION_UNAVAILABLE, UNSAFE_NAMESPACE }
 
     /** Frozen candidate set with an optional, thread-confined resource owner. Close once processing ends. */
     final class Snapshot implements java.io.Closeable {
@@ -51,7 +51,6 @@ public interface DiscoverySource {
         }
         public List<Candidate> candidates() { return candidates; }
         public SnapshotIssue issue() { return issue; }
-        boolean complete() { return issue == SnapshotIssue.NONE; }
         @Override public void close() throws IOException {
             if (!closed) { closed = true; resource.close(); }
         }

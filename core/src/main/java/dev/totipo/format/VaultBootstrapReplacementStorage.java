@@ -3,7 +3,8 @@ package dev.totipo.format;
 import java.io.IOException;
 import java.io.InputStream;
 
-/** Explicit opaque replacement capability; initial publication remains separate. */
+/** Low-level replacement capability; initial publication remains separate.
+ * Exact BASE comparison and r16 lifecycle reconciliation are not implemented here. */
 public interface VaultBootstrapReplacementStorage extends VaultBootstrapStorage {
     /** Defensively snapshots the supplied bytes into complete separate staging in
      * the same storage/filesystem context needed for atomic replacement. Before
@@ -22,7 +23,7 @@ public interface VaultBootstrapReplacementStorage extends VaultBootstrapStorage 
          * ordinary disappearance before the atomic move may still install the candidate.
          * Never truncate/overwrite canonical in place.
          * Success includes required containing-directory durability, but does not
-         * imply password-change success: core must reopen/authenticate canonical.
+         * establish a vault lifecycle outcome; verification belongs to the caller.
          * Failure may be ambiguous about which representation is present; callers
          * must not infer rollback, restore old bytes, or retry automatically. */
         void replaceCanonicalDurably() throws IOException;

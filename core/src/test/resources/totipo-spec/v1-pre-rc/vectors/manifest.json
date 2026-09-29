@@ -1,589 +1,8 @@
 {
   "format": "totipo-vector-manifest-v1",
   "protocol": "totipo-v1",
-  "spec_revision": "r15",
+  "spec_revision": "r16",
   "cases": [
-    {
-      "id": "v1.routing.token-v1.001",
-      "category": "routing",
-      "kind": "bytes",
-      "normative": true,
-      "path": "cases/routing/v1.routing.token-v1.001.json",
-      "expected": "SUPPORTED_VALID",
-      "spec_sections": [
-        "12",
-        "20",
-        "41\u201344"
-      ],
-      "sha256": "7c9cfa6f6a045f4b3cde16fd7e5463848bfa992f04604c5bd8ee2b9cfbf66db7",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.routing.device-v1.001",
-      "category": "routing",
-      "kind": "bytes",
-      "normative": true,
-      "path": "cases/routing/v1.routing.device-v1.001.json",
-      "expected": "SUPPORTED_VALID",
-      "spec_sections": [
-        "12",
-        "20",
-        "41\u201344"
-      ],
-      "sha256": "7582fd0ff94b78986c610fe1d55654497f1eada8da35080ec5fec0f27c62624d",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.encoding.token-root.001",
-      "category": "encoding",
-      "kind": "bytes",
-      "normative": true,
-      "path": "cases/encoding/v1.encoding.token-root.001.json",
-      "expected": "SUPPORTED_VALID",
-      "spec_sections": [
-        "12",
-        "20",
-        "41\u201344"
-      ],
-      "sha256": "55fca1e27555d8e98f1eff9235a17912ff5ec528d1cad8c819ef52b04084ae51",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.encoding.device-root.001",
-      "category": "encoding",
-      "kind": "bytes",
-      "normative": true,
-      "path": "cases/encoding/v1.encoding.device-root.001.json",
-      "expected": "SUPPORTED_VALID",
-      "spec_sections": [
-        "12",
-        "20",
-        "41\u201344"
-      ],
-      "sha256": "4f6f19d87c0543c734235079019033ee6f94abaf91e7b8d7756c0cc4087df765",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.device.explicit-id.001",
-      "category": "device",
-      "kind": "bytes",
-      "normative": true,
-      "path": "cases/device/v1.device.explicit-id.001.json",
-      "expected": "SUPPORTED_VALID",
-      "spec_sections": [
-        "12",
-        "20",
-        "41\u201344"
-      ],
-      "sha256": "2c3986efdcb032d5cf4317339eeb7c9a44946de4ae1c6fd10e0aa9114330eb87",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.routing.token-future-opaque.001",
-      "category": "routing",
-      "kind": "bytes",
-      "normative": true,
-      "path": "cases/routing/v1.routing.token-future-opaque.001.json",
-      "expected": "OPAQUE_ROUTABLE",
-      "spec_sections": [
-        "12",
-        "14\u201315",
-        "37"
-      ],
-      "sha256": "2dba7e6f240bba4dfc68343cf08be5abd9da1b4f5947d513acbbfd11c02a57b2",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.routing.device-future-opaque.001",
-      "category": "routing",
-      "kind": "bytes",
-      "normative": true,
-      "path": "cases/routing/v1.routing.device-future-opaque.001.json",
-      "expected": "OPAQUE_ROUTABLE",
-      "spec_sections": [
-        "12",
-        "14\u201315",
-        "37"
-      ],
-      "sha256": "ae923d48d64f87a0d600bfa3b0ddaf30558d155cdaf2f748486a9ca8f0ccb0c3",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.crypto.future-token-opaque.001",
-      "category": "crypto",
-      "kind": "bytes",
-      "normative": true,
-      "path": "cases/crypto/v1.crypto.future-token-opaque.001.json",
-      "expected": "OPAQUE_ROUTABLE",
-      "spec_sections": [
-        "12",
-        "14\u201315",
-        "37"
-      ],
-      "sha256": "ad004790fb056dcc426f059bbb22ebbbde99f1af0a6624fad088dd0c0072c39e",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.crypto.future-device-opaque.001",
-      "category": "crypto",
-      "kind": "bytes",
-      "normative": true,
-      "path": "cases/crypto/v1.crypto.future-device-opaque.001.json",
-      "expected": "OPAQUE_ROUTABLE",
-      "spec_sections": [
-        "12",
-        "14\u201315",
-        "37"
-      ],
-      "sha256": "f3cc040f8cf16d6319143a8bc679b4f1e2418931ab4cad464b1ac5c21c649d39",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.routing.unknown-type-unscoped.001",
-      "category": "routing",
-      "kind": "bytes",
-      "normative": true,
-      "path": "cases/routing/v1.routing.unknown-type-unscoped.001.json",
-      "expected": "OPAQUE_UNSCOPED",
-      "spec_sections": [
-        "12",
-        "15"
-      ],
-      "sha256": "35640f317dcbae50f81e491ea6831d2a038ce93580ccfab9992dbc7388b6b857",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.routing.future-token-malformed-prefix.001",
-      "category": "routing",
-      "kind": "negative",
-      "normative": true,
-      "path": "cases/routing/v1.routing.future-token-malformed-prefix.001.json",
-      "expected": "OPAQUE_UNSCOPED",
-      "spec_sections": [
-        "12",
-        "15"
-      ],
-      "sha256": "8f6a31ffd162a1e7be4d817d090003604a8ae5a19e9c333cb8bab57b25477af4",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.routing.future-device-malformed-prefix.001",
-      "category": "routing",
-      "kind": "negative",
-      "normative": true,
-      "path": "cases/routing/v1.routing.future-device-malformed-prefix.001.json",
-      "expected": "OPAQUE_UNSCOPED",
-      "spec_sections": [
-        "12",
-        "15"
-      ],
-      "sha256": "525111d12685afc0189fabe16afa66dbb841eb1020518d388092b9819511a376",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.encoding.parent-order.001",
-      "category": "encoding",
-      "kind": "negative",
-      "normative": true,
-      "path": "cases/encoding/v1.encoding.parent-order.001.json",
-      "expected": "INVALID",
-      "spec_sections": [
-        "43\u201344"
-      ],
-      "sha256": "1ef03d4d80d388bbb7a45402516df0a6a52f9fe1770cdeec5c0dfed3fc821748",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.encoding.parent-count-mismatch.001",
-      "category": "encoding",
-      "kind": "negative",
-      "normative": true,
-      "path": "cases/encoding/v1.encoding.parent-count-mismatch.001.json",
-      "expected": "INVALID",
-      "spec_sections": [
-        "43\u201344"
-      ],
-      "sha256": "ff91d61efa0a877e96c4c7fb6dcb44f4824e4b3f6dd92370be6889f90ebc8f06",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.encoding.duplicate-nonrepeatable.001",
-      "category": "encoding",
-      "kind": "negative",
-      "normative": true,
-      "path": "cases/encoding/v1.encoding.duplicate-nonrepeatable.001.json",
-      "expected": "INVALID",
-      "spec_sections": [
-        "41\u201344"
-      ],
-      "sha256": "1a85b74b4c5cf818b48f9139cedd6763f3bf1f02afad955f3a1b7660a89ab947",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.device.id-mismatch.001",
-      "category": "device",
-      "kind": "negative",
-      "normative": true,
-      "path": "cases/device/v1.device.id-mismatch.001.json",
-      "expected": "INVALID",
-      "spec_sections": [
-        "20",
-        "21.1"
-      ],
-      "sha256": "e4f8e5e1e91f09fd0314520541bb29d0666bb92222a3555b069f52c45582605b",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.encoding.author-time-zero.001",
-      "category": "encoding",
-      "kind": "bytes",
-      "normative": true,
-      "path": "cases/encoding/v1.encoding.author-time-zero.001.json",
-      "expected": "SUPPORTED_VALID",
-      "spec_sections": [
-        "20.1",
-        "44"
-      ],
-      "sha256": "5fe8833c172304b87324d5258d5f82f9ce9895876d564a397e53d678d1329c5d",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.encoding.author-time-u64max.001",
-      "category": "encoding",
-      "kind": "bytes",
-      "normative": true,
-      "path": "cases/encoding/v1.encoding.author-time-u64max.001.json",
-      "expected": "SUPPORTED_VALID",
-      "spec_sections": [
-        "20.1",
-        "44"
-      ],
-      "sha256": "b5396ee0553c7354b11a02f54979e5fa7c9439fab6441fceaba4d58ca6282d5b",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.timestamp.zero.001",
-      "category": "timestamp",
-      "kind": "bytes",
-      "normative": true,
-      "path": "cases/timestamp/v1.timestamp.zero.001.json",
-      "expected": "SUPPORTED_VALID",
-      "spec_sections": [
-        "20.1",
-        "44"
-      ],
-      "sha256": "13c04284b1aaa30c9a6a8bc217332a41536a071bc213db76df323667b0d5066e",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.timestamp.normal.001",
-      "category": "timestamp",
-      "kind": "bytes",
-      "normative": true,
-      "path": "cases/timestamp/v1.timestamp.normal.001.json",
-      "expected": "SUPPORTED_VALID",
-      "spec_sections": [
-        "20.1",
-        "44"
-      ],
-      "sha256": "7bbddb0d34b3d53af6c8891214006ef926b71fdfdfdc157aeeb7ca6dd83901c7",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.timestamp.i64max.001",
-      "category": "timestamp",
-      "kind": "bytes",
-      "normative": true,
-      "path": "cases/timestamp/v1.timestamp.i64max.001.json",
-      "expected": "SUPPORTED_VALID",
-      "spec_sections": [
-        "20.1",
-        "44"
-      ],
-      "sha256": "fa5d971499e70ef2f003de09b10f964dbbe19ceb85ea5c6e20bea89e4f1e7bd8",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.timestamp.u64max.001",
-      "category": "timestamp",
-      "kind": "bytes",
-      "normative": true,
-      "path": "cases/timestamp/v1.timestamp.u64max.001.json",
-      "expected": "SUPPORTED_VALID",
-      "spec_sections": [
-        "20.1",
-        "44"
-      ],
-      "sha256": "cbc283e9f73d01c3d4ec7a5330b7a5478a3fc988638f0350715b229bca023e84",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.encoding.utf8-boundary.001",
-      "category": "encoding",
-      "kind": "bytes",
-      "normative": true,
-      "path": "cases/encoding/v1.encoding.utf8-boundary.001.json",
-      "expected": "SUPPORTED_VALID",
-      "spec_sections": [
-        "44\u201346"
-      ],
-      "sha256": "06aa463ca48e73f4cd41d99e7d547910b037c4d927ab12f2ccf0ad05d794b5db",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.size.token-max-4.001",
-      "category": "size",
-      "kind": "semantic",
-      "normative": true,
-      "path": "cases/size/v1.size.token-max-4.001.json",
-      "expected": "FITS",
-      "spec_sections": [
-        "45"
-      ],
-      "sha256": "6e7951f71ad002d2570303a1a9faabff9e038f26fa69740cc05669d3ec808c8d",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.size.token-max-5-fold.001",
-      "category": "size",
-      "kind": "semantic",
-      "normative": true,
-      "path": "cases/size/v1.size.token-max-5-fold.001.json",
-      "expected": "FOLD",
-      "spec_sections": [
-        "45"
-      ],
-      "sha256": "d7037b17fa7faf2bb21a99f8cf5c0f48450a9375cac711de2039cfff6cff9a02",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.size.device-max-14.001",
-      "category": "size",
-      "kind": "semantic",
-      "normative": true,
-      "path": "cases/size/v1.size.device-max-14.001.json",
-      "expected": "FITS",
-      "spec_sections": [
-        "45"
-      ],
-      "sha256": "50c8171786c0fe57eb521c31918b73f2d19daac9fe7903e6ee13de29921406d7",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.size.device-max-15-fold.001",
-      "category": "size",
-      "kind": "semantic",
-      "normative": true,
-      "path": "cases/size/v1.size.device-max-15-fold.001.json",
-      "expected": "FOLD",
-      "spec_sections": [
-        "45"
-      ],
-      "sha256": "cf59636fbbf88438c02e7e02b8f08a69e8d9ad8c0cf876ef0afe2328d85a7696",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.size.short-der-no-extra-parent.001",
-      "category": "size",
-      "kind": "semantic",
-      "normative": true,
-      "path": "cases/size/v1.size.short-der-no-extra-parent.001.json",
-      "expected": "FOLD",
-      "spec_sections": [
-        "45"
-      ],
-      "sha256": "8b46b395387179ee4810cda17642a01cd1fcdb849179406a71b0be3abea13fc4",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.crypto.token-root.001",
-      "category": "crypto",
-      "kind": "bytes",
-      "normative": true,
-      "path": "cases/crypto/v1.crypto.token-root.001.json",
-      "expected": "SUPPORTED_VALID",
-      "spec_sections": [
-        "11\u201316",
-        "19\u201321"
-      ],
-      "sha256": "ae82fd22120a02f8adb3f00496ed0841f97402c9325f7482fe2404c390571bff",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.crypto.token-child.001",
-      "category": "crypto",
-      "kind": "bytes",
-      "normative": true,
-      "path": "cases/crypto/v1.crypto.token-child.001.json",
-      "expected": "SUPPORTED_VALID",
-      "spec_sections": [
-        "11\u201316",
-        "19\u201321"
-      ],
-      "sha256": "e7cc354fa64d73dedfa0ae31fc848a50339992d00a2c25a5794b58532752f97e",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.crypto.device-root.001",
-      "category": "crypto",
-      "kind": "bytes",
-      "normative": true,
-      "path": "cases/crypto/v1.crypto.device-root.001.json",
-      "expected": "SUPPORTED_VALID",
-      "spec_sections": [
-        "11\u201316",
-        "19\u201321"
-      ],
-      "sha256": "0f45cf193ff8a04e5c20dbb39bf569d58a0a1dc3ce44071e203bc6a4d024ec92",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.provenance.token-verified.001",
-      "category": "provenance",
-      "kind": "semantic",
-      "normative": true,
-      "path": "cases/provenance/v1.provenance.token-verified.001.json",
-      "expected": "VERIFIED",
-      "spec_sections": [
-        "16",
-        "19",
-        "21.2"
-      ],
-      "sha256": "7e9448c3c173dc4fadc36551796b0e4d3b674bcdaac18bda8c577473f36e0f30",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.provenance.token-rejected.001",
-      "category": "provenance",
-      "kind": "semantic",
-      "normative": true,
-      "path": "cases/provenance/v1.provenance.token-rejected.001.json",
-      "expected": "REJECTED",
-      "spec_sections": [
-        "16",
-        "19",
-        "21.2"
-      ],
-      "sha256": "b7b662b4c798873a69bea1257e27d8c16b97cdad64ea135720a442e39665248e",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.provenance.token-unresolved.001",
-      "category": "provenance",
-      "kind": "semantic",
-      "normative": true,
-      "path": "cases/provenance/v1.provenance.token-unresolved.001.json",
-      "expected": "UNRESOLVED",
-      "spec_sections": [
-        "16",
-        "19",
-        "21.2"
-      ],
-      "sha256": "ad4d175619bb4e3bae32e106742711b127d9946990bcf3630a4bf7ca3a6d4639",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.provenance.der-short-valid.001",
-      "category": "provenance",
-      "kind": "bytes",
-      "normative": true,
-      "path": "cases/provenance/v1.provenance.der-short-valid.001.json",
-      "expected": "VERIFIED",
-      "spec_sections": [
-        "16",
-        "19",
-        "45.1"
-      ],
-      "sha256": "cf0c80b95f72052c55d782bc6c0aab3483d321d96b951560f9c6153c07e8a1bb",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.provenance.der-max-valid.001",
-      "category": "provenance",
-      "kind": "bytes",
-      "normative": true,
-      "path": "cases/provenance/v1.provenance.der-max-valid.001.json",
-      "expected": "VERIFIED",
-      "spec_sections": [
-        "16",
-        "19",
-        "45.1"
-      ],
-      "sha256": "0a0757e56cc9021873feac6426849bad8ba5f0cf0b2aa95d21f0ef66120ba3bd",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
     {
       "id": "v1.bootstrap.ascii.001",
       "category": "bootstrap",
@@ -592,12 +11,12 @@
       "path": "cases/bootstrap/v1.bootstrap.ascii.001.json",
       "expected": "VALID",
       "spec_sections": [
-        "5\u201311"
+        "4",
+        "5",
+        "6",
+        "9"
       ],
-      "sha256": "cd8e39898af81b186fdd5056f776e1f7bdebb97f2da8fd07b43d13d99fd380c8",
-      "applicability": {
-        "kind": "baseline"
-      }
+      "sha256": "2fa8fbd10507a9b8043ee335ab500844fd1e4d323afbe747bb6396a6b9ae0873"
     },
     {
       "id": "v1.bootstrap.empty.001",
@@ -607,12 +26,27 @@
       "path": "cases/bootstrap/v1.bootstrap.empty.001.json",
       "expected": "VALID",
       "spec_sections": [
-        "5\u201311"
+        "4",
+        "5",
+        "6",
+        "9"
       ],
-      "sha256": "95da80febe764a28ee900b226f4799dd4c1aa6bb0056e254c12c63b00da9bbba",
-      "applicability": {
-        "kind": "baseline"
-      }
+      "sha256": "b1b253e82bf434d1de0cc307e2c4bcddee3fdf4abe989330f733b19945d5b3c2"
+    },
+    {
+      "id": "v1.bootstrap.rewrap.001",
+      "category": "bootstrap",
+      "kind": "bytes",
+      "normative": true,
+      "path": "cases/bootstrap/v1.bootstrap.rewrap.001.json",
+      "expected": "VALID",
+      "spec_sections": [
+        "4",
+        "5",
+        "6",
+        "9"
+      ],
+      "sha256": "88f337eadb06b8054dedcb2323da237feb932e725fae0ddc1488111474f4bcc3"
     },
     {
       "id": "v1.bootstrap.unicode.001",
@@ -622,44 +56,603 @@
       "path": "cases/bootstrap/v1.bootstrap.unicode.001.json",
       "expected": "VALID",
       "spec_sections": [
-        "5\u201311"
+        "4",
+        "5",
+        "6",
+        "9"
       ],
-      "sha256": "c080d612e1916734cd2d960d7bc0c99779ddfea77ce0d8e8da66c4f9d41a1b8d",
-      "applicability": {
-        "kind": "baseline"
-      }
+      "sha256": "84114af5be3292bd38d02b73fe6a5fcd552bba7cb6076eb289a685ea788e07e6"
     },
     {
-      "id": "v1.graph.sequential.001",
-      "category": "graph",
-      "kind": "semantic",
+      "id": "v1.crypto.nonzero-padding.001",
+      "category": "crypto",
+      "kind": "negative",
       "normative": true,
-      "path": "cases/graph/v1.graph.sequential.001.json",
-      "expected": "PASS",
+      "path": "cases/crypto/v1.crypto.nonzero-padding.001.json",
+      "expected": "INVALID_STORAGE",
       "spec_sections": [
-        "22\u201325",
-        "31\u201338"
+        "11",
+        "13"
       ],
-      "sha256": "47eaa8eb6aab126871294be1fa0dd8ac7d3dc8f298b36615da95524d74f119f5",
-      "applicability": {
-        "kind": "baseline"
-      }
+      "sha256": "c88238486775495cb5b538eccbf5630b84a7db1b3dd36f08321f5e15b813eaa6"
     },
     {
-      "id": "v1.graph.equal-concurrent.001",
-      "category": "graph",
+      "id": "v1.crypto.object-id-mismatch.001",
+      "category": "crypto",
+      "kind": "negative",
+      "normative": true,
+      "path": "cases/crypto/v1.crypto.object-id-mismatch.001.json",
+      "expected": "INVALID_STORAGE",
+      "spec_sections": [
+        "11",
+        "13"
+      ],
+      "sha256": "b95a6c07d355c79bb5bee38ae140b7ca877825276d2c198869f63a147ecfe199"
+    },
+    {
+      "id": "v1.crypto.semantic-length-invalid.001",
+      "category": "crypto",
+      "kind": "negative",
+      "normative": true,
+      "path": "cases/crypto/v1.crypto.semantic-length-invalid.001.json",
+      "expected": "INVALID_STORAGE",
+      "spec_sections": [
+        "11",
+        "13"
+      ],
+      "sha256": "1dc9935f90536e7ae8e1766a1e641a4623c4b4fabc86eaebb0bad5f9d188ba67"
+    },
+    {
+      "id": "v1.crypto.token-child.001",
+      "category": "crypto",
+      "kind": "bytes",
+      "normative": true,
+      "path": "cases/crypto/v1.crypto.token-child.001.json",
+      "expected": "SUPPORTED_VALID",
+      "spec_sections": [
+        "10",
+        "11",
+        "12",
+        "13"
+      ],
+      "sha256": "39a570a31f2a103b1a2604dec62c2428a584696303fd912eaec8f8b34de429ea"
+    },
+    {
+      "id": "v1.crypto.token-root.001",
+      "category": "crypto",
+      "kind": "bytes",
+      "normative": true,
+      "path": "cases/crypto/v1.crypto.token-root.001.json",
+      "expected": "SUPPORTED_VALID",
+      "spec_sections": [
+        "10",
+        "11",
+        "12",
+        "13"
+      ],
+      "sha256": "94d20ffa3e84b09500fa67d491c7cd50ecd53fc961e420fa496c335dab1c14ef"
+    },
+    {
+      "id": "v1.encoding.account-too-long.001",
+      "category": "encoding",
+      "kind": "negative",
+      "normative": true,
+      "path": "cases/encoding/v1.encoding.account-too-long.001.json",
+      "expected": "INVALID",
+      "spec_sections": [
+        "10",
+        "11",
+        "12",
+        "13"
+      ],
+      "sha256": "9224d0a78c7f76f47373fcc23d84f4cc2f93873e3fb6453ad54f999b4f944735"
+    },
+    {
+      "id": "v1.encoding.algorithm-range.001",
+      "category": "encoding",
+      "kind": "negative",
+      "normative": true,
+      "path": "cases/encoding/v1.encoding.algorithm-range.001.json",
+      "expected": "INVALID",
+      "spec_sections": [
+        "10",
+        "11",
+        "12",
+        "13"
+      ],
+      "sha256": "48b5d49a95f6e3467bae0d8feda41fb717ca3e849b04ca104ff51322ee726a0b"
+    },
+    {
+      "id": "v1.encoding.client-name-invalid-utf8.001",
+      "category": "encoding",
+      "kind": "negative",
+      "normative": true,
+      "path": "cases/encoding/v1.encoding.client-name-invalid-utf8.001.json",
+      "expected": "INVALID",
+      "spec_sections": [
+        "10",
+        "11",
+        "12",
+        "13"
+      ],
+      "sha256": "8f3bd35ecc2987835873d574aa326d540a2a19ab887fcb81976d0286bb952120"
+    },
+    {
+      "id": "v1.encoding.client-name-too-long.001",
+      "category": "encoding",
+      "kind": "negative",
+      "normative": true,
+      "path": "cases/encoding/v1.encoding.client-name-too-long.001.json",
+      "expected": "INVALID",
+      "spec_sections": [
+        "10",
+        "11",
+        "12",
+        "13"
+      ],
+      "sha256": "20de7ce90f93d2c91cc8dc8f6e4c3baf4555477ed39f8145059e2924c46a5841"
+    },
+    {
+      "id": "v1.encoding.client-time-width.001",
+      "category": "encoding",
+      "kind": "negative",
+      "normative": true,
+      "path": "cases/encoding/v1.encoding.client-time-width.001.json",
+      "expected": "INVALID",
+      "spec_sections": [
+        "10",
+        "11",
+        "12",
+        "13"
+      ],
+      "sha256": "cfbb54b74b7633667ef626c7863532534e9810477135ad9b4889234b4f65d26a"
+    },
+    {
+      "id": "v1.encoding.complete-tombstone.001",
+      "category": "encoding",
+      "kind": "bytes",
+      "normative": true,
+      "path": "cases/encoding/v1.encoding.complete-tombstone.001.json",
+      "expected": "SUPPORTED_VALID",
+      "spec_sections": [
+        "10",
+        "11",
+        "12",
+        "13"
+      ],
+      "sha256": "7bbc696d5e50c00a409053798455225d1a493e06ad013c167e7fcda2082ce6e8"
+    },
+    {
+      "id": "v1.encoding.digits-range.001",
+      "category": "encoding",
+      "kind": "negative",
+      "normative": true,
+      "path": "cases/encoding/v1.encoding.digits-range.001.json",
+      "expected": "INVALID",
+      "spec_sections": [
+        "10",
+        "11",
+        "12",
+        "13"
+      ],
+      "sha256": "67fccd5522def5ea2ddf7d9a9eaffe1379b92137b4268cbe313e3ab5b7b94db7"
+    },
+    {
+      "id": "v1.encoding.duplicate-nonrepeatable.001",
+      "category": "encoding",
+      "kind": "negative",
+      "normative": true,
+      "path": "cases/encoding/v1.encoding.duplicate-nonrepeatable.001.json",
+      "expected": "INVALID",
+      "spec_sections": [
+        "10",
+        "11",
+        "12",
+        "13"
+      ],
+      "sha256": "1f7390e00ed6831b39b48e524dbfe3a54fa2cdd1dffd168eae66ec910f7637db"
+    },
+    {
+      "id": "v1.encoding.five-parents.001",
+      "category": "encoding",
+      "kind": "negative",
+      "normative": true,
+      "path": "cases/encoding/v1.encoding.five-parents.001.json",
+      "expected": "INVALID",
+      "spec_sections": [
+        "10",
+        "11",
+        "12",
+        "13"
+      ],
+      "sha256": "1f782aca234d9a818e1c21cd2d4ff0f69e7176009c9d1b81f234ba866bf32192"
+    },
+    {
+      "id": "v1.encoding.identity-width.001",
+      "category": "encoding",
+      "kind": "negative",
+      "normative": true,
+      "path": "cases/encoding/v1.encoding.identity-width.001.json",
+      "expected": "INVALID",
+      "spec_sections": [
+        "10",
+        "11",
+        "12",
+        "13"
+      ],
+      "sha256": "f076851ad93e54a74688b0ba5e980f06e776a29be2d6172f1dc684115d23798b"
+    },
+    {
+      "id": "v1.encoding.issuer-invalid-utf8.001",
+      "category": "encoding",
+      "kind": "negative",
+      "normative": true,
+      "path": "cases/encoding/v1.encoding.issuer-invalid-utf8.001.json",
+      "expected": "INVALID",
+      "spec_sections": [
+        "10",
+        "11",
+        "12",
+        "13"
+      ],
+      "sha256": "c13e16a11ea064607ec62dd0751f6f7a36150cfd834ca12481ef7a450c9ec64a"
+    },
+    {
+      "id": "v1.encoding.issuer-too-long.001",
+      "category": "encoding",
+      "kind": "negative",
+      "normative": true,
+      "path": "cases/encoding/v1.encoding.issuer-too-long.001.json",
+      "expected": "INVALID",
+      "spec_sections": [
+        "10",
+        "11",
+        "12",
+        "13"
+      ],
+      "sha256": "0952a938c4ecfbad7c19d401d883202c8aa88ab295c37445928f84d84a660d43"
+    },
+    {
+      "id": "v1.encoding.metadata-order.001",
+      "category": "encoding",
+      "kind": "negative",
+      "normative": true,
+      "path": "cases/encoding/v1.encoding.metadata-order.001.json",
+      "expected": "INVALID",
+      "spec_sections": [
+        "10",
+        "11",
+        "12",
+        "13"
+      ],
+      "sha256": "11354f239c8c43c25559a0e424de4211228a3b3527cc3be44b27b95d200908a3"
+    },
+    {
+      "id": "v1.encoding.missing-secret.001",
+      "category": "encoding",
+      "kind": "negative",
+      "normative": true,
+      "path": "cases/encoding/v1.encoding.missing-secret.001.json",
+      "expected": "INVALID",
+      "spec_sections": [
+        "10",
+        "11",
+        "12",
+        "13"
+      ],
+      "sha256": "34c62ab540acc5e5a6888c712e09c28bce9830bc0efdba93f900a9f9a9febfb9"
+    },
+    {
+      "id": "v1.encoding.non-token-plaintext.001",
+      "category": "encoding",
+      "kind": "negative",
+      "normative": true,
+      "path": "cases/encoding/v1.encoding.non-token-plaintext.001.json",
+      "expected": "INVALID",
+      "spec_sections": [
+        "10",
+        "11",
+        "12",
+        "13"
+      ],
+      "sha256": "2bb906d9a319d624390ca720a7eddfcaef3e059fc4ac75f37e488620a720ab92"
+    },
+    {
+      "id": "v1.encoding.parent-count-mismatch.001",
+      "category": "encoding",
+      "kind": "negative",
+      "normative": true,
+      "path": "cases/encoding/v1.encoding.parent-count-mismatch.001.json",
+      "expected": "INVALID",
+      "spec_sections": [
+        "10",
+        "11",
+        "12",
+        "13"
+      ],
+      "sha256": "f1f33dc9e5c5c84ab9eaa95d949d7a20ce69092f7b016d1a3c5b295f53aa9f61"
+    },
+    {
+      "id": "v1.encoding.parent-duplicate.001",
+      "category": "encoding",
+      "kind": "negative",
+      "normative": true,
+      "path": "cases/encoding/v1.encoding.parent-duplicate.001.json",
+      "expected": "INVALID",
+      "spec_sections": [
+        "10",
+        "11",
+        "12",
+        "13"
+      ],
+      "sha256": "f25965beb62471d62221e681ccfc4dce42d77251304ebf030fa2a74576884eab"
+    },
+    {
+      "id": "v1.encoding.parent-order.001",
+      "category": "encoding",
+      "kind": "negative",
+      "normative": true,
+      "path": "cases/encoding/v1.encoding.parent-order.001.json",
+      "expected": "INVALID",
+      "spec_sections": [
+        "10",
+        "11",
+        "12",
+        "13"
+      ],
+      "sha256": "d32f11e252ac1aa39b2603dffa1ceeb6f60a6234bdf44e8dfc8b3c31632bf3b2"
+    },
+    {
+      "id": "v1.encoding.parents-1.001",
+      "category": "encoding",
+      "kind": "bytes",
+      "normative": true,
+      "path": "cases/encoding/v1.encoding.parents-1.001.json",
+      "expected": "SUPPORTED_VALID",
+      "spec_sections": [
+        "10",
+        "11",
+        "12",
+        "13"
+      ],
+      "sha256": "7afb5abbf174ffcdfc5826cc8ac16bff02021bdc01e9a5f120996d42e77d79d4"
+    },
+    {
+      "id": "v1.encoding.parents-2.001",
+      "category": "encoding",
+      "kind": "bytes",
+      "normative": true,
+      "path": "cases/encoding/v1.encoding.parents-2.001.json",
+      "expected": "SUPPORTED_VALID",
+      "spec_sections": [
+        "10",
+        "11",
+        "12",
+        "13"
+      ],
+      "sha256": "7c1c72d920686539f6ac658d82717867d5a2815a4215d601239acb1506f3f499"
+    },
+    {
+      "id": "v1.encoding.parents-3.001",
+      "category": "encoding",
+      "kind": "bytes",
+      "normative": true,
+      "path": "cases/encoding/v1.encoding.parents-3.001.json",
+      "expected": "SUPPORTED_VALID",
+      "spec_sections": [
+        "10",
+        "11",
+        "12",
+        "13"
+      ],
+      "sha256": "e10040b5244d8400409b1f73cd4addc3fff007340af3dcfb9afc505e29149c1c"
+    },
+    {
+      "id": "v1.encoding.parents-4.001",
+      "category": "encoding",
+      "kind": "bytes",
+      "normative": true,
+      "path": "cases/encoding/v1.encoding.parents-4.001.json",
+      "expected": "SUPPORTED_VALID",
+      "spec_sections": [
+        "10",
+        "11",
+        "12",
+        "13"
+      ],
+      "sha256": "53083ad189f2e2bf3dba06d1848b07d6df2b3fa275149cec84fc36a6bac373bc"
+    },
+    {
+      "id": "v1.encoding.period-zero.001",
+      "category": "encoding",
+      "kind": "negative",
+      "normative": true,
+      "path": "cases/encoding/v1.encoding.period-zero.001.json",
+      "expected": "INVALID",
+      "spec_sections": [
+        "10",
+        "11",
+        "12",
+        "13"
+      ],
+      "sha256": "b7e68c46cc3e6d7c7a4b1df8e30d132e013adbb8c2cb8ddddef9e0058f714b3b"
+    },
+    {
+      "id": "v1.encoding.secret-empty.001",
+      "category": "encoding",
+      "kind": "negative",
+      "normative": true,
+      "path": "cases/encoding/v1.encoding.secret-empty.001.json",
+      "expected": "INVALID",
+      "spec_sections": [
+        "10",
+        "11",
+        "12",
+        "13"
+      ],
+      "sha256": "399c3582b3367d7a64a75d89791aaaee46b6f93357498214fe1a237f91048f59"
+    },
+    {
+      "id": "v1.encoding.secret-too-long.001",
+      "category": "encoding",
+      "kind": "negative",
+      "normative": true,
+      "path": "cases/encoding/v1.encoding.secret-too-long.001.json",
+      "expected": "INVALID",
+      "spec_sections": [
+        "10",
+        "11",
+        "12",
+        "13"
+      ],
+      "sha256": "34e6a98064cfdfe6e7d14a9601dcb758603b046da82f67a4a168f05d5f57985e"
+    },
+    {
+      "id": "v1.encoding.status-range.001",
+      "category": "encoding",
+      "kind": "negative",
+      "normative": true,
+      "path": "cases/encoding/v1.encoding.status-range.001.json",
+      "expected": "INVALID",
+      "spec_sections": [
+        "10",
+        "11",
+        "12",
+        "13"
+      ],
+      "sha256": "6f7307cdbae6926ac01af694d1e301c41ce4110fe99c9189f8db8d228f2819ca"
+    },
+    {
+      "id": "v1.encoding.token-root.001",
+      "category": "encoding",
+      "kind": "bytes",
+      "normative": true,
+      "path": "cases/encoding/v1.encoding.token-root.001.json",
+      "expected": "SUPPORTED_VALID",
+      "spec_sections": [
+        "10",
+        "11",
+        "12",
+        "13"
+      ],
+      "sha256": "7cccb7b1eb52761fab8025abeefd3680b213ea1d3e56e8419f61bdbc2d5a0cd6"
+    },
+    {
+      "id": "v1.encoding.trailing-byte.001",
+      "category": "encoding",
+      "kind": "negative",
+      "normative": true,
+      "path": "cases/encoding/v1.encoding.trailing-byte.001.json",
+      "expected": "INVALID",
+      "spec_sections": [
+        "10",
+        "11",
+        "12",
+        "13"
+      ],
+      "sha256": "8a378a8559c437c0d06018e9d7deb29d2347a77b1fffe2d50f8af89d9f3ce90b"
+    },
+    {
+      "id": "v1.encoding.unknown-field.001",
+      "category": "encoding",
+      "kind": "negative",
+      "normative": true,
+      "path": "cases/encoding/v1.encoding.unknown-field.001.json",
+      "expected": "INVALID",
+      "spec_sections": [
+        "10",
+        "11",
+        "12",
+        "13"
+      ],
+      "sha256": "60c23ba0ddcea4c11b2e4c0cb5f0fd21863c8cd1805800bbe3b310f90332e77b"
+    },
+    {
+      "id": "v1.encoding.utf8-boundary.001",
+      "category": "encoding",
+      "kind": "bytes",
+      "normative": true,
+      "path": "cases/encoding/v1.encoding.utf8-boundary.001.json",
+      "expected": "SUPPORTED_VALID",
+      "spec_sections": [
+        "10",
+        "11",
+        "12",
+        "13"
+      ],
+      "sha256": "66f2392965142444cd422dc167c2929230872fdab4a083065d5a04465fd711e5"
+    },
+    {
+      "id": "v1.fold.width-0.001",
+      "category": "fold",
       "kind": "semantic",
       "normative": true,
-      "path": "cases/graph/v1.graph.equal-concurrent.001.json",
+      "path": "cases/fold/v1.fold.width-0.001.json",
       "expected": "PASS",
       "spec_sections": [
-        "22\u201325",
-        "31\u201338"
+        "17"
       ],
-      "sha256": "4636e373e55d5c02e6064653786c5b5fd9eb037af34c02ecaa2862675626bd8e",
-      "applicability": {
-        "kind": "baseline"
-      }
+      "sha256": "7f798f7171bb65f13ee754550997c89d6b51ac71093a7d0c74a172ecdd7931a1"
+    },
+    {
+      "id": "v1.fold.width-10.001",
+      "category": "fold",
+      "kind": "semantic",
+      "normative": true,
+      "path": "cases/fold/v1.fold.width-10.001.json",
+      "expected": "PASS",
+      "spec_sections": [
+        "17"
+      ],
+      "sha256": "11020f4c7f5ffa2df316affa909d02886f4dda2eda634e06f2f9b40a5b975b39"
+    },
+    {
+      "id": "v1.fold.width-11.001",
+      "category": "fold",
+      "kind": "semantic",
+      "normative": true,
+      "path": "cases/fold/v1.fold.width-11.001.json",
+      "expected": "PASS",
+      "spec_sections": [
+        "17"
+      ],
+      "sha256": "089fbecf28003ff0b6877f9ab0dab2a65b33950a913400fef6bb9ac532def55d"
+    },
+    {
+      "id": "v1.fold.width-4.001",
+      "category": "fold",
+      "kind": "semantic",
+      "normative": true,
+      "path": "cases/fold/v1.fold.width-4.001.json",
+      "expected": "PASS",
+      "spec_sections": [
+        "17"
+      ],
+      "sha256": "997d8cfd3841cca4002f169a959527f313b4da47ee28c668bb467495bc370554"
+    },
+    {
+      "id": "v1.fold.width-5.001",
+      "category": "fold",
+      "kind": "semantic",
+      "normative": true,
+      "path": "cases/fold/v1.fold.width-5.001.json",
+      "expected": "PASS",
+      "spec_sections": [
+        "17"
+      ],
+      "sha256": "e687aa9ccf26d1921a1415c20dae1ac442aa7006768e51a965641ff32b5bb0ce"
+    },
+    {
+      "id": "v1.fold.width-7.001",
+      "category": "fold",
+      "kind": "semantic",
+      "normative": true,
+      "path": "cases/fold/v1.fold.width-7.001.json",
+      "expected": "PASS",
+      "spec_sections": [
+        "17"
+      ],
+      "sha256": "00ee671a1acb0c100603a31ad7b9e725005a9827d19b280ba05410e3376d1df9"
     },
     {
       "id": "v1.graph.conflicting-concurrent.001",
@@ -669,30 +662,62 @@
       "path": "cases/graph/v1.graph.conflicting-concurrent.001.json",
       "expected": "PASS",
       "spec_sections": [
-        "22\u201325",
-        "31\u201338"
+        "15",
+        "16"
       ],
-      "sha256": "510e1135ac39c1ad3755ab748352f34266941ae6d276e726a3aee018bd1b8423",
-      "applicability": {
-        "kind": "baseline"
-      }
+      "sha256": "87c00c3c78f4fa42804e0f619e160323b2ded1546a22b2f3ad5e645f311453c7"
     },
     {
-      "id": "v1.graph.remembered-head-absent.001",
+      "id": "v1.graph.cycle-conflicting.001",
       "category": "graph",
       "kind": "semantic",
       "normative": true,
-      "path": "cases/graph/v1.graph.remembered-head-absent.001.json",
+      "path": "cases/graph/v1.graph.cycle-conflicting.001.json",
       "expected": "PASS",
       "spec_sections": [
-        "22\u201325",
-        "31\u201338"
+        "15",
+        "16"
       ],
-      "sha256": "7b9d3c6300996e8fd6b7c3947d22470a39ee542a8f576140a5f45bab8ab9d6f6",
-      "applicability": {
-        "kind": "conditional",
-        "capability": "advisory-history"
-      }
+      "sha256": "1776c9d41d22391a6ca8d7c55010fd00216c973b0330658b2ea9c364570069d6"
+    },
+    {
+      "id": "v1.graph.cycle-equal.001",
+      "category": "graph",
+      "kind": "semantic",
+      "normative": true,
+      "path": "cases/graph/v1.graph.cycle-equal.001.json",
+      "expected": "PASS",
+      "spec_sections": [
+        "15",
+        "16"
+      ],
+      "sha256": "277ee0bddd8843b728286856face217ab4d4db5cc77fc4d8123472019768301f"
+    },
+    {
+      "id": "v1.graph.equal-concurrent.001",
+      "category": "graph",
+      "kind": "semantic",
+      "normative": true,
+      "path": "cases/graph/v1.graph.equal-concurrent.001.json",
+      "expected": "PASS",
+      "spec_sections": [
+        "15",
+        "16"
+      ],
+      "sha256": "63350e320521772b4fab67b649832bbe270231d0d5be0c02ad10881bc2ed3520"
+    },
+    {
+      "id": "v1.graph.identical-collapse.001",
+      "category": "graph",
+      "kind": "semantic",
+      "normative": true,
+      "path": "cases/graph/v1.graph.identical-collapse.001.json",
+      "expected": "PASS",
+      "spec_sections": [
+        "15",
+        "16"
+      ],
+      "sha256": "b40f5e20c5569c9b2dc4916851b29215245d2675bba40f18386ce420d124fc88"
     },
     {
       "id": "v1.graph.intermediate-disappears.001",
@@ -702,13 +727,23 @@
       "path": "cases/graph/v1.graph.intermediate-disappears.001.json",
       "expected": "PASS",
       "spec_sections": [
-        "22\u201325",
-        "31\u201338"
+        "15",
+        "16"
       ],
-      "sha256": "008410dd7316984925f2b8c08404dce3732c4b412731a65ab827bcb2ba84fd2a",
-      "applicability": {
-        "kind": "baseline"
-      }
+      "sha256": "bfedd33b499ffa3bce0de33379eea1f6091c913ba8e920e1d1cb4905f762ab5a"
+    },
+    {
+      "id": "v1.graph.late-cycle.001",
+      "category": "graph",
+      "kind": "semantic",
+      "normative": true,
+      "path": "cases/graph/v1.graph.late-cycle.001.json",
+      "expected": "PASS",
+      "spec_sections": [
+        "15",
+        "16"
+      ],
+      "sha256": "77c6adb091513d3b9df43679313c9100b34075eb3b1e35e2d415f282811e01ae"
     },
     {
       "id": "v1.graph.late-parent.001",
@@ -718,351 +753,10 @@
       "path": "cases/graph/v1.graph.late-parent.001.json",
       "expected": "PASS",
       "spec_sections": [
-        "22\u201325",
-        "31\u201338"
+        "15",
+        "16"
       ],
-      "sha256": "8c55564e288d856a06657ff574db1a810b0c67a625ea58874e3ced12f2a0081f",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.graph.cycle-integrity-failure.001",
-      "category": "graph",
-      "kind": "semantic",
-      "normative": true,
-      "path": "cases/graph/v1.graph.cycle-integrity-failure.001.json",
-      "expected": "PASS",
-      "spec_sections": [
-        "22\u201325",
-        "31\u201338"
-      ],
-      "sha256": "cd548f4ac91f843024b96662df88d076b6a6c259e7530e4ef7518ea5c30bd4d6",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.graph.global-object-id-conflict.001",
-      "category": "graph",
-      "kind": "semantic",
-      "normative": true,
-      "path": "cases/graph/v1.graph.global-object-id-conflict.001.json",
-      "expected": "PASS",
-      "spec_sections": [
-        "22\u201325",
-        "31\u201338"
-      ],
-      "sha256": "47e4382be26aff7a44dcac00fd38c6629ac7d978d180f86ade7de698d1938b26",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.future.scoped-token.001",
-      "category": "future",
-      "kind": "semantic",
-      "normative": true,
-      "path": "cases/future/v1.future.scoped-token.001.json",
-      "expected": "PASS",
-      "spec_sections": [
-        "22\u201325",
-        "31\u201338"
-      ],
-      "sha256": "30101f1aeebffe70b08847f2c14346b9ca7914857054542574ac5ad0ff14522c",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.future.concurrent-supported-opaque.001",
-      "category": "future",
-      "kind": "semantic",
-      "normative": true,
-      "path": "cases/future/v1.future.concurrent-supported-opaque.001.json",
-      "expected": "PASS",
-      "spec_sections": [
-        "22\u201325",
-        "31\u201338"
-      ],
-      "sha256": "9f79f73a41ad7070c92fc0dfeb8960fbb1bb1d03862798253e6b334fb9087c15",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.future.unrelated-token.001",
-      "category": "future",
-      "kind": "semantic",
-      "normative": true,
-      "path": "cases/future/v1.future.unrelated-token.001.json",
-      "expected": "PASS",
-      "spec_sections": [
-        "22\u201325",
-        "31\u201338"
-      ],
-      "sha256": "146c624cecd2a3bdb8a1f622411795526232eebd5325353fed968dca68c23544",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.future.supported-descendant.001",
-      "category": "future",
-      "kind": "semantic",
-      "normative": true,
-      "path": "cases/future/v1.future.supported-descendant.001.json",
-      "expected": "PASS",
-      "spec_sections": [
-        "22\u201325",
-        "31\u201338"
-      ],
-      "sha256": "d491b15b4fd86fbe11eae1b51984d315d538957330a20432702432a577b7fb58",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.future.version-does-not-order.001",
-      "category": "future",
-      "kind": "semantic",
-      "normative": true,
-      "path": "cases/future/v1.future.version-does-not-order.001.json",
-      "expected": "PASS",
-      "spec_sections": [
-        "22\u201325",
-        "31\u201338"
-      ],
-      "sha256": "302f3b6469438d62ef1c7ecbdd0370b12878b5e5def169f94ae834bc511af56b",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.future.device-presentation.001",
-      "category": "future",
-      "kind": "semantic",
-      "normative": true,
-      "path": "cases/future/v1.future.device-presentation.001.json",
-      "expected": "PASS",
-      "spec_sections": [
-        "22\u201325",
-        "31\u201338"
-      ],
-      "sha256": "786b52408405d0e2bd4573ae5c456ed6b499dfb2e4a9911b22dac1e0d40b878e",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.future.unscoped-warning.001",
-      "category": "future",
-      "kind": "semantic",
-      "normative": true,
-      "path": "cases/future/v1.future.unscoped-warning.001.json",
-      "expected": "PASS",
-      "spec_sections": [
-        "22\u201325",
-        "31\u201338"
-      ],
-      "sha256": "72b585f4c0f205c8cd6da77f866eb52ba51dd35ef97c7b258e8f0a29b112f99b",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.future.unscoped-candidate-use.001",
-      "category": "future",
-      "kind": "semantic",
-      "normative": true,
-      "path": "cases/future/v1.future.unscoped-candidate-use.001.json",
-      "expected": "PASS",
-      "spec_sections": [
-        "22\u201325",
-        "31\u201338"
-      ],
-      "sha256": "f44001e169ea612c041330af3ac8fa461619634e061e478ddf4841c8e934ea15",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.future.disappearance-removes-current.001",
-      "category": "future",
-      "kind": "semantic",
-      "normative": true,
-      "path": "cases/future/v1.future.disappearance-removes-current.001.json",
-      "expected": "PASS",
-      "spec_sections": [
-        "22\u201325",
-        "31\u201338"
-      ],
-      "sha256": "ff726a2aa1ec06d8b33a5f93d44ee6d84fbbb8d68d4f3f4433face4096c243fd",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.candidate.conflict-a.001",
-      "category": "candidate",
-      "kind": "semantic",
-      "normative": true,
-      "path": "cases/candidate/v1.candidate.conflict-a.001.json",
-      "expected": "PASS",
-      "spec_sections": [
-        "22\u201325",
-        "31\u201338"
-      ],
-      "sha256": "107209cdea134ca2bd39f2f6728e261a38fb1db688a8c2d52e0a6aed5ce0870b",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.candidate.current-peer-missing.001",
-      "category": "candidate",
-      "kind": "semantic",
-      "normative": true,
-      "path": "cases/candidate/v1.candidate.current-peer-missing.001.json",
-      "expected": "PASS",
-      "spec_sections": [
-        "22\u201325",
-        "31\u201338"
-      ],
-      "sha256": "7b2645dfc4a0021305344b029b36a2ca3cdbbd618aa2b5e6bb73a21ed98ea5b6",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.candidate.historical-current-missing.001",
-      "category": "candidate",
-      "kind": "semantic",
-      "normative": true,
-      "path": "cases/candidate/v1.candidate.historical-current-missing.001.json",
-      "expected": "PASS",
-      "spec_sections": [
-        "22\u201325",
-        "31\u201338"
-      ],
-      "sha256": "f0307cabe51d3a46c56a902a706a07138e8193593fc9b14007d8d3f41ac1c0e0",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.candidate.opaque-current.001",
-      "category": "candidate",
-      "kind": "semantic",
-      "normative": true,
-      "path": "cases/candidate/v1.candidate.opaque-current.001.json",
-      "expected": "PASS",
-      "spec_sections": [
-        "22\u201325",
-        "31\u201338"
-      ],
-      "sha256": "7eedd8bee05df3e018bbfc11618eea014b8b6081c4c4de288d68a30aa7890ca5",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.candidate.discovery-incomplete.001",
-      "category": "candidate",
-      "kind": "semantic",
-      "normative": true,
-      "path": "cases/candidate/v1.candidate.discovery-incomplete.001.json",
-      "expected": "PASS",
-      "spec_sections": [
-        "22\u201325",
-        "31\u201338"
-      ],
-      "sha256": "2bb3d356410591e71d90d824ff5244559c8ec442f046288ea6f65711437836b6",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.candidate.cache-write-warning.001",
-      "category": "candidate",
-      "kind": "semantic",
-      "normative": true,
-      "path": "cases/candidate/v1.candidate.cache-write-warning.001.json",
-      "expected": "PASS",
-      "spec_sections": [
-        "22\u201325",
-        "31\u201338"
-      ],
-      "sha256": "0d02deac2bf894b714d900156b1ee7e2f082d456325f2ef2d2622ec836928ab4",
-      "applicability": {
-        "kind": "conditional",
-        "capability": "advisory-history"
-      }
-    },
-    {
-      "id": "v1.candidate.history-memory-lost.001",
-      "category": "candidate",
-      "kind": "semantic",
-      "normative": true,
-      "path": "cases/candidate/v1.candidate.history-memory-lost.001.json",
-      "expected": "PASS",
-      "spec_sections": [
-        "22\u201325",
-        "31\u201338"
-      ],
-      "sha256": "d1fae5d8c793afc9a5c9b63560826d3fbde2d3702033d8669dc875d88164ec60",
-      "applicability": {
-        "kind": "conditional",
-        "capability": "advisory-history"
-      }
-    },
-    {
-      "id": "v1.timestamp.equal-value-different-times.001",
-      "category": "timestamp",
-      "kind": "semantic",
-      "normative": true,
-      "path": "cases/timestamp/v1.timestamp.equal-value-different-times.001.json",
-      "expected": "PASS",
-      "spec_sections": [
-        "22\u201325",
-        "31\u201338"
-      ],
-      "sha256": "948a9ede1ee4528823fad88db7ab6e39028c56e0738c386eb22aa56da794a162",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.timestamp.fold-common-time.001",
-      "category": "timestamp",
-      "kind": "semantic",
-      "normative": true,
-      "path": "cases/timestamp/v1.timestamp.fold-common-time.001.json",
-      "expected": "PASS",
-      "spec_sections": [
-        "22\u201325",
-        "31\u201338"
-      ],
-      "sha256": "bce78510a62ea2fe22ad21ffc66242b61efacc8149d0bdc921d64bfa34dda11f",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.graph.wrong-identity-parent.001",
-      "category": "graph",
-      "kind": "semantic",
-      "normative": true,
-      "path": "cases/graph/v1.graph.wrong-identity-parent.001.json",
-      "expected": "PASS",
-      "spec_sections": [
-        "22\u201325",
-        "31\u201338"
-      ],
-      "sha256": "44240522fca46902c3b4067486202ad2b1fe029f01fecc9e2d9e8b0d6052c474",
-      "applicability": {
-        "kind": "baseline"
-      }
+      "sha256": "680855e3210518e5d1a2e3a40af576e7eb3137003faa9ff72761c8a50aa88a04"
     },
     {
       "id": "v1.graph.reappearance.001",
@@ -1072,548 +766,196 @@
       "path": "cases/graph/v1.graph.reappearance.001.json",
       "expected": "PASS",
       "spec_sections": [
-        "22\u201325",
-        "31\u201338"
+        "15",
+        "16"
       ],
-      "sha256": "5c5a02fefa67d990f5d37b34108615669227805d1d619c6ccd9be62c2a0c638d",
-      "applicability": {
-        "kind": "baseline"
-      }
+      "sha256": "0082ecf1462cce4f0bc8e409b1f5d80574379bd22f22fb5ab302c9a11e82a61a"
     },
     {
-      "id": "v1.graph.reappearance-mismatch.001",
+      "id": "v1.graph.same-id-defensive.001",
       "category": "graph",
       "kind": "semantic",
       "normative": true,
-      "path": "cases/graph/v1.graph.reappearance-mismatch.001.json",
+      "path": "cases/graph/v1.graph.same-id-defensive.001.json",
       "expected": "PASS",
       "spec_sections": [
-        "22\u201325",
-        "31\u201338"
-      ],
-      "sha256": "ae6954abf6c89659c477ae723c600b1d111a4a959abef02ea94f2df8eede9780",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.totp.rfc6238-sha1.001",
-      "category": "totp",
-      "kind": "bytes",
-      "normative": true,
-      "path": "cases/totp/v1.totp.rfc6238-sha1.001.json",
-      "expected": "PASS",
-      "spec_sections": [
-        "40",
-        "55"
-      ],
-      "sha256": "f3fed610df11e572f1c5c569e8822c5d1076df40197fadb559eca1a4aa0b6625",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.totp.rfc6238-sha256.001",
-      "category": "totp",
-      "kind": "bytes",
-      "normative": true,
-      "path": "cases/totp/v1.totp.rfc6238-sha256.001.json",
-      "expected": "PASS",
-      "spec_sections": [
-        "40",
-        "55"
-      ],
-      "sha256": "eb9baec09844984cb7d7072164beb4d794ab9fb997428ca06ffc92d68ea5f25b",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.totp.rfc6238-sha512.001",
-      "category": "totp",
-      "kind": "bytes",
-      "normative": true,
-      "path": "cases/totp/v1.totp.rfc6238-sha512.001.json",
-      "expected": "PASS",
-      "spec_sections": [
-        "40",
-        "55"
-      ],
-      "sha256": "c2787120d475f894371b490d37f5096fd255d6a36e385e20bf092bd7f148b07a",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.storage.objects-v1.001",
-      "category": "storage",
-      "kind": "semantic",
-      "normative": true,
-      "path": "cases/storage/v1.storage.objects-v1.001.json",
-      "expected": "PASS",
-      "spec_sections": [
-        "4",
-        "12.4\u201312.7",
         "15",
-        "37",
-        "50"
+        "16"
       ],
-      "sha256": "39bf5efa810f84f97dd3c9ccd9bd074882ebeb48cdcd7dd0ccf922994eeec1dc",
-      "applicability": {
-        "kind": "baseline"
-      }
+      "sha256": "ec715df198f0097570b45f018f046783d99cba430cb68936de4683bd1f0a5748"
     },
     {
-      "id": "v1.storage.nonobject-name-ignored.001",
-      "category": "storage",
-      "kind": "semantic",
-      "normative": true,
-      "path": "cases/storage/v1.storage.nonobject-name-ignored.001.json",
-      "expected": "PASS",
-      "spec_sections": [
-        "4",
-        "12.4\u201312.7",
-        "15",
-        "37",
-        "50"
-      ],
-      "sha256": "abf7064713ee1b3db17affac184eab934fa0c8309c61608a8e174717a351667c",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.storage.wrong-size-not-opaque.001",
-      "category": "storage",
-      "kind": "semantic",
-      "normative": true,
-      "path": "cases/storage/v1.storage.wrong-size-not-opaque.001.json",
-      "expected": "PASS",
-      "spec_sections": [
-        "4",
-        "12.4\u201312.7",
-        "15",
-        "37",
-        "50"
-      ],
-      "sha256": "9e964551073cadd76960210616aed6dae53491de44036e738410a00a3e127949",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.storage.unknown-sibling-ignored.001",
-      "category": "storage",
-      "kind": "semantic",
-      "normative": true,
-      "path": "cases/storage/v1.storage.unknown-sibling-ignored.001.json",
-      "expected": "PASS",
-      "spec_sections": [
-        "4",
-        "12.4\u201312.7",
-        "15",
-        "37",
-        "50"
-      ],
-      "sha256": "7da08a2f739ecd0dd7f6cbcf0157b4e22975b3d711c04ddcc8954f69c7d2baed",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.future.family-compat-shadow.001",
-      "category": "future",
-      "kind": "semantic",
-      "normative": true,
-      "path": "cases/future/v1.future.family-compat-shadow.001.json",
-      "expected": "PASS",
-      "spec_sections": [
-        "4",
-        "12.4\u201312.7",
-        "15",
-        "37",
-        "50"
-      ],
-      "sha256": "b8b8525836462c4247ce8ce70832434f99d81a1140c2d4df9ba943245d611ae5",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.future.family-no-shadow.001",
-      "category": "future",
-      "kind": "semantic",
-      "normative": true,
-      "path": "cases/future/v1.future.family-no-shadow.001.json",
-      "expected": "PASS",
-      "spec_sections": [
-        "4",
-        "12.4\u201312.7",
-        "15",
-        "37",
-        "50"
-      ],
-      "sha256": "bc002da706c4bfaabe1b5c951f06826d3851fda8cc8e6e64c0dff6328f488aa4",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.device.rename-incorporates-rejected-head.001",
-      "category": "device",
-      "kind": "semantic",
-      "normative": true,
-      "path": "cases/device/v1.device.rename-incorporates-rejected-head.001.json",
-      "expected": "PASS",
-      "spec_sections": [
-        "31",
-        "49"
-      ],
-      "sha256": "7669f424f2e1a6926b6ad9820bf8c11c9d1a35cedc4cb8f482879de2fec724c6",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.graph.known-id-corrupt-bytes-warning.001",
+      "id": "v1.graph.self-cycle.001",
       "category": "graph",
       "kind": "semantic",
       "normative": true,
-      "path": "cases/graph/v1.graph.known-id-corrupt-bytes-warning.001.json",
+      "path": "cases/graph/v1.graph.self-cycle.001.json",
       "expected": "PASS",
       "spec_sections": [
-        "24.7"
+        "15",
+        "16"
       ],
-      "sha256": "65b1d90767551986b54f2ff225d22755da552b29f04ea03b03653e74e034549d",
-      "applicability": {
-        "kind": "conditional",
-        "capability": "advisory-history"
-      }
+      "sha256": "17e496222dc3e427ad1b49278c4a5bc1ec3d7a0e9dc242a9974567e680c73ea2"
     },
     {
-      "id": "v1.graph.history-cache-corrupt.001",
+      "id": "v1.graph.sequential.001",
       "category": "graph",
       "kind": "semantic",
       "normative": true,
-      "path": "cases/graph/v1.graph.history-cache-corrupt.001.json",
+      "path": "cases/graph/v1.graph.sequential.001.json",
       "expected": "PASS",
       "spec_sections": [
-        "24.7",
-        "34"
+        "15",
+        "16"
       ],
-      "sha256": "5a25f03ff4048eb40f15cc81084b9d2b0045588af0628b74b45332ad7a306cae",
-      "applicability": {
-        "kind": "conditional",
-        "capability": "advisory-history"
-      }
+      "sha256": "1a96ef6b78156004c75d35fd72a66318c83de8259d4ad406787a5aac95c652d7"
     },
     {
-      "id": "v1.provenance.initial-device-before-token.001",
-      "category": "provenance",
+      "id": "v1.graph.wrong-identity-parent.001",
+      "category": "graph",
       "kind": "semantic",
       "normative": true,
-      "path": "cases/provenance/v1.provenance.initial-device-before-token.001.json",
+      "path": "cases/graph/v1.graph.wrong-identity-parent.001.json",
       "expected": "PASS",
       "spec_sections": [
-        "16.2"
+        "15",
+        "16"
       ],
-      "sha256": "999029b0726fc113354d1232669f197de19bb026c537bbf53725df6f350f5800",
-      "applicability": {
-        "kind": "baseline"
-      }
+      "sha256": "890fb23c7048f6f21aa041d50d887305cc82c80b1fd4b87d05a383328259de63"
     },
     {
-      "id": "v1.provenance.signature-context-cross-vault.001",
-      "category": "provenance",
+      "id": "v1.metadata.client-name-absent.001",
+      "category": "metadata",
       "kind": "bytes",
       "normative": true,
-      "path": "cases/provenance/v1.provenance.signature-context-cross-vault.001.json",
-      "expected": "PASS",
+      "path": "cases/metadata/v1.metadata.client-name-absent.001.json",
+      "expected": "SUPPORTED_VALID",
       "spec_sections": [
-        "19"
+        "10",
+        "11",
+        "12",
+        "13"
       ],
-      "sha256": "df926d8526bd26b08ded0517fb19bb555aad80e1295daecc1fa4c4bce3d39f54",
-      "applicability": {
-        "kind": "baseline"
-      }
+      "sha256": "fc94b1cf7dd64265833958fe777179eb81e14ce9f809d748e1b21b855e91001e"
     },
     {
-      "id": "v1.provenance.late-device-reclassify.001",
-      "category": "provenance",
-      "kind": "semantic",
+      "id": "v1.metadata.client-name-empty.001",
+      "category": "metadata",
+      "kind": "bytes",
       "normative": true,
-      "path": "cases/provenance/v1.provenance.late-device-reclassify.001.json",
-      "expected": "PASS",
+      "path": "cases/metadata/v1.metadata.client-name-empty.001.json",
+      "expected": "SUPPORTED_VALID",
       "spec_sections": [
-        "16.1",
-        "55"
+        "10",
+        "11",
+        "12",
+        "13"
       ],
-      "sha256": "9bb0148a2066440188f82e286c1b97ce8b52e58154606b3059c4a32ff5428a99",
-      "applicability": {
-        "kind": "baseline"
-      }
+      "sha256": "077b83cccbb1482c5d3d66bafad64a8a8dc392ef883744136ae8294edbb187c0"
     },
     {
-      "id": "v1.snapshot.late-arrival-before-publication.001",
-      "category": "snapshot",
-      "kind": "semantic",
+      "id": "v1.metadata.client-name-max.001",
+      "category": "metadata",
+      "kind": "bytes",
       "normative": true,
-      "path": "cases/snapshot/v1.snapshot.late-arrival-before-publication.001.json",
-      "expected": "PASS",
+      "path": "cases/metadata/v1.metadata.client-name-max.001.json",
+      "expected": "SUPPORTED_VALID",
       "spec_sections": [
-        "24",
-        "27",
-        "32",
-        "33",
-        "34",
-        "36"
+        "10",
+        "11",
+        "12",
+        "13"
       ],
-      "sha256": "153d9a21c0dd25319469c5732e67e54f54a5edfcebf547e868cad576149b59f4",
-      "applicability": {
-        "kind": "baseline"
-      }
+      "sha256": "8c4fd39f39b0e59945c7e21c1c554c3278e173455ac5ba7ef806abaa9aee434e"
     },
     {
-      "id": "v1.snapshot.hidden-history-after-publication.001",
-      "category": "snapshot",
-      "kind": "semantic",
+      "id": "v1.metadata.client-time-absent.001",
+      "category": "metadata",
+      "kind": "bytes",
       "normative": true,
-      "path": "cases/snapshot/v1.snapshot.hidden-history-after-publication.001.json",
-      "expected": "PASS",
+      "path": "cases/metadata/v1.metadata.client-time-absent.001.json",
+      "expected": "SUPPORTED_VALID",
       "spec_sections": [
-        "24",
-        "27",
-        "32",
-        "33",
-        "34",
-        "36"
+        "10",
+        "11",
+        "12",
+        "13"
       ],
-      "sha256": "a7aa78855f14dfea46c205cccc754016a89c31cfc1d0ae8efea2eb7858b3071b",
-      "applicability": {
-        "kind": "baseline"
-      }
+      "sha256": "14b4221b6dc00de4bf283c5695c92b32054a27e5f9896135a92b7b544c82fb8f"
     },
     {
-      "id": "v1.snapshot.unrelated-change.001",
-      "category": "snapshot",
-      "kind": "semantic",
+      "id": "v1.metadata.client-time-normal.001",
+      "category": "metadata",
+      "kind": "bytes",
       "normative": true,
-      "path": "cases/snapshot/v1.snapshot.unrelated-change.001.json",
-      "expected": "PASS",
+      "path": "cases/metadata/v1.metadata.client-time-normal.001.json",
+      "expected": "SUPPORTED_VALID",
       "spec_sections": [
-        "24",
-        "27",
-        "32",
-        "33",
-        "34",
-        "36"
+        "10",
+        "11",
+        "12",
+        "13"
       ],
-      "sha256": "f522cccc761572430e477c6bef284b9282ec8a037be2c9fcfdfe6ab76d318bc3",
-      "applicability": {
-        "kind": "baseline"
-      }
+      "sha256": "33e216d4ed94b777f62f766b73610fa197ce4c94b74ebd6bc09d0e32be84439f"
     },
     {
-      "id": "v1.history.memory-lost.001",
-      "category": "history",
-      "kind": "semantic",
+      "id": "v1.metadata.client-time-u64max.001",
+      "category": "metadata",
+      "kind": "bytes",
       "normative": true,
-      "path": "cases/history/v1.history.memory-lost.001.json",
-      "expected": "PASS",
+      "path": "cases/metadata/v1.metadata.client-time-u64max.001.json",
+      "expected": "SUPPORTED_VALID",
       "spec_sections": [
-        "24",
-        "27",
-        "32",
-        "33",
-        "34",
-        "36"
+        "10",
+        "11",
+        "12",
+        "13"
       ],
-      "sha256": "e285e7fd58f4ccde248c703e814ede87c2c77d2eb612a88770593c9ebf329ea2",
-      "applicability": {
-        "kind": "conditional",
-        "capability": "advisory-history"
-      }
+      "sha256": "a8b22f77f418c10951155019c24b38b6604c9a0900619cc6dd81048a5ab37b8d"
     },
     {
-      "id": "v1.history.regression-and-return.001",
-      "category": "history",
-      "kind": "semantic",
+      "id": "v1.metadata.client-time-zero.001",
+      "category": "metadata",
+      "kind": "bytes",
       "normative": true,
-      "path": "cases/history/v1.history.regression-and-return.001.json",
-      "expected": "PASS",
+      "path": "cases/metadata/v1.metadata.client-time-zero.001.json",
+      "expected": "SUPPORTED_VALID",
       "spec_sections": [
-        "24",
-        "27",
-        "32",
-        "33",
-        "34",
-        "36"
+        "10",
+        "11",
+        "12",
+        "13"
       ],
-      "sha256": "f41819b688d7766bb0fb4f6844369b4e25f15edc1d9091119e31b20234ca83f9",
-      "applicability": {
-        "kind": "conditional",
-        "capability": "advisory-history"
-      }
+      "sha256": "2523e7b7961faf69333d40d3efaa4321c2c4ac03e2072f105aa16b8c3358d1cd"
     },
     {
-      "id": "v1.snapshot.incomplete-usable.001",
-      "category": "snapshot",
-      "kind": "semantic",
+      "id": "v1.size.token-max-4.001",
+      "category": "size",
+      "kind": "bytes",
       "normative": true,
-      "path": "cases/snapshot/v1.snapshot.incomplete-usable.001.json",
-      "expected": "PASS",
+      "path": "cases/size/v1.size.token-max-4.001.json",
+      "expected": "SUPPORTED_VALID",
       "spec_sections": [
-        "24",
-        "27",
-        "32",
-        "33",
-        "34",
-        "36"
+        "10",
+        "11",
+        "12",
+        "13"
       ],
-      "sha256": "054c8176eac043f8e3774cdff596b52d644509ce1196eb375a55e6546f5dc7b0",
-      "applicability": {
-        "kind": "baseline"
-      }
+      "sha256": "8ae31b9221c91dcd9717a6f2533d041453fcc157ecf53e358981b784e735ddde"
     },
     {
-      "id": "v1.publication.ambiguous-retry-sibling.001",
-      "category": "publication",
+      "id": "v1.storage.ambiguous-publication.001",
+      "category": "storage",
       "kind": "semantic",
       "normative": true,
-      "path": "cases/publication/v1.publication.ambiguous-retry-sibling.001.json",
+      "path": "cases/storage/v1.storage.ambiguous-publication.001.json",
       "expected": "PASS",
       "spec_sections": [
-        "24",
-        "27",
-        "32",
-        "33",
-        "34",
-        "36"
+        "7",
+        "8",
+        "18"
       ],
-      "sha256": "f143377eeffc18c246c3909818e78a7795c208ad5f82d0e5ab5742d479379790",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.confirmation.visible-conflict.001",
-      "category": "confirmation",
-      "kind": "semantic",
-      "normative": true,
-      "path": "cases/confirmation/v1.confirmation.visible-conflict.001.json",
-      "expected": "PASS",
-      "spec_sections": [
-        "24",
-        "27",
-        "32",
-        "33",
-        "34",
-        "36"
-      ],
-      "sha256": "20161ba34287b0ff471de189fb51583ddb106a3f638e52b78518f13088aee2e0",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.confirmation.unrelated-change.001",
-      "category": "confirmation",
-      "kind": "semantic",
-      "normative": true,
-      "path": "cases/confirmation/v1.confirmation.unrelated-change.001.json",
-      "expected": "PASS",
-      "spec_sections": [
-        "24",
-        "27",
-        "32",
-        "33",
-        "34",
-        "36"
-      ],
-      "sha256": "79bfc10e31e6352472c117941840648a6cf30fce521b2ede7c0b4ceb99a6a12a",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.confirmation.relevant-change.001",
-      "category": "confirmation",
-      "kind": "semantic",
-      "normative": true,
-      "path": "cases/confirmation/v1.confirmation.relevant-change.001.json",
-      "expected": "PASS",
-      "spec_sections": [
-        "24",
-        "27",
-        "32",
-        "33",
-        "34",
-        "36"
-      ],
-      "sha256": "a1cfb569aee89b00a8839824110372c9cfd1a98bc05c171868ff344d11865e53",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.confirmation.relevant-information-return.001",
-      "category": "confirmation",
-      "kind": "semantic",
-      "normative": true,
-      "path": "cases/confirmation/v1.confirmation.relevant-information-return.001.json",
-      "expected": "PASS",
-      "spec_sections": [
-        "24",
-        "27",
-        "32",
-        "33",
-        "34",
-        "36"
-      ],
-      "sha256": "383e064e6ed852731fed7d8c0555512e5afc189543eb65fe713f83a31b7530b1",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.snapshot.opaque-token-plan-blocked.001",
-      "category": "snapshot",
-      "kind": "semantic",
-      "normative": true,
-      "path": "cases/snapshot/v1.snapshot.opaque-token-plan-blocked.001.json",
-      "expected": "PASS",
-      "spec_sections": [
-        "24",
-        "27",
-        "32",
-        "33",
-        "34",
-        "36"
-      ],
-      "sha256": "bb333b9f526a7aab172d1c9f8a89ae080a1096f85962519666e12abdf5f69c34",
-      "applicability": {
-        "kind": "baseline"
-      }
-    },
-    {
-      "id": "v1.publication.cache-failure-after-success.001",
-      "category": "publication",
-      "kind": "semantic",
-      "normative": true,
-      "path": "cases/publication/v1.publication.cache-failure-after-success.001.json",
-      "expected": "PASS",
-      "spec_sections": [
-        "24",
-        "27",
-        "32",
-        "33",
-        "34",
-        "36"
-      ],
-      "sha256": "9020a225f052cb30e13e0c7f61a18623d7421aed97d7b47a610aab19c25be9ed",
-      "applicability": {
-        "kind": "baseline"
-      }
+      "sha256": "66fedf9b84c502699a31a532072e0aad7240c335c45867ac1833521be4be3c00"
     },
     {
       "id": "v1.storage.exact-existing-publication.001",
@@ -1623,153 +965,313 @@
       "path": "cases/storage/v1.storage.exact-existing-publication.001.json",
       "expected": "PASS",
       "spec_sections": [
-        "36",
-        "50"
+        "7",
+        "8",
+        "18"
       ],
-      "sha256": "0367706fd21d636af8405596637dfe55367f920987a74b6214c32dcf27136c8c",
-      "applicability": {
-        "kind": "baseline"
-      }
+      "sha256": "fe9b4514d76cc767f256b82e2d509f44b3725c23694c89bfecf6da858c6478af"
     },
     {
-      "id": "v1.bootstrap.local-binding-establishment.001",
-      "category": "bootstrap",
+      "id": "v1.storage.failed-aead.001",
+      "category": "storage",
       "kind": "semantic",
       "normative": true,
-      "path": "cases/bootstrap/v1.bootstrap.local-binding-establishment.001.json",
+      "path": "cases/storage/v1.storage.failed-aead.001.json",
       "expected": "PASS",
       "spec_sections": [
-        "9",
-        "10"
+        "3",
+        "13",
+        "14"
       ],
-      "sha256": "92889fc703c94953b912f656ba28099fd541782a33138c894498a99bf9c6ce88",
-      "applicability": {
-        "kind": "baseline"
-      }
+      "sha256": "a6edd275a551a2f27ca9e7d1e5028c82b0e8351cfb48960d7440a0302f955e1f"
     },
     {
-      "id": "v1.history.unscoped-disappearance-warning.001",
-      "category": "history",
+      "id": "v1.storage.incomplete-diagnostics.001",
+      "category": "storage",
       "kind": "semantic",
       "normative": true,
-      "path": "cases/history/v1.history.unscoped-disappearance-warning.001.json",
+      "path": "cases/storage/v1.storage.incomplete-diagnostics.001.json",
       "expected": "PASS",
       "spec_sections": [
-        "22\u201325",
-        "31\u201338"
+        "3",
+        "13",
+        "14"
       ],
-      "sha256": "56e080c998529a92a4553fff6c71e7e104bbb7051453891d6a5c5b2424d13065",
-      "applicability": {
-        "kind": "conditional",
-        "capability": "advisory-history"
-      }
+      "sha256": "0c56bcf2b0234e6c80df0abc286ff941013b14efc0a07b2278103815a75f913c"
     },
     {
-      "id": "v1.history.opaque-disappearance-warning.001",
-      "category": "history",
+      "id": "v1.storage.invalid-grammar.001",
+      "category": "storage",
       "kind": "semantic",
       "normative": true,
-      "path": "cases/history/v1.history.opaque-disappearance-warning.001.json",
+      "path": "cases/storage/v1.storage.invalid-grammar.001.json",
       "expected": "PASS",
       "spec_sections": [
-        "22\u201325",
-        "31\u201338"
+        "3",
+        "13",
+        "14"
       ],
-      "sha256": "386d3c07b004ff195c8ea67f17bdc0822f59ce000aac1ecc4f507bfce7becc43",
-      "applicability": {
-        "kind": "conditional",
-        "capability": "advisory-history"
-      }
+      "sha256": "7b19437516c6933628d695e54621ef7780951326c80bcc532940da2d384ccf77"
     },
     {
-      "id": "v1.history.current-peer-missing-warning.001",
-      "category": "history",
+      "id": "v1.storage.missing-parent-publication.001",
+      "category": "storage",
       "kind": "semantic",
       "normative": true,
-      "path": "cases/history/v1.history.current-peer-missing-warning.001.json",
+      "path": "cases/storage/v1.storage.missing-parent-publication.001.json",
       "expected": "PASS",
       "spec_sections": [
-        "22\u201325",
-        "31\u201338"
+        "7",
+        "8",
+        "18"
       ],
-      "sha256": "3fcfa1eee7521708d6756dacb6eaed09da1abf4a37ed4302edd7458f8d4e1610",
-      "applicability": {
-        "kind": "conditional",
-        "capability": "advisory-history"
-      }
+      "sha256": "ac8e852457bacef8b41eb07768a8014fda266c5d59cebcb6240d94bcb1031a6e"
     },
     {
-      "id": "v1.history.current-child-missing-warning.001",
-      "category": "history",
+      "id": "v1.storage.new-publication.001",
+      "category": "storage",
       "kind": "semantic",
       "normative": true,
-      "path": "cases/history/v1.history.current-child-missing-warning.001.json",
+      "path": "cases/storage/v1.storage.new-publication.001.json",
       "expected": "PASS",
       "spec_sections": [
-        "22\u201325",
-        "31\u201338"
+        "7",
+        "8",
+        "18"
       ],
-      "sha256": "df6591e9e331059a99bdf81be895264cd911f937eb0243edfc662ec26a37bddc",
-      "applicability": {
-        "kind": "conditional",
-        "capability": "advisory-history"
-      }
+      "sha256": "7896eda8040208180421ea2de58e82445a44a840ba19c05cd590273575b7c009"
     },
     {
-      "id": "v1.graph.corrupt-current-bytes-excluded.001",
-      "category": "graph",
+      "id": "v1.storage.non-exact-publication.001",
+      "category": "storage",
       "kind": "semantic",
       "normative": true,
-      "path": "cases/graph/v1.graph.corrupt-current-bytes-excluded.001.json",
+      "path": "cases/storage/v1.storage.non-exact-publication.001.json",
       "expected": "PASS",
       "spec_sections": [
-        "24.7"
+        "7",
+        "8",
+        "18"
       ],
-      "sha256": "f14a4d224b9476dac7250af041067c23d13f45c3d5f89eee4445e09da537f57c",
-      "applicability": {
-        "kind": "baseline"
-      }
+      "sha256": "62cec110c07346670fb6a154618c064b33efa5257f8e8dc3b330693b8f2ce886"
     },
     {
-      "id": "v1.history.cache-failure-after-publication-warning.001",
-      "category": "history",
+      "id": "v1.storage.nonobject-name-ignored.001",
+      "category": "storage",
       "kind": "semantic",
       "normative": true,
-      "path": "cases/history/v1.history.cache-failure-after-publication-warning.001.json",
+      "path": "cases/storage/v1.storage.nonobject-name-ignored.001.json",
       "expected": "PASS",
       "spec_sections": [
-        "24",
-        "27",
-        "32",
-        "33",
-        "34",
-        "36"
+        "3",
+        "13",
+        "14"
       ],
-      "sha256": "9c5dbc28fb3fe82991cfd377d89a6948d9979a8683916babec9901f2f989571d",
-      "applicability": {
-        "kind": "conditional",
-        "capability": "advisory-history"
-      }
+      "sha256": "fc5eb0214a1a22b044cc3fb2c7c92a1cfbe40ba48123d7f7d4e446f4a93df609"
     },
     {
-      "id": "v1.snapshot.no-advisory-history.001",
-      "category": "snapshot",
+      "id": "v1.storage.objects-v1.001",
+      "category": "storage",
       "kind": "semantic",
       "normative": true,
-      "path": "cases/snapshot/v1.snapshot.no-advisory-history.001.json",
+      "path": "cases/storage/v1.storage.objects-v1.001.json",
       "expected": "PASS",
       "spec_sections": [
-        "24",
-        "27",
-        "32",
-        "33",
-        "34",
-        "36"
+        "3",
+        "13",
+        "14"
       ],
-      "sha256": "c9ecf724ebb6def958069c72c3a16cdafb36d9d864767b42dda92c1d287772dc",
-      "applicability": {
-        "kind": "baseline"
-      }
+      "sha256": "acba56ab7b85e8251daf4d850767a731ee4670121a5023a099962b79f49db767"
+    },
+    {
+      "id": "v1.storage.unknown-sibling-ignored.001",
+      "category": "storage",
+      "kind": "semantic",
+      "normative": true,
+      "path": "cases/storage/v1.storage.unknown-sibling-ignored.001.json",
+      "expected": "PASS",
+      "spec_sections": [
+        "3",
+        "13",
+        "14"
+      ],
+      "sha256": "2322277808aa3dd0828a36858d19e58d9e1dbf3631105efaeb1498c8ff49a255"
+    },
+    {
+      "id": "v1.storage.unreadable-target.001",
+      "category": "storage",
+      "kind": "semantic",
+      "normative": true,
+      "path": "cases/storage/v1.storage.unreadable-target.001.json",
+      "expected": "PASS",
+      "spec_sections": [
+        "7",
+        "8",
+        "18"
+      ],
+      "sha256": "14237ba381a8ac809378252a9d02312cc1c59cec4c2e61e1002991f13c051057"
+    },
+    {
+      "id": "v1.storage.wrong-size.001",
+      "category": "storage",
+      "kind": "semantic",
+      "normative": true,
+      "path": "cases/storage/v1.storage.wrong-size.001.json",
+      "expected": "PASS",
+      "spec_sections": [
+        "3",
+        "13",
+        "14"
+      ],
+      "sha256": "0de739abc2ff67cb2b3ab52c70a4b75df9c6904f00c1045ec8b693d80164dd30"
+    },
+    {
+      "id": "v1.totp.rfc6238-sha1.001",
+      "category": "totp",
+      "kind": "bytes",
+      "normative": true,
+      "path": "cases/totp/v1.totp.rfc6238-sha1.001.json",
+      "expected": "PASS",
+      "spec_sections": [
+        "19"
+      ],
+      "sha256": "f3fed610df11e572f1c5c569e8822c5d1076df40197fadb559eca1a4aa0b6625"
+    },
+    {
+      "id": "v1.totp.rfc6238-sha256.001",
+      "category": "totp",
+      "kind": "bytes",
+      "normative": true,
+      "path": "cases/totp/v1.totp.rfc6238-sha256.001.json",
+      "expected": "PASS",
+      "spec_sections": [
+        "19"
+      ],
+      "sha256": "eb9baec09844984cb7d7072164beb4d794ab9fb997428ca06ffc92d68ea5f25b"
+    },
+    {
+      "id": "v1.totp.rfc6238-sha512.001",
+      "category": "totp",
+      "kind": "bytes",
+      "normative": true,
+      "path": "cases/totp/v1.totp.rfc6238-sha512.001.json",
+      "expected": "PASS",
+      "spec_sections": [
+        "19"
+      ],
+      "sha256": "c2787120d475f894371b490d37f5096fd255d6a36e385e20bf092bd7f148b07a"
+    },
+    {
+      "id": "v1.vault.create-ambiguous.001",
+      "category": "vault",
+      "kind": "semantic",
+      "normative": true,
+      "path": "cases/vault/v1.vault.create-ambiguous.001.json",
+      "expected": "PASS",
+      "spec_sections": [
+        "7",
+        "8",
+        "18"
+      ],
+      "sha256": "1966f2d7146152aa490d8cbc8d46aa10c23ab82e5ba8b3ab959af7f96878cd28"
+    },
+    {
+      "id": "v1.vault.create-empty.001",
+      "category": "vault",
+      "kind": "semantic",
+      "normative": true,
+      "path": "cases/vault/v1.vault.create-empty.001.json",
+      "expected": "PASS",
+      "spec_sections": [
+        "7",
+        "8",
+        "18"
+      ],
+      "sha256": "ab4e133f97d71f1363c00be91214a101d2697cec4bce992f90126d148f009468"
+    },
+    {
+      "id": "v1.vault.create-existing.001",
+      "category": "vault",
+      "kind": "semantic",
+      "normative": true,
+      "path": "cases/vault/v1.vault.create-existing.001.json",
+      "expected": "PASS",
+      "spec_sections": [
+        "7",
+        "8",
+        "18"
+      ],
+      "sha256": "174a961b5302fee0079baa047a0eafe77b0105589d114b1dcbd47d05696ee22f"
+    },
+    {
+      "id": "v1.vault.create-orphans.001",
+      "category": "vault",
+      "kind": "semantic",
+      "normative": true,
+      "path": "cases/vault/v1.vault.create-orphans.001.json",
+      "expected": "PASS",
+      "spec_sections": [
+        "7",
+        "8",
+        "18"
+      ],
+      "sha256": "46c0cddae7bc4d7a8e84d9d93e40a5be4ad31f448202b565363409e3cf76dc0b"
+    },
+    {
+      "id": "v1.vault.replace-ambiguous.001",
+      "category": "vault",
+      "kind": "semantic",
+      "normative": true,
+      "path": "cases/vault/v1.vault.replace-ambiguous.001.json",
+      "expected": "PASS",
+      "spec_sections": [
+        "7",
+        "8",
+        "18"
+      ],
+      "sha256": "d961390934f63226ec0c7c0d4812136d73f0efcc7740612b00fd2557aabed08e"
+    },
+    {
+      "id": "v1.vault.replace-equal.001",
+      "category": "vault",
+      "kind": "semantic",
+      "normative": true,
+      "path": "cases/vault/v1.vault.replace-equal.001.json",
+      "expected": "PASS",
+      "spec_sections": [
+        "7",
+        "8",
+        "18"
+      ],
+      "sha256": "f164864d0e9ffe7d97e16398f50589d8db8d06a080cd2a544f6cf33da4e113ab"
+    },
+    {
+      "id": "v1.vault.replace-stale.001",
+      "category": "vault",
+      "kind": "semantic",
+      "normative": true,
+      "path": "cases/vault/v1.vault.replace-stale.001.json",
+      "expected": "PASS",
+      "spec_sections": [
+        "7",
+        "8",
+        "18"
+      ],
+      "sha256": "3bd9f3df4e5a255e49abb3ff6f2aa905c2a8b7b282801b540fbd32ef91e388b1"
+    },
+    {
+      "id": "v1.vault.replace-unreadable.001",
+      "category": "vault",
+      "kind": "semantic",
+      "normative": true,
+      "path": "cases/vault/v1.vault.replace-unreadable.001.json",
+      "expected": "PASS",
+      "spec_sections": [
+        "7",
+        "8",
+        "18"
+      ],
+      "sha256": "5fed129f3ac86916e254a6d47206559e89cc6e1fad4b4bd7076def04d42b338e"
     }
   ]
 }

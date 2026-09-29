@@ -49,14 +49,4 @@ final class TlvTestBytes {
         return out.toByteArray();
     }
 
-    static byte[] replace(byte[] bytes, int tag, byte[] value) {
-        var fields = fields(bytes);
-        for (int i = 0; i < fields.size(); i++) {
-            if (fields.get(i).tag() == tag) {
-                fields.set(i, new TlvField(tag, value));
-                return encode(fields);
-            }
-        }
-        throw new AssertionError("Test field not found");
-    }
 }

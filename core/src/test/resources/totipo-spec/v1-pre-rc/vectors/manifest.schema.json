@@ -20,7 +20,7 @@
     "spec_revision": {
       "type": "string",
       "pattern": "^r[0-9]+$",
-      "const": "r15"
+      "const": "r16"
     },
     "cases": {
       "type": "array",
@@ -35,8 +35,7 @@
           "path",
           "expected",
           "spec_sections",
-          "sha256",
-          "applicability"
+          "sha256"
         ],
         "properties": {
           "id": {
@@ -54,7 +53,7 @@
             ]
           },
           "normative": {
-            "type": "boolean"
+            "const": true
           },
           "path": {
             "type": "string"
@@ -69,56 +68,9 @@
             },
             "minItems": 1
           },
-          "notes": {
-            "type": "string"
-          },
           "sha256": {
             "type": "string",
             "pattern": "^[0-9a-f]{64}$"
-          },
-          "applicability": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "enum": [
-                  "baseline",
-                  "conditional"
-                ]
-              },
-              "capability": {
-                "enum": [
-                  "advisory-history"
-                ]
-              }
-            },
-            "allOf": [
-              {
-                "if": {
-                  "properties": {
-                    "kind": {
-                      "const": "baseline"
-                    }
-                  }
-                },
-                "then": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "kind": {
-                      "const": "baseline"
-                    }
-                  }
-                },
-                "else": {
-                  "required": [
-                    "capability"
-                  ]
-                }
-              }
-            ]
           }
         }
       },

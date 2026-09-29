@@ -1,15 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://totipo.dev/schemas/v1-case.schema.json",
-  "title": "Totipo v1 conformance case",
+  "title": "Totipo v1/r16 case",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "format",
-    "id",
-    "operation",
-    "expected"
-  ],
   "properties": {
     "format": {
       "const": "totipo-case-v1"
@@ -20,65 +13,47 @@
     },
     "operation": {
       "enum": [
-        "dispatch",
         "crypto",
-        "provenance",
-        "size",
+        "dispatch",
         "bootstrap",
-        "graph",
         "totp",
+        "graph",
+        "fold",
         "storage",
-        "signature-context",
-        "publication",
-        "late-provenance",
-        "local"
+        "workflow",
+        "post-aead"
       ]
     },
     "expected": {
+      "enum": [
+        "PASS",
+        "VALID",
+        "SUPPORTED_VALID",
+        "INVALID",
+        "INVALID_STORAGE"
+      ]
+    },
+    "notes": {
       "type": "string"
     },
     "input": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "version": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 255
-        },
-        "type": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 255
+        "identity": {
+          "type": "string"
         },
         "parents": {
-          "type": [
-            "array",
-            "null"
-          ],
+          "type": "array",
           "items": {
-            "type": "string",
-            "description": "RFC 4648 padded base64 binary field"
+            "type": "string"
           },
-          "maxItems": 32
-        },
-        "author_time": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 18446744073709551615
-        },
-        "identity": {
-          "type": "string",
-          "description": "RFC 4648 padded base64 binary field"
-        },
-        "author": {
-          "type": "string",
-          "description": "RFC 4648 padded base64 binary field"
+          "minItems": 0
         },
         "status": {
           "type": "integer",
-          "minimum": 0,
-          "maximum": 255
+          "minimum": 1,
+          "maximum": 2
         },
         "issuer": {
           "type": "string"
@@ -88,44 +63,41 @@
         },
         "algorithm": {
           "type": "integer",
-          "minimum": 0,
-          "maximum": 255
+          "minimum": 1,
+          "maximum": 3
         },
         "digits": {
           "type": "integer",
-          "minimum": 0,
-          "maximum": 255
+          "minimum": 6,
+          "maximum": 8
         },
         "period": {
           "type": "integer",
-          "minimum": 0,
+          "minimum": 1,
           "maximum": 4294967295
         },
         "secret": {
-          "type": "string",
-          "description": "RFC 4648 padded base64 binary field"
-        },
-        "public_key": {
-          "type": "string",
-          "description": "RFC 4648 padded base64 binary field"
-        },
-        "display_name": {
           "type": "string"
         },
-        "signature": {
-          "type": [
-            "string",
-            "null"
-          ]
+        "client_name": {
+          "type": "string"
+        },
+        "client_time": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 18446744073709551615
         }
       },
       "required": [
-        "version",
-        "type",
-        "parents",
-        "author_time",
         "identity",
-        "signature"
+        "parents",
+        "status",
+        "issuer",
+        "account",
+        "algorithm",
+        "digits",
+        "period",
+        "secret"
       ]
     },
     "semantic_hex": {
@@ -134,54 +106,43 @@
     },
     "root_hex": {
       "type": "string",
-      "pattern": "^[0-9a-f]{64}$"
-    },
-    "public_key_hex": {
-      "type": "string"
+      "pattern": "^(?:[0-9a-f]{2})*$",
+      "minLength": 64,
+      "maxLength": 64
     },
     "crypto": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "fixture_private_key_hex": {
+        "object_id": {
           "type": "string",
-          "pattern": "^(?:[0-9a-f]{2})*$"
-        },
-        "fixture_public_key_hex": {
-          "type": "string",
-          "pattern": "^(?:[0-9a-f]{2})*$"
-        },
-        "unsigned_semantic_hex": {
-          "type": "string",
-          "pattern": "^(?:[0-9a-f]{2})*$"
-        },
-        "signature_input_hex": {
-          "type": "string",
-          "pattern": "^(?:[0-9a-f]{2})*$"
-        },
-        "signature_der_hex": {
-          "type": "string",
-          "pattern": "^(?:[0-9a-f]{2})*$"
+          "pattern": "^(?:[0-9a-f]{2})*$",
+          "minLength": 64,
+          "maxLength": 64
         },
         "id_key_hex": {
           "type": "string",
-          "pattern": "^(?:[0-9a-f]{2})*$"
+          "pattern": "^(?:[0-9a-f]{2})*$",
+          "minLength": 64,
+          "maxLength": 64
         },
         "object_root_key_hex": {
           "type": "string",
-          "pattern": "^(?:[0-9a-f]{2})*$"
-        },
-        "signature_context_hex": {
-          "type": "string",
-          "pattern": "^(?:[0-9a-f]{2})*$"
+          "pattern": "^(?:[0-9a-f]{2})*$",
+          "minLength": 64,
+          "maxLength": 64
         },
         "object_key_hex": {
           "type": "string",
-          "pattern": "^(?:[0-9a-f]{2})*$"
+          "pattern": "^(?:[0-9a-f]{2})*$",
+          "minLength": 64,
+          "maxLength": 64
         },
         "nonce_hex": {
           "type": "string",
-          "pattern": "^(?:[0-9a-f]{2})*$"
+          "pattern": "^(?:[0-9a-f]{2})*$",
+          "minLength": 24,
+          "maxLength": 24
         },
         "aad_hex": {
           "type": "string",
@@ -189,23 +150,27 @@
         },
         "padded_plaintext_hex": {
           "type": "string",
-          "pattern": "^(?:[0-9a-f]{2})*$"
+          "pattern": "^(?:[0-9a-f]{2})*$",
+          "minLength": 2016,
+          "maxLength": 2016
         },
         "ciphertext_hex": {
           "type": "string",
-          "pattern": "^(?:[0-9a-f]{2})*$"
+          "pattern": "^(?:[0-9a-f]{2})*$",
+          "minLength": 2016,
+          "maxLength": 2016
         },
         "gcm_tag_hex": {
           "type": "string",
-          "pattern": "^(?:[0-9a-f]{2})*$"
+          "pattern": "^(?:[0-9a-f]{2})*$",
+          "minLength": 32,
+          "maxLength": 32
         },
         "object_hex": {
           "type": "string",
-          "pattern": "^(?:[0-9a-f]{2})*$"
-        },
-        "object_id": {
-          "type": "string",
-          "pattern": "^[0-9a-f]{64}$"
+          "pattern": "^(?:[0-9a-f]{2})*$",
+          "minLength": 2048,
+          "maxLength": 2048
         },
         "semantic_length": {
           "type": "integer",
@@ -214,9 +179,9 @@
         }
       },
       "required": [
+        "object_id",
         "id_key_hex",
         "object_root_key_hex",
-        "signature_context_hex",
         "object_key_hex",
         "nonce_hex",
         "aad_hex",
@@ -224,31 +189,7 @@
         "ciphertext_hex",
         "gcm_tag_hex",
         "object_hex",
-        "object_id",
         "semantic_length"
-      ]
-    },
-    "size": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "reserved_bytes": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "fan_in": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 32
-        },
-        "fits": {
-          "type": "boolean"
-        }
-      },
-      "required": [
-        "reserved_bytes",
-        "fan_in",
-        "fits"
       ]
     },
     "bootstrap": {
@@ -261,27 +202,39 @@
         },
         "salt_hex": {
           "type": "string",
-          "pattern": "^(?:[0-9a-f]{2})*$"
+          "pattern": "^(?:[0-9a-f]{2})*$",
+          "minLength": 32,
+          "maxLength": 32
         },
         "nonce_hex": {
           "type": "string",
-          "pattern": "^(?:[0-9a-f]{2})*$"
+          "pattern": "^(?:[0-9a-f]{2})*$",
+          "minLength": 24,
+          "maxLength": 24
         },
         "wrap_key_hex": {
           "type": "string",
-          "pattern": "^(?:[0-9a-f]{2})*$"
+          "pattern": "^(?:[0-9a-f]{2})*$",
+          "minLength": 64,
+          "maxLength": 64
         },
         "header_hex": {
           "type": "string",
-          "pattern": "^(?:[0-9a-f]{2})*$"
+          "pattern": "^(?:[0-9a-f]{2})*$",
+          "minLength": 78,
+          "maxLength": 78
         },
         "record_hex": {
           "type": "string",
-          "pattern": "^(?:[0-9a-f]{2})*$"
+          "pattern": "^(?:[0-9a-f]{2})*$",
+          "minLength": 174,
+          "maxLength": 174
         },
-        "binding_hex": {
+        "fingerprint_hex": {
           "type": "string",
-          "pattern": "^(?:[0-9a-f]{2})*$"
+          "pattern": "^(?:[0-9a-f]{2})*$",
+          "minLength": 64,
+          "maxLength": 64
         }
       },
       "required": [
@@ -291,7 +244,87 @@
         "wrap_key_hex",
         "header_hex",
         "record_hex",
-        "binding_hex"
+        "fingerprint_hex"
+      ]
+    },
+    "totp": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "type": "string"
+        },
+        "notes": {
+          "type": "string"
+        },
+        "algorithm": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3
+        },
+        "digits": {
+          "type": "integer",
+          "minimum": 6,
+          "maximum": 8
+        },
+        "period": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4294967295
+        },
+        "t0": {
+          "const": 0
+        },
+        "secret_hex": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{2})*$"
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "unix_time_seconds": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 18446744073709551615
+              },
+              "counter": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 18446744073709551615
+              },
+              "counter_hex": {
+                "type": "string",
+                "pattern": "^(?:[0-9a-f]{2})*$",
+                "minLength": 16,
+                "maxLength": 16
+              },
+              "code": {
+                "type": "string",
+                "pattern": "^[0-9]{6,8}$"
+              }
+            },
+            "required": [
+              "unix_time_seconds",
+              "counter",
+              "counter_hex",
+              "code"
+            ]
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "source",
+        "notes",
+        "algorithm",
+        "digits",
+        "period",
+        "t0",
+        "secret_hex",
+        "rows"
       ]
     },
     "graph": {
@@ -306,20 +339,9 @@
             "properties": {
               "action": {
                 "enum": [
-                  "learn",
-                  "cache-write-fails",
-                  "disappear",
-                  "remote-unavailable",
-                  "history-lost",
-                  "remember",
-                  "rename",
-                  "state-query",
-                  "discovery-incomplete",
-                  "query",
-                  "plan",
-                  "publish",
-                  "history-clear",
-                  "optional-cache-failure"
+                  "add",
+                  "remove",
+                  "evaluate"
                 ]
               },
               "node": {
@@ -329,23 +351,8 @@
                   "id": {
                     "type": "string"
                   },
-                  "version": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 255
-                  },
-                  "type": {
-                    "type": "string"
-                  },
                   "identity": {
                     "type": "string"
-                  },
-                  "class": {
-                    "enum": [
-                      "SUPPORTED_VALID",
-                      "OPAQUE_ROUTABLE",
-                      "OPAQUE_UNSCOPED"
-                    ]
                   },
                   "parents": {
                     "type": [
@@ -356,112 +363,34 @@
                       "type": "string"
                     }
                   },
-                  "author": {
+                  "canonical": {
                     "type": "string"
                   },
-                  "author_time": {
+                  "value": {
+                    "type": "string"
+                  },
+                  "client_name": {
+                    "type": "string"
+                  },
+                  "client_time": {
                     "type": "integer",
                     "minimum": 0,
                     "maximum": 18446744073709551615
-                  },
-                  "public_key": {
-                    "type": "string"
-                  },
-                  "semantic_digest": {
-                    "type": "string"
                   }
                 },
                 "required": [
                   "id",
-                  "version",
-                  "type",
                   "identity",
-                  "class",
                   "parents",
-                  "author_time",
-                  "semantic_digest"
-                ]
-              },
-              "value": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "status": {
-                    "type": "string"
-                  },
-                  "issuer": {
-                    "type": "string"
-                  },
-                  "account": {
-                    "type": "string"
-                  },
-                  "algorithm": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 255
-                  },
-                  "digits": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 255
-                  },
-                  "period": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 4294967295
-                  },
-                  "secret_hex": {
-                    "type": "string",
-                    "pattern": "^(?:[0-9a-f]{2})*$"
-                  },
-                  "display_name": {
-                    "type": "string"
-                  },
-                  "verified": {
-                    "type": "boolean"
-                  },
-                  "provenance": {
-                    "enum": [
-                      "VERIFIED",
-                      "UNRESOLVED",
-                      "REJECTED"
-                    ]
-                  }
-                },
-                "required": [
-                  "status",
-                  "issuer",
-                  "account",
-                  "algorithm",
-                  "digits",
-                  "period",
-                  "secret_hex"
+                  "canonical",
+                  "value"
                 ]
               },
               "id": {
                 "type": "string"
               },
-              "flag": {
-                "type": "boolean"
-              },
-              "query": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "identity": {
-                    "type": "string"
-                  },
-                  "candidate": {
-                    "type": "string"
-                  },
-                  "device": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "identity",
-                  "candidate"
-                ]
+              "identity": {
+                "type": "string"
               },
               "expect": {
                 "type": "object",
@@ -471,123 +400,82 @@
                     "type": "array",
                     "items": {
                       "type": "string"
-                    }
+                    },
+                    "minItems": 0
                   },
-                  "value_state": {
-                    "enum": [
-                      "EMPTY",
-                      "UNAMBIGUOUS",
-                      "CONFLICT",
-                      "VALUE_INCOMPLETE_OPAQUE"
-                    ]
-                  },
-                  "ordinary": {
-                    "type": "boolean"
-                  },
-                  "author": {
-                    "type": "boolean"
-                  },
-                  "candidate": {
-                    "type": "boolean"
-                  },
-                  "candidate_warning": {
-                    "type": "boolean"
-                  },
-                  "integrity_failure": {
-                    "type": "boolean"
-                  },
-                  "presentation": {
-                    "enum": [
-                      "UNAVAILABLE",
-                      "OPAQUE",
-                      "VERIFIED",
-                      "CONFLICT"
-                    ]
-                  },
-                  "warnings": {
+                  "values": {
                     "type": "array",
                     "items": {
-                      "enum": [
-                        "HISTORY_MEMORY_LOST",
-                        "HISTORY_REGRESSION",
-                        "HISTORY_CACHE_WRITE_FAILED",
-                        "PROCESSING_INCOMPLETE",
-                        "UNKNOWN_FUTURE_EVIDENCE"
+                      "type": "string"
+                    },
+                    "minItems": 0
+                  },
+                  "unresolved": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "minItems": 0
+                  },
+                  "conflicting": {
+                    "type": "boolean"
+                  },
+                  "head_objects": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "identity": {
+                          "type": "string"
+                        },
+                        "parents": {
+                          "type": [
+                            "array",
+                            "null"
+                          ],
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "canonical": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "string"
+                        },
+                        "client_name": {
+                          "type": "string"
+                        },
+                        "client_time": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 18446744073709551615
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "identity",
+                        "parents",
+                        "canonical",
+                        "value"
                       ]
                     }
-                  },
-                  "requires_confirmation": {
-                    "type": "boolean"
                   }
                 },
                 "required": [
                   "heads",
-                  "value_state",
-                  "ordinary",
-                  "author",
-                  "candidate",
-                  "candidate_warning",
-                  "integrity_failure"
+                  "values",
+                  "unresolved",
+                  "conflicting",
+                  "head_objects"
                 ]
               },
               "integrity_error": {
                 "type": "boolean"
-              },
-              "success": {
-                "type": "boolean"
-              },
-              "reason": {
-                "enum": [
-                  "absent",
-                  "unreadable",
-                  "wrong-size",
-                  "aead",
-                  "padding",
-                  "object-id"
-                ]
-              },
-              "state_expect": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "known": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "device_heads": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "parents": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "integrity_ok": {
-                    "type": "boolean"
-                  }
-                },
-                "required": [
-                  "known",
-                  "device_heads",
-                  "parents",
-                  "integrity_ok"
-                ]
-              },
-              "intent": {
-                "type": "string",
-                "minLength": 1
-              },
-              "parents": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
               }
             },
             "required": [
@@ -598,17 +486,65 @@
                 "if": {
                   "properties": {
                     "action": {
-                      "enum": [
-                        "learn",
-                        "cache-write-fails",
-                        "rename",
-                        "plan"
-                      ]
+                      "const": "add"
                     }
                   }
                 },
                 "then": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "action": {
+                      "const": "add"
+                    },
+                    "node": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "identity": {
+                          "type": "string"
+                        },
+                        "parents": {
+                          "type": [
+                            "array",
+                            "null"
+                          ],
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "canonical": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "string"
+                        },
+                        "client_name": {
+                          "type": "string"
+                        },
+                        "client_time": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 18446744073709551615
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "identity",
+                        "parents",
+                        "canonical",
+                        "value"
+                      ]
+                    },
+                    "integrity_error": {
+                      "type": "boolean"
+                    }
+                  },
                   "required": [
+                    "action",
                     "node"
                   ]
                 }
@@ -617,27 +553,23 @@
                 "if": {
                   "properties": {
                     "action": {
-                      "const": "query"
+                      "const": "remove"
                     }
                   }
                 },
                 "then": {
-                  "required": [
-                    "query",
-                    "expect"
-                  ]
-                }
-              },
-              {
-                "if": {
+                  "type": "object",
+                  "additionalProperties": false,
                   "properties": {
                     "action": {
-                      "const": "disappear"
+                      "const": "remove"
+                    },
+                    "id": {
+                      "type": "string"
                     }
-                  }
-                },
-                "then": {
+                  },
                   "required": [
+                    "action",
                     "id"
                   ]
                 }
@@ -646,231 +578,249 @@
                 "if": {
                   "properties": {
                     "action": {
-                      "const": "plan"
+                      "const": "evaluate"
                     }
                   }
                 },
                 "then": {
-                  "required": [
-                    "node",
-                    "value",
-                    "intent",
-                    "parents",
-                    "success"
-                  ]
-                }
-              },
-              {
-                "if": {
+                  "type": "object",
+                  "additionalProperties": false,
                   "properties": {
                     "action": {
-                      "const": "publish"
+                      "const": "evaluate"
+                    },
+                    "identity": {
+                      "type": "string"
+                    },
+                    "expect": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "heads": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "minItems": 0
+                        },
+                        "values": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "minItems": 0
+                        },
+                        "unresolved": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "minItems": 0
+                        },
+                        "conflicting": {
+                          "type": "boolean"
+                        },
+                        "head_objects": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "identity": {
+                                "type": "string"
+                              },
+                              "parents": {
+                                "type": [
+                                  "array",
+                                  "null"
+                                ],
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "canonical": {
+                                "type": "string"
+                              },
+                              "value": {
+                                "type": "string"
+                              },
+                              "client_name": {
+                                "type": "string"
+                              },
+                              "client_time": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 18446744073709551615
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "identity",
+                              "parents",
+                              "canonical",
+                              "value"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "heads",
+                        "values",
+                        "unresolved",
+                        "conflicting",
+                        "head_objects"
+                      ]
                     }
-                  }
-                },
-                "then": {
+                  },
                   "required": [
-                    "flag",
-                    "success"
+                    "action",
+                    "identity",
+                    "expect"
                   ]
                 }
               }
             ]
           },
           "minItems": 1
-        },
-        "notes": {
-          "type": "string",
-          "minLength": 1
         }
       },
       "required": [
         "steps"
       ]
     },
-    "future": {
+    "fold": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "routing",
-        "opaque_tail_hex"
-      ],
       "properties": {
-        "routing": {
+        "frontier": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^(?:[0-9a-f]{2})*$",
+            "minLength": 64,
+            "maxLength": 64
+          },
+          "minItems": 0
+        },
+        "stage_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^(?:[0-9a-f]{2})*$",
+            "minLength": 64,
+            "maxLength": 64
+          },
+          "minItems": 1
+        },
+        "parents": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^(?:[0-9a-f]{2})*$",
+              "minLength": 64,
+              "maxLength": 64
+            },
+            "minItems": 0
+          },
+          "minItems": 1
+        },
+        "token": {
           "type": "object",
           "additionalProperties": false,
-          "required": [
-            "version",
-            "type",
-            "parents",
-            "author_time",
-            "identity"
-          ],
           "properties": {
-            "version": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 255
-            },
-            "type": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 255
+            "identity": {
+              "type": "string"
             },
             "parents": {
-              "type": [
-                "array",
-                "null"
-              ],
+              "type": "array",
               "items": {
-                "type": "string",
-                "description": "RFC 4648 padded base64 binary field"
+                "type": "string"
               },
-              "maxItems": 32
+              "minItems": 0
             },
-            "author_time": {
+            "status": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2
+            },
+            "issuer": {
+              "type": "string"
+            },
+            "account": {
+              "type": "string"
+            },
+            "algorithm": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3
+            },
+            "digits": {
+              "type": "integer",
+              "minimum": 6,
+              "maximum": 8
+            },
+            "period": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 4294967295
+            },
+            "secret": {
+              "type": "string"
+            },
+            "client_name": {
+              "type": "string"
+            },
+            "client_time": {
               "type": "integer",
               "minimum": 0,
               "maximum": 18446744073709551615
-            },
-            "identity": {
-              "type": "string",
-              "description": "RFC 4648 padded base64 binary field"
-            },
-            "author": {
-              "type": "string",
-              "description": "RFC 4648 padded base64 binary field"
             }
-          }
-        },
-        "opaque_tail_hex": {
-          "type": "string",
-          "pattern": "^(?:[0-9a-f]{2})*$"
+          },
+          "required": [
+            "identity",
+            "parents",
+            "status",
+            "issuer",
+            "account",
+            "algorithm",
+            "digits",
+            "period",
+            "secret"
+          ]
         }
-      }
-    },
-    "totp": {
-      "type": "object",
-      "additionalProperties": false,
+      },
       "required": [
-        "source",
-        "notes",
-        "algorithm",
-        "digits",
-        "period",
-        "t0",
-        "secret_hex",
-        "rows"
-      ],
-      "properties": {
-        "source": {
-          "type": "string",
-          "minLength": 1
-        },
-        "notes": {
-          "type": "string",
-          "minLength": 1
-        },
-        "algorithm": {
-          "type": "integer",
-          "enum": [
-            1,
-            2,
-            3
-          ]
-        },
-        "digits": {
-          "type": "integer",
-          "enum": [
-            6,
-            7,
-            8
-          ]
-        },
-        "period": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 4294967295
-        },
-        "t0": {
-          "const": 0
-        },
-        "secret_hex": {
-          "type": "string",
-          "pattern": "^(?:[0-9a-f]{2}){1,128}$"
-        },
-        "rows": {
-          "type": "array",
-          "minItems": 1,
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "unix_time_seconds",
-              "counter",
-              "counter_hex",
-              "code"
-            ],
-            "properties": {
-              "unix_time_seconds": {
-                "type": "integer",
-                "minimum": 0,
-                "maximum": 18446744073709551615
-              },
-              "counter": {
-                "type": "integer",
-                "minimum": 0,
-                "maximum": 18446744073709551615
-              },
-              "counter_hex": {
-                "type": "string",
-                "pattern": "^[0-9a-f]{16}$"
-              },
-              "code": {
-                "type": "string",
-                "pattern": "^[0-9]{6,8}$"
-              }
-            }
-          }
-        }
-      }
+        "frontier",
+        "stage_ids",
+        "parents",
+        "token"
+      ]
     },
     "storage": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "notes",
-        "root_hex",
-        "namespace_kind",
-        "entries",
-        "query",
-        "expect"
-      ],
       "properties": {
-        "notes": {
-          "type": "string",
-          "minLength": 1
-        },
-        "root_hex": {
-          "type": "string",
-          "pattern": "^[0-9a-f]{64}$"
-        },
         "namespace_kind": {
-          "const": "directory"
+          "enum": [
+            "directory",
+            "missing",
+            "symlink",
+            "regular"
+          ]
         },
         "entries": {
           "type": "array",
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": [
-              "path",
-              "kind"
-            ],
             "properties": {
               "path": {
-                "type": "string",
-                "minLength": 1
+                "type": "string"
               },
               "kind": {
                 "enum": [
@@ -882,381 +832,154 @@
                   "device"
                 ]
               },
-              "fixture_case": {
-                "type": "string",
-                "minLength": 1
-              },
-              "data_hex": {
+              "object_hex": {
                 "type": "string",
                 "pattern": "^(?:[0-9a-f]{2})*$"
               },
-              "zero_bytes": {
-                "type": "integer",
-                "minimum": 0,
-                "maximum": 4096
+              "unreadable": {
+                "type": "boolean"
               }
-            }
+            },
+            "required": [
+              "path",
+              "kind"
+            ]
           },
-          "minItems": 1
+          "minItems": 0
         },
-        "query": {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "identity": {
-              "type": "string"
-            },
-            "candidate": {
-              "type": "string"
-            },
-            "device": {
-              "type": "string"
-            }
+        "classes": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "SUPPORTED_VALID",
+              "INVALID",
+              "INVALID_STORAGE"
+            ]
           },
-          "required": [
-            "identity",
-            "candidate"
+          "minItems": 0
+        },
+        "diagnostics": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "namespace_kind",
+        "entries",
+        "classes",
+        "diagnostics"
+      ]
+    },
+    "workflow": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "enum": [
+            "publish",
+            "create",
+            "replace"
           ]
         },
-        "expect": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "observations",
-            "learned_ids",
-            "opaque_unscoped_ids",
-            "integrity_ok",
-            "view"
-          ],
-          "properties": {
-            "observations": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                  "path",
-                  "class"
-                ],
-                "properties": {
-                  "path": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "class": {
-                    "enum": [
-                      "SUPPORTED_VALID",
-                      "OPAQUE_ROUTABLE",
-                      "OPAQUE_UNSCOPED",
-                      "INVALID",
-                      "INVALID_STORAGE"
-                    ]
-                  }
-                }
-              }
-            },
-            "learned_ids": {
-              "type": "array",
-              "items": {
-                "type": "string",
-                "pattern": "^[0-9a-f]{64}$"
-              }
-            },
-            "opaque_unscoped_ids": {
-              "type": "array",
-              "items": {
-                "type": "string",
-                "pattern": "^[0-9a-f]{64}$"
-              }
-            },
-            "view": {
-              "type": "object",
-              "additionalProperties": false,
-              "properties": {
-                "heads": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                },
-                "value_state": {
-                  "enum": [
-                    "EMPTY",
-                    "UNAMBIGUOUS",
-                    "CONFLICT",
-                    "VALUE_INCOMPLETE_OPAQUE"
-                  ]
-                },
-                "ordinary": {
-                  "type": "boolean"
-                },
-                "author": {
-                  "type": "boolean"
-                },
-                "candidate": {
-                  "type": "boolean"
-                },
-                "candidate_warning": {
-                  "type": "boolean"
-                },
-                "integrity_failure": {
-                  "type": "boolean"
-                },
-                "presentation": {
-                  "enum": [
-                    "UNAVAILABLE",
-                    "OPAQUE",
-                    "VERIFIED",
-                    "CONFLICT"
-                  ]
-                },
-                "warnings": {
-                  "type": "array",
-                  "items": {
-                    "enum": [
-                      "HISTORY_MEMORY_LOST",
-                      "HISTORY_REGRESSION",
-                      "HISTORY_CACHE_WRITE_FAILED",
-                      "PROCESSING_INCOMPLETE",
-                      "UNKNOWN_FUTURE_EVIDENCE"
-                    ]
-                  }
-                },
-                "requires_confirmation": {
-                  "type": "boolean"
-                }
-              },
-              "required": [
-                "heads",
-                "value_state",
-                "ordinary",
-                "author",
-                "candidate",
-                "candidate_warning",
-                "integrity_failure"
-              ]
-            },
-            "integrity_ok": {
-              "type": "boolean"
-            }
-          }
-        }
-      }
-    },
-    "signature_context": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "context_a_hex": {
-          "type": "string",
-          "pattern": "^[0-9a-f]{64}$"
-        },
-        "context_b_hex": {
-          "type": "string",
-          "pattern": "^[0-9a-f]{64}$"
-        },
-        "unsigned_semantic_hex": {
-          "type": "string",
-          "pattern": "^(?:[0-9a-f]{2})+$"
-        },
-        "under_a": {
-          "const": "VERIFIED"
-        },
-        "under_b": {
-          "const": "REJECTED"
-        }
-      },
-      "required": [
-        "context_a_hex",
-        "context_b_hex",
-        "unsigned_semantic_hex",
-        "under_a",
-        "under_b"
-      ]
-    },
-    "publication": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "device_id": {
+        "kind": {
           "type": "string"
         },
-        "public_key": {
-          "type": "string"
+        "existing_hex": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{2})*$"
         },
-        "events": {
-          "type": "array",
-          "minItems": 1,
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "action": {
-                "enum": [
-                  "advertise",
-                  "publish-token",
-                  "report-success",
-                  "restart-workflow"
-                ]
-              },
-              "device_id": {
-                "type": "string"
-              },
-              "public_key": {
-                "type": "string"
-              },
-              "assertion_valid": {
-                "type": "boolean"
-              },
-              "verified": {
-                "type": "boolean"
-              },
-              "success": {
-                "type": "boolean"
-              },
-              "acknowledged": {
-                "type": "boolean"
-              }
-            },
-            "required": [
-              "action"
-            ]
-          }
+        "intended_hex": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{2})*$"
+        },
+        "base_hex": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{2})*$"
+        },
+        "readable": {
+          "type": "boolean"
+        },
+        "complete": {
+          "type": "boolean"
+        },
+        "durable": {
+          "type": "boolean"
+        },
+        "orphan_objects": {
+          "type": "boolean"
+        },
+        "parents_available": {
+          "type": "boolean"
+        },
+        "result": {
+          "enum": [
+            "FAILED",
+            "STALE",
+            "REPLACED",
+            "CREATED",
+            "ALREADY_PRESENT_EXACT",
+            "PUBLISHED_NEW"
+          ]
         }
       },
       "required": [
-        "device_id",
-        "public_key",
-        "events"
+        "action",
+        "kind",
+        "existing_hex",
+        "intended_hex",
+        "base_hex",
+        "readable",
+        "complete",
+        "durable",
+        "orphan_objects",
+        "parents_available",
+        "result"
       ]
     },
-    "late_provenance": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "fixture_case": {
-          "type": "string",
-          "minLength": 1
-        },
-        "notes": {
-          "type": "string",
-          "minLength": 1
-        },
-        "trials": {
-          "type": "array",
-          "minItems": 1,
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "corrupt_signature": {
-                "type": "boolean"
-              },
-              "before": {
-                "const": "UNRESOLVED"
-              },
-              "after": {
-                "enum": [
-                  "VERIFIED",
-                  "REJECTED"
-                ]
-              },
-              "semantic_unchanged": {
-                "const": true
-              }
-            },
-            "required": [
-              "corrupt_signature",
-              "before",
-              "after",
-              "semantic_unchanged"
-            ]
-          }
-        }
-      },
-      "required": [
-        "fixture_case",
-        "notes",
-        "trials"
-      ]
-    },
-    "local": {
+    "post_aead": {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "trials"
+        "object_id",
+        "encryption_plaintext_hex",
+        "object_hex",
+        "defect"
       ],
       "properties": {
-        "trials": {
-          "type": "array",
-          "minItems": 1,
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "operation",
-              "existing",
-              "acknowledged",
-              "authenticated",
-              "expected"
-            ],
-            "properties": {
-              "operation": {
-                "enum": [
-                  "install",
-                  "binding"
-                ]
-              },
-              "existing": {
-                "enum": [
-                  "absent",
-                  "exact",
-                  "different",
-                  "symlink",
-                  "corrupt"
-                ]
-              },
-              "acknowledged": {
-                "type": "boolean"
-              },
-              "authenticated": {
-                "type": "boolean"
-              },
-              "expected": {
-                "enum": [
-                  "PUBLISHED_NEW",
-                  "ALREADY_PRESENT_EXACT",
-                  "FAILED",
-                  "UNKNOWN",
-                  "ESTABLISHED",
-                  "ANCHOR_FAILURE",
-                  "REJECTED",
-                  "INCOMPLETE"
-                ]
-              }
-            }
-          }
+        "object_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]+$",
+          "minLength": 64,
+          "maxLength": 64
+        },
+        "encryption_plaintext_hex": {
+          "type": "string",
+          "pattern": "^[0-9a-f]+$",
+          "minLength": 2016,
+          "maxLength": 2016
+        },
+        "object_hex": {
+          "type": "string",
+          "pattern": "^[0-9a-f]+$",
+          "minLength": 2048,
+          "maxLength": 2048
+        },
+        "defect": {
+          "enum": [
+            "nonzero-padding",
+            "object-id-mismatch",
+            "semantic-length-invalid"
+          ]
         }
       }
     }
   },
+  "required": [
+    "format",
+    "id",
+    "operation",
+    "expected"
+  ],
   "allOf": [
-    {
-      "if": {
-        "properties": {
-          "operation": {
-            "const": "dispatch"
-          }
-        }
-      },
-      "then": {
-        "required": [
-          "semantic_hex",
-          "root_hex",
-          "crypto"
-        ]
-      }
-    },
     {
       "if": {
         "properties": {
@@ -1266,7 +989,197 @@
         }
       },
       "then": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "const": "totipo-case-v1"
+          },
+          "id": {
+            "type": "string",
+            "pattern": "^v1\\.[a-z0-9-]+(?:\\.[a-z0-9-]+)+$"
+          },
+          "operation": {
+            "enum": [
+              "crypto",
+              "dispatch",
+              "bootstrap",
+              "totp",
+              "graph",
+              "fold",
+              "storage",
+              "workflow"
+            ]
+          },
+          "expected": {
+            "const": "SUPPORTED_VALID"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "input": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "identity": {
+                "type": "string"
+              },
+              "parents": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 0
+              },
+              "status": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 2
+              },
+              "issuer": {
+                "type": "string"
+              },
+              "account": {
+                "type": "string"
+              },
+              "algorithm": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 3
+              },
+              "digits": {
+                "type": "integer",
+                "minimum": 6,
+                "maximum": 8
+              },
+              "period": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 4294967295
+              },
+              "secret": {
+                "type": "string"
+              },
+              "client_name": {
+                "type": "string"
+              },
+              "client_time": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 18446744073709551615
+              }
+            },
+            "required": [
+              "identity",
+              "parents",
+              "status",
+              "issuer",
+              "account",
+              "algorithm",
+              "digits",
+              "period",
+              "secret"
+            ]
+          },
+          "semantic_hex": {
+            "type": "string",
+            "pattern": "^(?:[0-9a-f]{2})*$"
+          },
+          "root_hex": {
+            "type": "string",
+            "pattern": "^(?:[0-9a-f]{2})*$",
+            "minLength": 64,
+            "maxLength": 64
+          },
+          "crypto": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "object_id": {
+                "type": "string",
+                "pattern": "^(?:[0-9a-f]{2})*$",
+                "minLength": 64,
+                "maxLength": 64
+              },
+              "id_key_hex": {
+                "type": "string",
+                "pattern": "^(?:[0-9a-f]{2})*$",
+                "minLength": 64,
+                "maxLength": 64
+              },
+              "object_root_key_hex": {
+                "type": "string",
+                "pattern": "^(?:[0-9a-f]{2})*$",
+                "minLength": 64,
+                "maxLength": 64
+              },
+              "object_key_hex": {
+                "type": "string",
+                "pattern": "^(?:[0-9a-f]{2})*$",
+                "minLength": 64,
+                "maxLength": 64
+              },
+              "nonce_hex": {
+                "type": "string",
+                "pattern": "^(?:[0-9a-f]{2})*$",
+                "minLength": 24,
+                "maxLength": 24
+              },
+              "aad_hex": {
+                "type": "string",
+                "pattern": "^(?:[0-9a-f]{2})*$"
+              },
+              "padded_plaintext_hex": {
+                "type": "string",
+                "pattern": "^(?:[0-9a-f]{2})*$",
+                "minLength": 2016,
+                "maxLength": 2016
+              },
+              "ciphertext_hex": {
+                "type": "string",
+                "pattern": "^(?:[0-9a-f]{2})*$",
+                "minLength": 2016,
+                "maxLength": 2016
+              },
+              "gcm_tag_hex": {
+                "type": "string",
+                "pattern": "^(?:[0-9a-f]{2})*$",
+                "minLength": 32,
+                "maxLength": 32
+              },
+              "object_hex": {
+                "type": "string",
+                "pattern": "^(?:[0-9a-f]{2})*$",
+                "minLength": 2048,
+                "maxLength": 2048
+              },
+              "semantic_length": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1006
+              }
+            },
+            "required": [
+              "object_id",
+              "id_key_hex",
+              "object_root_key_hex",
+              "object_key_hex",
+              "nonce_hex",
+              "aad_hex",
+              "padded_plaintext_hex",
+              "ciphertext_hex",
+              "gcm_tag_hex",
+              "object_hex",
+              "semantic_length"
+            ]
+          }
+        },
         "required": [
+          "format",
+          "id",
+          "operation",
+          "expected",
+          "input",
           "semantic_hex",
           "root_hex",
           "crypto"
@@ -1277,29 +1190,140 @@
       "if": {
         "properties": {
           "operation": {
-            "const": "provenance"
+            "const": "dispatch"
           }
         }
       },
       "then": {
-        "required": [
-          "input",
-          "root_hex"
-        ]
-      }
-    },
-    {
-      "if": {
+        "type": "object",
+        "additionalProperties": false,
         "properties": {
+          "format": {
+            "const": "totipo-case-v1"
+          },
+          "id": {
+            "type": "string",
+            "pattern": "^v1\\.[a-z0-9-]+(?:\\.[a-z0-9-]+)+$"
+          },
           "operation": {
-            "const": "size"
+            "enum": [
+              "crypto",
+              "dispatch",
+              "bootstrap",
+              "totp",
+              "graph",
+              "fold",
+              "storage",
+              "workflow"
+            ]
+          },
+          "expected": {
+            "const": "INVALID"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "semantic_hex": {
+            "type": "string",
+            "pattern": "^(?:[0-9a-f]{2})*$"
+          },
+          "root_hex": {
+            "type": "string",
+            "pattern": "^(?:[0-9a-f]{2})*$",
+            "minLength": 64,
+            "maxLength": 64
+          },
+          "crypto": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "object_id": {
+                "type": "string",
+                "pattern": "^(?:[0-9a-f]{2})*$",
+                "minLength": 64,
+                "maxLength": 64
+              },
+              "id_key_hex": {
+                "type": "string",
+                "pattern": "^(?:[0-9a-f]{2})*$",
+                "minLength": 64,
+                "maxLength": 64
+              },
+              "object_root_key_hex": {
+                "type": "string",
+                "pattern": "^(?:[0-9a-f]{2})*$",
+                "minLength": 64,
+                "maxLength": 64
+              },
+              "object_key_hex": {
+                "type": "string",
+                "pattern": "^(?:[0-9a-f]{2})*$",
+                "minLength": 64,
+                "maxLength": 64
+              },
+              "nonce_hex": {
+                "type": "string",
+                "pattern": "^(?:[0-9a-f]{2})*$",
+                "minLength": 24,
+                "maxLength": 24
+              },
+              "aad_hex": {
+                "type": "string",
+                "pattern": "^(?:[0-9a-f]{2})*$"
+              },
+              "padded_plaintext_hex": {
+                "type": "string",
+                "pattern": "^(?:[0-9a-f]{2})*$",
+                "minLength": 2016,
+                "maxLength": 2016
+              },
+              "ciphertext_hex": {
+                "type": "string",
+                "pattern": "^(?:[0-9a-f]{2})*$",
+                "minLength": 2016,
+                "maxLength": 2016
+              },
+              "gcm_tag_hex": {
+                "type": "string",
+                "pattern": "^(?:[0-9a-f]{2})*$",
+                "minLength": 32,
+                "maxLength": 32
+              },
+              "object_hex": {
+                "type": "string",
+                "pattern": "^(?:[0-9a-f]{2})*$",
+                "minLength": 2048,
+                "maxLength": 2048
+              },
+              "semantic_length": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1006
+              }
+            },
+            "required": [
+              "object_id",
+              "id_key_hex",
+              "object_root_key_hex",
+              "object_key_hex",
+              "nonce_hex",
+              "aad_hex",
+              "padded_plaintext_hex",
+              "ciphertext_hex",
+              "gcm_tag_hex",
+              "object_hex",
+              "semantic_length"
+            ]
           }
-        }
-      },
-      "then": {
+        },
         "required": [
-          "input",
-          "size"
+          "format",
+          "id",
+          "operation",
+          "expected",
+          "semantic_hex",
+          "root_hex",
+          "crypto"
         ]
       }
     },
@@ -1312,23 +1336,103 @@
         }
       },
       "then": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "const": "totipo-case-v1"
+          },
+          "id": {
+            "type": "string",
+            "pattern": "^v1\\.[a-z0-9-]+(?:\\.[a-z0-9-]+)+$"
+          },
+          "operation": {
+            "enum": [
+              "crypto",
+              "dispatch",
+              "bootstrap",
+              "totp",
+              "graph",
+              "fold",
+              "storage",
+              "workflow"
+            ]
+          },
+          "expected": {
+            "const": "VALID"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "root_hex": {
+            "type": "string",
+            "pattern": "^(?:[0-9a-f]{2})*$",
+            "minLength": 64,
+            "maxLength": 64
+          },
+          "bootstrap": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "password_hex": {
+                "type": "string",
+                "pattern": "^(?:[0-9a-f]{2})*$"
+              },
+              "salt_hex": {
+                "type": "string",
+                "pattern": "^(?:[0-9a-f]{2})*$",
+                "minLength": 32,
+                "maxLength": 32
+              },
+              "nonce_hex": {
+                "type": "string",
+                "pattern": "^(?:[0-9a-f]{2})*$",
+                "minLength": 24,
+                "maxLength": 24
+              },
+              "wrap_key_hex": {
+                "type": "string",
+                "pattern": "^(?:[0-9a-f]{2})*$",
+                "minLength": 64,
+                "maxLength": 64
+              },
+              "header_hex": {
+                "type": "string",
+                "pattern": "^(?:[0-9a-f]{2})*$",
+                "minLength": 78,
+                "maxLength": 78
+              },
+              "record_hex": {
+                "type": "string",
+                "pattern": "^(?:[0-9a-f]{2})*$",
+                "minLength": 174,
+                "maxLength": 174
+              },
+              "fingerprint_hex": {
+                "type": "string",
+                "pattern": "^(?:[0-9a-f]{2})*$",
+                "minLength": 64,
+                "maxLength": 64
+              }
+            },
+            "required": [
+              "password_hex",
+              "salt_hex",
+              "nonce_hex",
+              "wrap_key_hex",
+              "header_hex",
+              "record_hex",
+              "fingerprint_hex"
+            ]
+          }
+        },
         "required": [
+          "format",
+          "id",
+          "operation",
+          "expected",
           "root_hex",
           "bootstrap"
-        ]
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "operation": {
-            "const": "graph"
-          }
-        }
-      },
-      "then": {
-        "required": [
-          "graph"
         ]
       }
     },
@@ -1341,8 +1445,689 @@
         }
       },
       "then": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "const": "totipo-case-v1"
+          },
+          "id": {
+            "type": "string",
+            "pattern": "^v1\\.[a-z0-9-]+(?:\\.[a-z0-9-]+)+$"
+          },
+          "operation": {
+            "enum": [
+              "crypto",
+              "dispatch",
+              "bootstrap",
+              "totp",
+              "graph",
+              "fold",
+              "storage",
+              "workflow"
+            ]
+          },
+          "expected": {
+            "const": "PASS"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "totp": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "source": {
+                "type": "string"
+              },
+              "notes": {
+                "type": "string"
+              },
+              "algorithm": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 3
+              },
+              "digits": {
+                "type": "integer",
+                "minimum": 6,
+                "maximum": 8
+              },
+              "period": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 4294967295
+              },
+              "t0": {
+                "const": 0
+              },
+              "secret_hex": {
+                "type": "string",
+                "pattern": "^(?:[0-9a-f]{2})*$"
+              },
+              "rows": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "unix_time_seconds": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 18446744073709551615
+                    },
+                    "counter": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 18446744073709551615
+                    },
+                    "counter_hex": {
+                      "type": "string",
+                      "pattern": "^(?:[0-9a-f]{2})*$",
+                      "minLength": 16,
+                      "maxLength": 16
+                    },
+                    "code": {
+                      "type": "string",
+                      "pattern": "^[0-9]{6,8}$"
+                    }
+                  },
+                  "required": [
+                    "unix_time_seconds",
+                    "counter",
+                    "counter_hex",
+                    "code"
+                  ]
+                },
+                "minItems": 1
+              }
+            },
+            "required": [
+              "source",
+              "notes",
+              "algorithm",
+              "digits",
+              "period",
+              "t0",
+              "secret_hex",
+              "rows"
+            ]
+          }
+        },
         "required": [
+          "format",
+          "id",
+          "operation",
+          "expected",
           "totp"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "graph"
+          }
+        }
+      },
+      "then": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "const": "totipo-case-v1"
+          },
+          "id": {
+            "type": "string",
+            "pattern": "^v1\\.[a-z0-9-]+(?:\\.[a-z0-9-]+)+$"
+          },
+          "operation": {
+            "enum": [
+              "crypto",
+              "dispatch",
+              "bootstrap",
+              "totp",
+              "graph",
+              "fold",
+              "storage",
+              "workflow"
+            ]
+          },
+          "expected": {
+            "const": "PASS"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "graph": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "steps": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "action": {
+                      "enum": [
+                        "add",
+                        "remove",
+                        "evaluate"
+                      ]
+                    },
+                    "node": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "identity": {
+                          "type": "string"
+                        },
+                        "parents": {
+                          "type": [
+                            "array",
+                            "null"
+                          ],
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "canonical": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "string"
+                        },
+                        "client_name": {
+                          "type": "string"
+                        },
+                        "client_time": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 18446744073709551615
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "identity",
+                        "parents",
+                        "canonical",
+                        "value"
+                      ]
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "identity": {
+                      "type": "string"
+                    },
+                    "expect": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "heads": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "minItems": 0
+                        },
+                        "values": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "minItems": 0
+                        },
+                        "unresolved": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "minItems": 0
+                        },
+                        "conflicting": {
+                          "type": "boolean"
+                        },
+                        "head_objects": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "identity": {
+                                "type": "string"
+                              },
+                              "parents": {
+                                "type": [
+                                  "array",
+                                  "null"
+                                ],
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "canonical": {
+                                "type": "string"
+                              },
+                              "value": {
+                                "type": "string"
+                              },
+                              "client_name": {
+                                "type": "string"
+                              },
+                              "client_time": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 18446744073709551615
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "identity",
+                              "parents",
+                              "canonical",
+                              "value"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "heads",
+                        "values",
+                        "unresolved",
+                        "conflicting",
+                        "head_objects"
+                      ]
+                    },
+                    "integrity_error": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "action"
+                  ],
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "action": {
+                            "const": "add"
+                          }
+                        }
+                      },
+                      "then": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "action": {
+                            "const": "add"
+                          },
+                          "node": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "identity": {
+                                "type": "string"
+                              },
+                              "parents": {
+                                "type": [
+                                  "array",
+                                  "null"
+                                ],
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "canonical": {
+                                "type": "string"
+                              },
+                              "value": {
+                                "type": "string"
+                              },
+                              "client_name": {
+                                "type": "string"
+                              },
+                              "client_time": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 18446744073709551615
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "identity",
+                              "parents",
+                              "canonical",
+                              "value"
+                            ]
+                          },
+                          "integrity_error": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "action",
+                          "node"
+                        ]
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "action": {
+                            "const": "remove"
+                          }
+                        }
+                      },
+                      "then": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "action": {
+                            "const": "remove"
+                          },
+                          "id": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "action",
+                          "id"
+                        ]
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "action": {
+                            "const": "evaluate"
+                          }
+                        }
+                      },
+                      "then": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "action": {
+                            "const": "evaluate"
+                          },
+                          "identity": {
+                            "type": "string"
+                          },
+                          "expect": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "heads": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                },
+                                "minItems": 0
+                              },
+                              "values": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                },
+                                "minItems": 0
+                              },
+                              "unresolved": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                },
+                                "minItems": 0
+                              },
+                              "conflicting": {
+                                "type": "boolean"
+                              },
+                              "head_objects": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "identity": {
+                                      "type": "string"
+                                    },
+                                    "parents": {
+                                      "type": [
+                                        "array",
+                                        "null"
+                                      ],
+                                      "items": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "canonical": {
+                                      "type": "string"
+                                    },
+                                    "value": {
+                                      "type": "string"
+                                    },
+                                    "client_name": {
+                                      "type": "string"
+                                    },
+                                    "client_time": {
+                                      "type": "integer",
+                                      "minimum": 0,
+                                      "maximum": 18446744073709551615
+                                    }
+                                  },
+                                  "required": [
+                                    "id",
+                                    "identity",
+                                    "parents",
+                                    "canonical",
+                                    "value"
+                                  ]
+                                }
+                              }
+                            },
+                            "required": [
+                              "heads",
+                              "values",
+                              "unresolved",
+                              "conflicting",
+                              "head_objects"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "action",
+                          "identity",
+                          "expect"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                "minItems": 1
+              }
+            },
+            "required": [
+              "steps"
+            ]
+          }
+        },
+        "required": [
+          "format",
+          "id",
+          "operation",
+          "expected",
+          "graph"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "fold"
+          }
+        }
+      },
+      "then": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "const": "totipo-case-v1"
+          },
+          "id": {
+            "type": "string",
+            "pattern": "^v1\\.[a-z0-9-]+(?:\\.[a-z0-9-]+)+$"
+          },
+          "operation": {
+            "enum": [
+              "crypto",
+              "dispatch",
+              "bootstrap",
+              "totp",
+              "graph",
+              "fold",
+              "storage",
+              "workflow"
+            ]
+          },
+          "expected": {
+            "const": "PASS"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "fold": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "frontier": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^(?:[0-9a-f]{2})*$",
+                  "minLength": 64,
+                  "maxLength": 64
+                },
+                "minItems": 0
+              },
+              "stage_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^(?:[0-9a-f]{2})*$",
+                  "minLength": 64,
+                  "maxLength": 64
+                },
+                "minItems": 1
+              },
+              "parents": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^(?:[0-9a-f]{2})*$",
+                    "minLength": 64,
+                    "maxLength": 64
+                  },
+                  "minItems": 0
+                },
+                "minItems": 1
+              },
+              "token": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "identity": {
+                    "type": "string"
+                  },
+                  "parents": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "minItems": 0
+                  },
+                  "status": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 2
+                  },
+                  "issuer": {
+                    "type": "string"
+                  },
+                  "account": {
+                    "type": "string"
+                  },
+                  "algorithm": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 3
+                  },
+                  "digits": {
+                    "type": "integer",
+                    "minimum": 6,
+                    "maximum": 8
+                  },
+                  "period": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 4294967295
+                  },
+                  "secret": {
+                    "type": "string"
+                  },
+                  "client_name": {
+                    "type": "string"
+                  },
+                  "client_time": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 18446744073709551615
+                  }
+                },
+                "required": [
+                  "identity",
+                  "parents",
+                  "status",
+                  "issuer",
+                  "account",
+                  "algorithm",
+                  "digits",
+                  "period",
+                  "secret"
+                ]
+              }
+            },
+            "required": [
+              "frontier",
+              "stage_ids",
+              "parents",
+              "token"
+            ]
+          }
+        },
+        "required": [
+          "format",
+          "id",
+          "operation",
+          "expected",
+          "fold"
         ]
       }
     },
@@ -1355,7 +2140,115 @@
         }
       },
       "then": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "const": "totipo-case-v1"
+          },
+          "id": {
+            "type": "string",
+            "pattern": "^v1\\.[a-z0-9-]+(?:\\.[a-z0-9-]+)+$"
+          },
+          "operation": {
+            "enum": [
+              "crypto",
+              "dispatch",
+              "bootstrap",
+              "totp",
+              "graph",
+              "fold",
+              "storage",
+              "workflow"
+            ]
+          },
+          "expected": {
+            "const": "PASS"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "root_hex": {
+            "type": "string",
+            "pattern": "^(?:[0-9a-f]{2})*$",
+            "minLength": 64,
+            "maxLength": 64
+          },
+          "storage": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "namespace_kind": {
+                "enum": [
+                  "directory",
+                  "missing",
+                  "symlink",
+                  "regular"
+                ]
+              },
+              "entries": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "path": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "enum": [
+                        "regular",
+                        "directory",
+                        "symlink",
+                        "fifo",
+                        "socket",
+                        "device"
+                      ]
+                    },
+                    "object_hex": {
+                      "type": "string",
+                      "pattern": "^(?:[0-9a-f]{2})*$"
+                    },
+                    "unreadable": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "path",
+                    "kind"
+                  ]
+                },
+                "minItems": 0
+              },
+              "classes": {
+                "type": "array",
+                "items": {
+                  "enum": [
+                    "SUPPORTED_VALID",
+                    "INVALID",
+                    "INVALID_STORAGE"
+                  ]
+                },
+                "minItems": 0
+              },
+              "diagnostics": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "namespace_kind",
+              "entries",
+              "classes",
+              "diagnostics"
+            ]
+          }
+        },
         "required": [
+          "format",
+          "id",
+          "operation",
+          "expected",
+          "root_hex",
           "storage"
         ]
       }
@@ -1364,15 +2257,112 @@
       "if": {
         "properties": {
           "operation": {
-            "const": "signature-context"
+            "const": "workflow"
           }
         }
       },
       "then": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "const": "totipo-case-v1"
+          },
+          "id": {
+            "type": "string",
+            "pattern": "^v1\\.[a-z0-9-]+(?:\\.[a-z0-9-]+)+$"
+          },
+          "operation": {
+            "enum": [
+              "crypto",
+              "dispatch",
+              "bootstrap",
+              "totp",
+              "graph",
+              "fold",
+              "storage",
+              "workflow"
+            ]
+          },
+          "expected": {
+            "const": "PASS"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "workflow": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "action": {
+                "enum": [
+                  "publish",
+                  "create",
+                  "replace"
+                ]
+              },
+              "kind": {
+                "type": "string"
+              },
+              "existing_hex": {
+                "type": "string",
+                "pattern": "^(?:[0-9a-f]{2})*$"
+              },
+              "intended_hex": {
+                "type": "string",
+                "pattern": "^(?:[0-9a-f]{2})*$"
+              },
+              "base_hex": {
+                "type": "string",
+                "pattern": "^(?:[0-9a-f]{2})*$"
+              },
+              "readable": {
+                "type": "boolean"
+              },
+              "complete": {
+                "type": "boolean"
+              },
+              "durable": {
+                "type": "boolean"
+              },
+              "orphan_objects": {
+                "type": "boolean"
+              },
+              "parents_available": {
+                "type": "boolean"
+              },
+              "result": {
+                "enum": [
+                  "FAILED",
+                  "STALE",
+                  "REPLACED",
+                  "CREATED",
+                  "ALREADY_PRESENT_EXACT",
+                  "PUBLISHED_NEW"
+                ]
+              }
+            },
+            "required": [
+              "action",
+              "kind",
+              "existing_hex",
+              "intended_hex",
+              "base_hex",
+              "readable",
+              "complete",
+              "durable",
+              "orphan_objects",
+              "parents_available",
+              "result"
+            ]
+          }
+        },
         "required": [
-          "input",
-          "public_key_hex",
-          "signature_context"
+          "format",
+          "id",
+          "operation",
+          "expected",
+          "workflow"
         ]
       }
     },
@@ -1380,42 +2370,97 @@
       "if": {
         "properties": {
           "operation": {
-            "const": "publication"
+            "const": "post-aead"
           }
         }
       },
       "then": {
+        "type": "object",
+        "additionalProperties": false,
         "required": [
-          "publication"
-        ]
-      }
-    },
-    {
-      "if": {
+          "format",
+          "id",
+          "operation",
+          "expected",
+          "semantic_hex",
+          "root_hex",
+          "post_aead"
+        ],
         "properties": {
+          "format": {
+            "const": "totipo-case-v1"
+          },
+          "id": {
+            "type": "string",
+            "pattern": "^v1\\.[a-z0-9-]+(?:\\.[a-z0-9-]+)+$"
+          },
           "operation": {
-            "const": "late-provenance"
+            "enum": [
+              "crypto",
+              "dispatch",
+              "bootstrap",
+              "totp",
+              "graph",
+              "fold",
+              "storage",
+              "workflow",
+              "post-aead"
+            ]
+          },
+          "expected": {
+            "const": "INVALID_STORAGE"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "semantic_hex": {
+            "type": "string",
+            "pattern": "^(?:[0-9a-f]{2})*$"
+          },
+          "root_hex": {
+            "type": "string",
+            "pattern": "^(?:[0-9a-f]{2})*$",
+            "minLength": 64,
+            "maxLength": 64
+          },
+          "post_aead": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "object_id",
+              "encryption_plaintext_hex",
+              "object_hex",
+              "defect"
+            ],
+            "properties": {
+              "object_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]+$",
+                "minLength": 64,
+                "maxLength": 64
+              },
+              "encryption_plaintext_hex": {
+                "type": "string",
+                "pattern": "^[0-9a-f]+$",
+                "minLength": 2016,
+                "maxLength": 2016
+              },
+              "object_hex": {
+                "type": "string",
+                "pattern": "^[0-9a-f]+$",
+                "minLength": 2048,
+                "maxLength": 2048
+              },
+              "defect": {
+                "enum": [
+                  "nonzero-padding",
+                  "object-id-mismatch",
+                  "semantic-length-invalid"
+                ]
+              }
+            }
           }
         }
-      },
-      "then": {
-        "required": [
-          "late_provenance"
-        ]
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "operation": {
-            "const": "local"
-          }
-        }
-      },
-      "then": {
-        "required": [
-          "local"
-        ]
       }
     }
   ]

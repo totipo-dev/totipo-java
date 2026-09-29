@@ -3,7 +3,8 @@ package dev.totipo.format;
 import java.io.IOException;
 import java.io.InputStream;
 
-/** Opaque synchronized bootstrap storage, separate from local security memory.
+/** Low-level configured durable-store bootstrap storage.
+ * Lifecycle orchestration awaits r16 reconciliation.
  * Implementations use the exact configured canonical namespace; alternate/conflict/temp
  * names are never automatic bootstrap inputs. No method mutates caller arrays.
  * The caller owns this store and closes it after all staged handles and reads.
@@ -32,7 +33,7 @@ public interface VaultBootstrapStorage extends AutoCloseable {
          * An existing canonical pathname must cause failure without replacement.
          * Success includes required containing-directory metadata durability.
          * Failure may be ambiguous: callers must not retry or infer absence.
-         * Success still requires core canonical reread and local establishment. */
+         * Canonical verification and lifecycle decisions belong to the caller. */
         void installInitialDurably() throws IOException;
 
         /** Release resources and best-effort remove uninstalled private material.

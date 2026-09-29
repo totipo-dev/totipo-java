@@ -1,0 +1,21 @@
+{
+  "format": "totipo-case-v1",
+  "id": "v1.storage.wrong-size.001",
+  "operation": "storage",
+  "expected": "PASS",
+  "root_hex": "1111111111111111111111111111111111111111111111111111111111111111",
+  "storage": {
+    "namespace_kind": "directory",
+    "entries": [
+      {
+        "path": "objects-v1/55e041123630b2d80dfed60b0462f3666f5c6949f1f0c7a918b76b69942cb925",
+        "kind": "regular",
+        "object_hex": "00"
+      }
+    ],
+    "classes": [
+      "INVALID_STORAGE"
+    ],
+    "diagnostics": false
+  }
+}

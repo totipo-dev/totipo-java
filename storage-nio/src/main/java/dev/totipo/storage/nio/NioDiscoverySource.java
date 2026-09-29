@@ -9,9 +9,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-/** Direct-child discovery under r14's trusted local execution environment.
- * Synchronized bytes remain untrusted. Core reads at most 1025 bytes and authenticates
- * every candidate. Ordinary read/disappearance failures make the pass incomplete. */
+/** Direct-child observation of the configured durable store. Candidate bytes are hostile.
+ * Namespace and enumeration issues are diagnostics only; they establish no operation gate. */
 public final class NioDiscoverySource implements DiscoverySource {
     private final Path root;
     public NioDiscoverySource(Path root) {

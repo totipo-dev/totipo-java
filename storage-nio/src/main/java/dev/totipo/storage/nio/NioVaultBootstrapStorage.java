@@ -12,10 +12,11 @@ import java.util.HashSet;
 import java.util.Set;
 
 /** Canonical-only NIO VAULT storage. Complete forced same-directory temporary files
- * are authenticated by core before no-replace initial installation or atomic replacement.
+ * support no-replace initial installation or atomic replacement. Lifecycle verification
+ * and exact BASE comparison await r16 reconciliation.
  * Atomic replacement of an existing destination is provider-specific; this backend
  * requires that capability and never falls back to non-atomic overwrite.
- * Directory fsync precedes core's canonical authentication. Thread-confined. */
+ * Containing-directory persistence uses the injected runtime capability. Thread-confined. */
 public final class NioVaultBootstrapStorage implements VaultBootstrapReplacementStorage {
     private final Path root;
     private final Operations operations;

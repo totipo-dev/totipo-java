@@ -7,7 +7,7 @@ import java.util.Arrays;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
-/** Operation-local JCA primitives and the exact r10 §11/§14 key hierarchy. */
+/** Operation-local JCA primitives and the r16 key hierarchy. */
 final class CryptoSupport {
     private CryptoSupport() {}
 
@@ -78,8 +78,11 @@ final class CryptoSupport {
         return expand(prk, ascii("totipo/v1/object-key-root"), 32);
     }
 
-    static byte[] signatureContext(byte[] prk) {
-        return expand(prk, ascii("totipo/v1/signature-context"), 32);
+    static byte[] vaultFingerprint(byte[] root) {
+        if (root.length != 32) {
+            throw new IllegalArgumentException("Root key must be 32 bytes");
+        }
+        return hmac(root, ascii("totipo/v1/vault-fingerprint"));
     }
 
     static byte[] objectKey(byte[] objectRoot, ObjectId id) {

@@ -34,38 +34,20 @@ public final class VectorCaseLoader {
         }
     }
 
-    public static List<Case> routingCases() throws IOException {
-        return cases("routing");
-    }
-
-    public static List<Case> encodingCases() throws IOException {
-        return cases("encoding");
-    }
-
-    public static List<Case> cryptoCases() throws IOException {
-        return cases("crypto");
-    }
-
-    public static List<Case> provenanceCases() throws IOException { return cases("provenance"); }
-
-    public static List<Case> deviceCases() throws IOException { return cases("device"); }
     public static List<Case> bootstrapCases() throws IOException { return cases("bootstrap"); }
-    public static List<Case> totpCases() throws IOException { return cases("totp"); }
+    public static List<Case> cryptoCases() throws IOException { return cases("crypto"); }
+    public static List<Case> encodingCases() throws IOException { return cases("encoding"); }
+    public static List<Case> foldCases() throws IOException { return cases("fold"); }
     public static List<Case> graphCases() throws IOException { return cases("graph"); }
-    public static List<Case> futureCases() throws IOException { return cases("future"); }
-    public static List<Case> timestampCases() throws IOException { return cases("timestamp"); }
-    public static List<Case> candidateCases() throws IOException { return cases("candidate"); }
+    public static List<Case> metadataCases() throws IOException { return cases("metadata"); }
+    public static List<Case> sizeCases() throws IOException { return cases("size"); }
     public static List<Case> storageCases() throws IOException { return cases("storage"); }
+    public static List<Case> totpCases() throws IOException { return cases("totp"); }
+    public static List<Case> vaultCases() throws IOException { return cases("vault"); }
+
+    public static List<Case> allCases() throws IOException { return cases(null); }
 
     public static List<Case> cases(String category) throws IOException {
-        return selected(category, "baseline");
-    }
-
-    public static List<Case> allCases() throws IOException { return selected(null, null); }
-    public static List<Case> baselineCases() throws IOException { return selected(null, "baseline"); }
-    public static List<Case> advisoryCases() throws IOException { return selected(null, "conditional"); }
-
-    private static List<Case> selected(String category, String kind) throws IOException {
         Node manifest = resource("manifest.json");
         if (!manifest.field("format").string().equals("totipo-vector-manifest-v1")) {
             throw manifest.error("Unexpected manifest format");
@@ -73,13 +55,6 @@ public final class VectorCaseLoader {
         List<Case> cases = new ArrayList<>();
         var ids = new HashSet<String>();
         for (Node entry : manifest.field("cases").array()) {
-            var applicability = entry.field("applicability");
-            String applicabilityKind = applicability.field("kind").string();
-            if (!java.util.Set.of("baseline", "conditional").contains(applicabilityKind)
-                    || applicabilityKind.equals("conditional") && !applicability.field("capability").string().equals("advisory-history")) {
-                throw entry.error("Unsupported applicability");
-            }
-            if (kind != null && !kind.equals(applicabilityKind)) { continue; }
             if (category != null && !entry.field("category").string().equals(category)) {
                 continue;
             }

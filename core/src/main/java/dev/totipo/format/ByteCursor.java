@@ -66,7 +66,7 @@ final class ByteCursor {
         return value;
     }
 
-    /** Intentional internal signal, converted into a routing result at the boundary. */
+    /** Intentional internal signal, converted into a parse failure at the boundary. */
     static final class TruncatedInput extends Exception {
         private static final long serialVersionUID = 1L;
     }

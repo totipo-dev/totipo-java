@@ -20,29 +20,29 @@ import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-/** Provenance checks only: this test does not interpret any Totipo protocol bytes. */
+/** Snapshot integrity checks only: this test does not interpret any Totipo protocol bytes. */
 class SpecSnapshotIntegrityTest {
     private static final Path ROOT = Path.of("src/test/resources/totipo-spec/v1-pre-rc");
     private static final String CHECKSUMS = "SNAPSHOT.sha256";
     private static final String PROFILE_HASH =
-            "756cb4cf2ec642c597928bca896c895098f79d3870e1a493ae95e71e5e51ec81";
+            "687faf7757de7c63da68c28889bf3d0976b1858f9647b67569e3d8dfafc59c56";
     private static final Map<String, String> PINNED = Map.of(
             "spec/totipo-vault-format-v1.md",
-            "f62022718044b172092ec321b48ddd14c83c7b791587050cc0ae4678cdefec35",
+            "96f362d68251a801b2c433bd6435c0056d5b070bfe1258a12ae12bdf7bb7990e",
             "vectors/manifest.json",
-            "2ddf067d119e3512fa033bd4736a1a9f64042985b8a23968ff89778eb4ce5512",
+            "d03821fa2a0c41145bd8b82c6ea46800ab1a847b50c92fb9996b3c585d6f0a33",
             "vectors/manifest.schema.json",
-            "b670c263ab89387e24763e725317cce7ea1c7905ecefd05b00483f4625e0a4a5",
+            "3b54847e7a21bacc7956406c0d79dc172a0fb6415e9eb9c0335a511c1987664a",
             "vectors/case.schema.json",
-            "e9adccef5aac91e23bcff56c8fda914620757b71d0b88c28adb1eb41a5d2a16d",
+            "d38618f53dcf0a558c389831e8838a07248066beff392812f3d277cc974e25c9",
             "requirements/v1-pre-rc.json", PROFILE_HASH);
     private static final Pattern RECORD = Pattern.compile("([0-9a-f]{64})  ([A-Za-z0-9_./-]+)");
 
     @Test
     void snapshotMatchesChecksumsAndIndependentPins() throws Exception {
         Set<String> paths = verify(ROOT);
-        assertEquals(112, paths.size(), "Upstream file count");
-        assertEquals(105L, paths.stream().filter(p -> p.startsWith("vectors/cases/")).count());
+        assertEquals(97, paths.size(), "Upstream file count");
+        assertEquals(90L, paths.stream().filter(p -> p.startsWith("vectors/cases/") && p.endsWith(".json")).count());
         for (var pin : PINNED.entrySet()) {
             assertTrue(paths.contains(pin.getKey()), pin.getKey());
             assertEquals(pin.getValue(), sha256(ROOT.resolve(pin.getKey())), pin.getKey());

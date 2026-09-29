@@ -1,9 +1,8 @@
 package dev.totipo.format;
 
-import static dev.totipo.format.CryptoVectorTest.*;
+import static dev.totipo.format.EnvelopeTestBytes.*;
 import static org.junit.jupiter.api.Assertions.*;
 
-import dev.totipo.conformance.VectorCaseLoader;
 import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -11,7 +10,7 @@ import org.junit.jupiter.api.Test;
 class EnvelopeReaderTest {
     @Test
     void everyPhysicalTruncationAndOversizeFailsBeforeCrypto() throws Exception {
-        var v = signedCase();
+        var v = fixture();
         var c = v.data().field("crypto");
         byte[] object = c.field("object_hex").hex();
         String filename = c.field("object_id").string();
@@ -23,7 +22,7 @@ class EnvelopeReaderTest {
         }
         assertFailure(EnvelopeReader.Status.INVALID_ENVELOPE,
                 EnvelopeReader.open(filename, Arrays.copyOf(object, object.length + 1), root));
-        assertEquals(EnvelopeReader.Status.AUTHENTICATED_V1_STRUCTURE,
+        assertEquals(EnvelopeReader.Status.AUTHENTICATED_SEMANTIC,
                 EnvelopeReader.open(filename, object, root).status());
         for (String bad : List.of("", filename.toUpperCase(java.util.Locale.ROOT), filename.substring(1),
                 filename + "0", "../" + filename, "g" + filename.substring(1), " " + filename.substring(1))) {
@@ -33,8 +32,8 @@ class EnvelopeReaderTest {
 
     @Test
     void mutationsOfEveryCiphertextAndTagByteNeverPublishPlaintext() throws Exception {
-        // Includes both future cases: failed authentication cannot become opacity.
-        for (var v : VectorCaseLoader.cryptoCases()) {
+        // Authentication failure never exposes semantic bytes.
+        for (var v : List.of(fixture())) {
             var c = v.data().field("crypto");
             byte[] object = c.field("object_hex").hex();
             byte[] root = v.data().field("root_hex").hex();
@@ -51,7 +50,7 @@ class EnvelopeReaderTest {
 
     @Test
     void fullIdKeyDerivationNonceAndAadAreAllAuthenticated() throws Exception {
-        var v = signedCase();
+        var v = fixture();
         var c = v.data().field("crypto");
         byte[] root = v.data().field("root_hex").hex();
         byte[] object = c.field("object_hex").hex();
@@ -77,7 +76,7 @@ class EnvelopeReaderTest {
 
     @Test
     void validTagDoesNotBypassLengthPaddingOrKeyedIdentity() throws Exception {
-        var v = signedCase();
+        var v = fixture();
         var c = v.data().field("crypto");
         byte[] root = v.data().field("root_hex").hex();
         String filename = c.field("object_id").string();
@@ -104,38 +103,27 @@ class EnvelopeReaderTest {
     }
 
     @Test
-    void authenticatedSemanticFailuresAreSeparateFromEnvelopeFailures() throws Exception {
-        var v = signedCase();
-        byte[] root = v.data().field("root_hex").hex();
-        byte[] brokenBody = v.semanticBytes();
-        brokenBody[brokenBody.length - v.data().field("crypto").field("signature_der_hex").hex().length - 4] = 0;
-        assertEquals(EnvelopeReader.Status.AUTHENTICATED_INVALID_STRUCTURE, consume(root, brokenBody).status());
-        byte[] brokenPrefix = v.semanticBytes();
-        brokenPrefix[0] = 1;
-        assertEquals(EnvelopeReader.Status.AUTHENTICATED_INVALID_STRUCTURE, consume(root, brokenPrefix).status());
-        assertEquals(EnvelopeReader.Status.AUTHENTICATED_INVALID_STRUCTURE, consume(root, new byte[0]).status());
-        for (int length : new int[]{10, 1006}) {
-            byte[] unknown = Arrays.copyOf(v.semanticBytes(), length);
-            unknown[9] = 99;
-            assertEquals(EnvelopeReader.Status.AUTHENTICATED_OPAQUE_UNSCOPED, consume(root, unknown).status());
+    void arbitrarySemanticBytesAreReturnedWithoutGrammarParsingAndOwnTheirStorage() {
+        byte[] root = new byte[32];
+        for (int length : new int[]{0, 1, 10, 1006}) {
+            byte[] semantic = new byte[length];
+            Arrays.fill(semantic, (byte) 0xff);
+            var sealed = V1EnvelopeWriter.seal(root, semantic);
+            byte[] physical = sealed.bytes();
+            var opened = EnvelopeReader.open(sealed.id().filename(), physical, root);
+            assertEquals(EnvelopeReader.Status.AUTHENTICATED_SEMANTIC, opened.status());
+            assertEquals(sealed.id(), opened.objectId());
+            assertArrayEquals(semantic, opened.semanticBytes());
+            Arrays.fill(physical, (byte) 0);
+            Arrays.fill(opened.semanticBytes(), (byte) 0);
+            assertArrayEquals(semantic, opened.semanticBytes());
         }
-        byte[] badFuture = v.semanticBytes();
-        badFuture[4] = 2;
-        badFuture[10] = 1;
-        assertEquals(EnvelopeReader.Status.AUTHENTICATED_OPAQUE_UNSCOPED, consume(root, badFuture).status());
-    }
-
-    private static EnvelopeReader.Result consume(byte[] root, byte[] semantic) throws Exception {
-        byte[] prk = CryptoSupport.extract(root);
-        var id = ObjectId.compute(CryptoSupport.idKey(prk), semantic);
-        byte[] key = CryptoSupport.objectKey(CryptoSupport.objectRoot(prk), id);
-        return EnvelopeReader.open(id.filename(), encrypt(key, EnvelopeReader.nonce(id),
-                EnvelopeReader.aad(id), padded(semantic)), root);
+        assertThrows(IllegalArgumentException.class, () -> V1EnvelopeWriter.seal(root, new byte[1007]));
     }
 
     private static void assertFailure(EnvelopeReader.Status status, EnvelopeReader.Result result) {
         assertEquals(status, result.status());
-        assertNull(result.routing());
-        assertNull(result.plaintext());
+        assertNull(result.objectId());
+        assertNull(result.semanticBytes());
     }
 }

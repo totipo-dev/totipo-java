@@ -7,7 +7,7 @@ import javax.crypto.Cipher;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
-/** Exact v1-family consumption in §15 order; never establishes provenance/state acceptance. */
+/** Fixed authenticated envelope validation only; semantic bytes are not parsed. */
 final class EnvelopeReader {
     static final int TAG_BYTES = 16;
     static final int PADDED_BYTES = 1008;
@@ -19,40 +19,24 @@ final class EnvelopeReader {
     private EnvelopeReader() {}
 
     enum Status {
-        INVALID_ENVELOPE, AUTHENTICATION_FAILED, OBJECT_ID_MISMATCH,
-        AUTHENTICATED_FUTURE_TOKEN, AUTHENTICATED_FUTURE_DEVICE, AUTHENTICATED_OPAQUE_UNSCOPED,
-        AUTHENTICATED_INVALID_STRUCTURE, AUTHENTICATED_V1_STRUCTURE
+        INVALID_ENVELOPE, AUTHENTICATION_FAILED, OBJECT_ID_MISMATCH, AUTHENTICATED_SEMANTIC
     }
 
     /** Constructor is private: identity and retained bytes are bound by this reader. */
     static final class Result {
         private final Status status;
-        private final RoutingParser.Result routing;
-        private final V1Plaintext plaintext;
-        private final byte[] semanticBytes;
         private final ObjectId objectId;
-        private final byte[] exactObjectBytes;
+        private final byte[] semanticBytes;
 
-        private Result(Status status, RoutingParser.Result routing, V1Plaintext plaintext,
-                       byte[] semanticBytes, ObjectId objectId, byte[] exactObjectBytes) {
+        private Result(Status status, ObjectId objectId, byte[] semanticBytes) {
             this.status = status;
-            this.routing = routing;
-            this.plaintext = plaintext;
-            this.semanticBytes = semanticBytes == null ? null : semanticBytes.clone();
             this.objectId = objectId;
-            this.exactObjectBytes = exactObjectBytes == null ? null : exactObjectBytes.clone();
+            this.semanticBytes = semanticBytes == null ? null : semanticBytes.clone();
         }
 
         Status status() { return status; }
-        RoutingParser.Result routing() { return routing; }
-        V1Plaintext plaintext() { return plaintext; }
         ObjectId objectId() { return objectId; }
-        byte[] exactObjectBytes() {
-            return exactObjectBytes == null ? null : exactObjectBytes.clone();
-        }
-        byte[] semanticBytes() {
-            return semanticBytes == null ? null : semanticBytes.clone();
-        }
+        byte[] semanticBytes() { return semanticBytes == null ? null : semanticBytes.clone(); }
     }
 
     static byte[] nonce(ObjectId id) {
@@ -106,19 +90,7 @@ final class EnvelopeReader {
             if (!id.authenticates(idKey, semantic)) {
                 return failure(Status.OBJECT_ID_MISMATCH);
             }
-            var routing = RoutingParser.parse(semantic);
-            return switch (routing.outcome()) {
-                case OPAQUE_ROUTABLE_TOKEN -> new Result(Status.AUTHENTICATED_FUTURE_TOKEN, routing, null, null, id, null);
-                case OPAQUE_ROUTABLE_DEVICE -> new Result(Status.AUTHENTICATED_FUTURE_DEVICE, routing, null, null, id, null);
-                case OPAQUE_UNSCOPED -> new Result(Status.AUTHENTICATED_OPAQUE_UNSCOPED, routing, null, null, id, object);
-                case MALFORMED -> new Result(Status.AUTHENTICATED_INVALID_STRUCTURE, routing, null, null, id, null);
-                case SUPPORTED_V1_TOKEN, SUPPORTED_V1_DEVICE -> {
-                    var parsed = V1PlaintextParser.parse(semantic);
-                    yield new Result(parsed.status() == V1PlaintextParser.Status.STRUCTURALLY_VALID
-                            ? Status.AUTHENTICATED_V1_STRUCTURE : Status.AUTHENTICATED_INVALID_STRUCTURE,
-                            routing, parsed.plaintext(), parsed.plaintext() == null ? null : semantic, id, null);
-                }
-            };
+            return new Result(Status.AUTHENTICATED_SEMANTIC, id, semantic);
         } catch (AEADBadTagException e) {
             return failure(Status.AUTHENTICATION_FAILED);
         } catch (ByteCursor.TruncatedInput e) {
@@ -135,6 +107,6 @@ final class EnvelopeReader {
     }
 
     private static Result failure(Status status) {
-        return new Result(status, null, null, null, null, null);
+        return new Result(status, null, null);
     }
 }

@@ -3,11 +3,12 @@ package dev.totipo.storage.nio;
 import java.io.IOException;
 import java.nio.file.Path;
 
-/** Explicit platform capability required before acknowledging durable storage.
+/** Injectable runtime capability for directory persistence.
  * Implementations must fail if they cannot provide the requested barrier.
  * Newly written temporary files are forced through their existing channel instead.
  * The caller owns the capability; storage handles do not close it. */
 public interface StorageDurability {
-    /** Persist the containing directory's namespace changes. */
+    /** Request persistence of the containing directory's namespace changes.
+     * Implementations document the guarantees their provider can offer. */
     void syncDirectory(Path directory) throws IOException;
 }

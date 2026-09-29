@@ -4,7 +4,7 @@ plugins {
     `java-library`
 }
 
-description = "Portable Totipo protocol, state, and discovery semantics"
+description = "Portable Totipo primitives and protocol foundation"
 base.archivesName.set("totipo-core")
 
 tasks.withType<JavaCompile>().configureEach {

@@ -1,0 +1,48 @@
+{
+  "format": "totipo-case-v1",
+  "id": "v1.graph.self-cycle.001",
+  "operation": "graph",
+  "expected": "PASS",
+  "notes": "Abstract validated TOKEN facts; symbolic IDs and cycles are not encrypted collision fixtures.",
+  "graph": {
+    "steps": [
+      {
+        "action": "add",
+        "node": {
+          "id": "A",
+          "identity": "T",
+          "parents": [
+            "A"
+          ],
+          "canonical": "A/T/X/A",
+          "value": "X"
+        }
+      },
+      {
+        "action": "evaluate",
+        "identity": "T",
+        "expect": {
+          "heads": [
+            "A"
+          ],
+          "head_objects": [
+            {
+              "id": "A",
+              "identity": "T",
+              "parents": [
+                "A"
+              ],
+              "canonical": "A/T/X/A",
+              "value": "X"
+            }
+          ],
+          "values": [
+            "X"
+          ],
+          "unresolved": [],
+          "conflicting": false
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "format": "totipo-case-v1",
+  "id": "v1.vault.replace-equal.001",
+  "operation": "workflow",
+  "expected": "PASS",
+  "workflow": {
+    "action": "replace",
+    "kind": "regular",
+    "existing_hex": "01",
+    "intended_hex": "",
+    "base_hex": "01",
+    "readable": true,
+    "complete": true,
+    "durable": true,
+    "orphan_objects": false,
+    "parents_available": false,
+    "result": "REPLACED"
+  }
+}

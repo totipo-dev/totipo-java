@@ -17,8 +17,8 @@ class TotpTest {
     private static final byte[] SECRET = "12345678901234567890".getBytes(StandardCharsets.US_ASCII);
     private static final BigInteger U64_LIMIT = BigInteger.ONE.shiftLeft(64);
 
-    private static V1Plaintext.Credential credential(int algorithm, int digits, long period) {
-        return new V1Plaintext.Credential(algorithm, digits, period, SECRET);
+    private static TokenValue.Credential credential(int algorithm, int digits, long period) {
+        return new TokenValue.Credential(algorithm, digits, period, new SecurityBytes(SECRET, SECRET.length));
     }
 
     @Test
@@ -141,7 +141,7 @@ class TotpTest {
             assertThrows(IllegalArgumentException.class, () -> Totp.generate(credential(1, 6, period), 0));
         }
         for (int length : new int[]{0, 129}) {
-            var c = new V1Plaintext.Credential(1, 6, 30, new byte[length]);
+            var c = new TokenValue.Credential(1, 6, 30, new SecurityBytes(new byte[length], length));
             assertThrows(IllegalArgumentException.class, () -> Totp.generate(c, 0));
         }
     }
@@ -152,19 +152,19 @@ class TotpTest {
             byte[] input = new byte[length];
             Arrays.fill(input, (byte) 0xff); // Raw non-text key bytes, including Java-negative bytes.
             for (int algorithm = 1; algorithm <= 3; algorithm++) {
-                var c = new V1Plaintext.Credential(algorithm, 8, 30, input);
-                byte[] callerCopy = c.secret();
+                var c = new TokenValue.Credential(algorithm, 8, 30, new SecurityBytes(input, input.length));
+                byte[] callerCopy = c.secret().bytes();
                 String expected = Totp.generate(c, 59);
                 Arrays.fill(callerCopy, (byte) 0);
-                assertArrayEquals(input, c.secret());
+                assertArrayEquals(input, c.secret().bytes());
                 assertEquals(expected, Totp.generate(c, 59));
                 assertTrue(expected.matches("[0-9]{8}"));
             }
         }
         byte[] input = SECRET.clone();
-        var c = new V1Plaintext.Credential(1, 8, 30, input);
+        var c = new TokenValue.Credential(1, 8, 30, new SecurityBytes(input, input.length));
         Arrays.fill(input, (byte) 0);
         assertEquals("94287082", Totp.generate(c, 59));
-        assertArrayEquals(SECRET, c.secret());
+        assertArrayEquals(SECRET, c.secret().bytes());
     }
 }

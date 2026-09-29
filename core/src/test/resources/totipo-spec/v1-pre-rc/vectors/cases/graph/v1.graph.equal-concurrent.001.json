@@ -3,69 +3,66 @@
   "id": "v1.graph.equal-concurrent.001",
   "operation": "graph",
   "expected": "PASS",
+  "notes": "Abstract validated TOKEN facts; symbolic IDs and cycles are not encrypted collision fixtures.",
   "graph": {
     "steps": [
       {
-        "action": "learn",
+        "action": "add",
         "node": {
-          "id": "a",
-          "version": 1,
-          "type": "TOKEN",
+          "id": "A",
           "identity": "T",
-          "class": "SUPPORTED_VALID",
           "parents": null,
-          "author_time": 0,
-          "semantic_digest": "bytes-a"
-        },
-        "value": {
-          "status": "LIVE",
-          "issuer": "Example",
-          "account": "alice",
-          "algorithm": 1,
-          "digits": 6,
-          "period": 30,
-          "secret_hex": "3132333435"
+          "canonical": "A/T/X//metadata/\"Laptop\"/0",
+          "value": "X",
+          "client_name": "Laptop",
+          "client_time": 0
         }
       },
       {
-        "action": "learn",
+        "action": "add",
         "node": {
-          "id": "b",
-          "version": 1,
-          "type": "TOKEN",
+          "id": "B",
           "identity": "T",
-          "class": "SUPPORTED_VALID",
           "parents": null,
-          "author_time": 0,
-          "semantic_digest": "bytes-b"
-        },
-        "value": {
-          "status": "LIVE",
-          "issuer": "Example",
-          "account": "alice",
-          "algorithm": 1,
-          "digits": 6,
-          "period": 30,
-          "secret_hex": "3132333435"
+          "canonical": "B/T/X//metadata/\"Phone\"/18446744073709551615",
+          "value": "X",
+          "client_name": "Phone",
+          "client_time": 18446744073709551615
         }
       },
       {
-        "action": "query",
-        "query": {
-          "identity": "T",
-          "candidate": "a"
-        },
+        "action": "evaluate",
+        "identity": "T",
         "expect": {
           "heads": [
-            "a",
-            "b"
+            "A",
+            "B"
           ],
-          "value_state": "UNAMBIGUOUS",
-          "ordinary": true,
-          "author": true,
-          "candidate": true,
-          "candidate_warning": true,
-          "integrity_failure": false
+          "head_objects": [
+            {
+              "id": "A",
+              "identity": "T",
+              "parents": null,
+              "canonical": "A/T/X//metadata/\"Laptop\"/0",
+              "value": "X",
+              "client_name": "Laptop",
+              "client_time": 0
+            },
+            {
+              "id": "B",
+              "identity": "T",
+              "parents": null,
+              "canonical": "B/T/X//metadata/\"Phone\"/18446744073709551615",
+              "value": "X",
+              "client_name": "Phone",
+              "client_time": 18446744073709551615
+            }
+          ],
+          "values": [
+            "X"
+          ],
+          "unresolved": [],
+          "conflicting": false
         }
       }
     ]

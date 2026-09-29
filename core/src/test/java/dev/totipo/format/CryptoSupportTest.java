@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 class CryptoSupportTest {
     @Test
     void hkdfExtractAndExpandCrossBlockBoundariesWithBinaryCounter() throws Exception {
-        byte[] root = CryptoVectorTest.signedCase().data().field("root_hex").hex();
+        byte[] root = EnvelopeTestBytes.fixture().data().field("root_hex").hex();
         var mac = Mac.getInstance("HmacSHA256");
         mac.init(new SecretKeySpec(new byte[32], "HmacSHA256"));
         byte[] prk = mac.doFinal(root);
@@ -46,8 +46,21 @@ class CryptoSupportTest {
     }
 
     @Test
+    void fingerprintUsesDirectRootHmacAndExactDomain() throws Exception {
+        byte[] root = new byte[32];
+        for (int i = 0; i < root.length; i++) { root[i] = (byte) i; }
+        var mac = Mac.getInstance("HmacSHA256");
+        mac.init(new SecretKeySpec(root, "HmacSHA256"));
+        byte[] expected = mac.doFinal("totipo/v1/vault-fingerprint"
+                .getBytes(java.nio.charset.StandardCharsets.US_ASCII));
+        assertArrayEquals(expected, CryptoSupport.vaultFingerprint(root));
+        assertThrows(IllegalArgumentException.class, () -> CryptoSupport.vaultFingerprint(new byte[31]));
+        assertThrows(IllegalArgumentException.class, () -> CryptoSupport.vaultFingerprint(new byte[33]));
+    }
+
+    @Test
     void keyedIdentityOwnsBytesAndChangesWithEachSemanticByte() throws Exception {
-        var v = CryptoVectorTest.signedCase();
+        var v = EnvelopeTestBytes.fixture();
         var c = v.data().field("crypto");
         byte[] key = c.field("id_key_hex").hex();
         byte[] semantic = v.semanticBytes();

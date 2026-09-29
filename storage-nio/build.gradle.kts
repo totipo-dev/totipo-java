@@ -5,7 +5,7 @@ plugins {
     `java-test-fixtures`
 }
 
-description = "Portable NIO synchronized storage for Totipo"
+description = "Portable NIO configured-store filesystem implementation for Totipo"
 base.archivesName.set("totipo-storage-nio")
 
 tasks.withType<JavaCompile>().configureEach {
@@ -14,8 +14,6 @@ tasks.withType<JavaCompile>().configureEach {
 
 dependencies {
     api(project(":core"))
-    testFixturesImplementation(libs.jackson.core)
-    testImplementation(libs.jackson.core)
     testImplementation(platform(libs.junit.bom))
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)
@@ -45,7 +43,6 @@ tasks.test { dependsOn(verifyJava17Bytecode) }
 
 val snapshot = rootProject.layout.projectDirectory.dir("core/src/test/resources/totipo-spec/v1-pre-rc")
 tasks.test {
-    jvmArgs("--illegal-native-access=deny")
     inputs.dir(snapshot)
     systemProperty("totipo.test.snapshot", snapshot.asFile.absolutePath)
 }

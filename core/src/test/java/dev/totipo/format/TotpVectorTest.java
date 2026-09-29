@@ -39,8 +39,8 @@ class TotpVectorTest {
                     assertTrue(credential.algorithm() >= 1 && credential.algorithm() <= 3);
                     assertEquals(8, credential.digits());
                     assertEquals(30, credential.period());
-                    assertEquals(new int[]{20, 32, 64}[credential.algorithm() - 1], credential.secret().length);
-                    assertArrayEquals(totp.field("secret_hex").hex(), credential.secret());
+                    assertEquals(new int[]{20, 32, 64}[credential.algorithm() - 1], credential.secret().size());
+                    assertArrayEquals(totp.field("secret_hex").hex(), credential.secret().bytes());
                     BigInteger time = row.field("unix_time_seconds").integer();
                     assertTrue(time.signum() >= 0);
                     BigInteger counter = Totp.timeStep(time, credential.period());
@@ -56,37 +56,10 @@ class TotpVectorTest {
         return tests;
     }
 
-    @Test
-    void authenticatedParsedCredentialWithMatchingRfcParameters() throws IOException {
-        var fixture = VectorCaseLoader.cryptoCases().stream()
-                .filter(c -> c.id().equals("v1.crypto.token-root.001")).findFirst().orElseThrow();
-        Node crypto = fixture.data().field("crypto");
-        var opened = EnvelopeReader.open(crypto.field("object_id").string(),
-                crypto.field("object_hex").hex(), fixture.data().field("root_hex").hex());
-        assertEquals(EnvelopeReader.Status.AUTHENTICATED_V1_STRUCTURE, opened.status());
-        var parsed = opened.plaintext().token().credential();
-        Node totp = VectorCaseLoader.totpCases().stream()
-                .map(c -> c.data().field("totp"))
-                .filter(n -> n.field("algorithm").integer().intValueExact() == parsed.algorithm())
-                .findFirst().orElseThrow();
-        var reference = credential(totp);
-        // Establish compatibility explicitly: identical algorithm, raw key and period.
-        // The TOKEN uses six digits; decimal modulus makes its result the last six
-        // digits of the eight-digit RFC trial. No fixture bytes are altered.
-        assertEquals(reference.algorithm(), parsed.algorithm());
-        assertArrayEquals(reference.secret(), parsed.secret());
-        assertEquals(reference.period(), parsed.period());
-        assertEquals(6, parsed.digits());
-        for (var row : totp.field("rows").array()) {
-            String expected = row.field("code").string();
-            assertEquals(expected.substring(expected.length() - parsed.digits()),
-                    Totp.generate(parsed, row.field("unix_time_seconds").integer()));
-        }
-    }
-
-    private static V1Plaintext.Credential credential(Node totp) {
-        return new V1Plaintext.Credential(totp.field("algorithm").integer().intValueExact(),
+    private static TokenValue.Credential credential(Node totp) {
+        return new TokenValue.Credential(totp.field("algorithm").integer().intValueExact(),
                 totp.field("digits").integer().intValueExact(),
-                totp.field("period").integer().longValueExact(), totp.field("secret_hex").hex());
+                totp.field("period").integer().longValueExact(),
+                new SecurityBytes(totp.field("secret_hex").hex(), totp.field("secret_hex").hex().length));
     }
 }

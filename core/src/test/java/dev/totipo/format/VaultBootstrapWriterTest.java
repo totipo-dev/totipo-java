@@ -21,7 +21,7 @@ class VaultBootstrapWriterTest {
             try (var result = new VaultUnlocker().unlock(encoded, password)) {
                 assertEquals(VaultUnlockResult.Status.UNLOCKED, result.status());
                 assertArrayEquals(root, result.root());
-                assertArrayEquals(CryptoSupport.hmac(root, CryptoSupport.ascii("totipo/v1/local-vault-binding")), result.binding());
+                assertArrayEquals(CryptoSupport.hmac(root, CryptoSupport.ascii("totipo/v1/vault-fingerprint")), result.fingerprint());
             }
             // Authentication by the existing reader checks exact header/AAD and tag boundaries.
             encoded[11] ^= 1;

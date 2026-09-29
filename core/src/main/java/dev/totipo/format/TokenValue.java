@@ -2,19 +2,12 @@ package dev.totipo.format;
 
 import java.util.Objects;
 
-/** Exact §18 complete value. Java hashes are only in-memory collection aids. */
+/** Java domain value; wire construction and validation are handled separately. Java hashes are only in-memory collection aids. */
 record TokenValue(int status, String issuer, String account, Credential credential) {
     TokenValue {
         Objects.requireNonNull(issuer);
         Objects.requireNonNull(account);
         Objects.requireNonNull(credential);
-    }
-
-    static TokenValue from(V1Plaintext.Token token) {
-        var c = token.credential();
-        byte[] secret = c.secret();
-        return new TokenValue(token.status(), token.issuer(), token.account(),
-                new Credential(c.algorithm(), c.digits(), c.period(), new SecurityBytes(secret, secret.length)));
     }
 
     /** Atomic credential equality includes every field, with owned content-equal bytes. */

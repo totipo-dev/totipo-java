@@ -18,8 +18,8 @@ import org.junit.jupiter.api.TestFactory;
 
 class BootstrapVectorTest {
     @Test
-    void consumesExactlyThePinnedBootstrapCategory() throws Exception {
-        assertEquals(Set.of("v1.bootstrap.ascii.001", "v1.bootstrap.empty.001", "v1.bootstrap.unicode.001", "v1.bootstrap.local-binding-establishment.001"),
+    void pinsBootstrapCategory() throws Exception {
+        assertEquals(Set.of("v1.bootstrap.ascii.001", "v1.bootstrap.empty.001", "v1.bootstrap.unicode.001", "v1.bootstrap.rewrap.001"),
                 VectorCaseLoader.bootstrapCases().stream().map(Case::id).collect(Collectors.toSet()));
     }
 
@@ -57,7 +57,7 @@ class BootstrapVectorTest {
         assertEquals(1, calls.get());
         assertEquals(VaultUnlockResult.Status.UNLOCKED, result.status());
         assertTrue(Arrays.equals(vector.data().field("root_hex").hex(), result.root()), "Root known answer");
-        assertTrue(Arrays.equals(b.field("binding_hex").hex(), result.binding()), "Binding known answer");
+        assertTrue(Arrays.equals(b.field("fingerprint_hex").hex(), result.fingerprint()), "Fingerprint known answer");
         assertArrayEquals(original, password);
 
         // Decode only public fixture input to obtain characters; production never converts password bytes to String.
@@ -72,19 +72,19 @@ class BootstrapVectorTest {
         assertTrue(Arrays.equals(result.root(), characterResult.root()), "Character-input root known answer");
 
         // Fixed public fixture encryption is test-only; independently reproduces both ciphertext and tag.
-        byte[] encrypted = CryptoVectorTest.encrypt(b.field("wrap_key_hex").hex(), b.field("nonce_hex").hex(),
+        byte[] encrypted = EnvelopeTestBytes.encrypt(b.field("wrap_key_hex").hex(), b.field("nonce_hex").hex(),
                 b.field("header_hex").hex(), vector.data().field("root_hex").hex());
         assertArrayEquals(Arrays.copyOfRange(record, 39, 71), Arrays.copyOf(encrypted, 32));
         assertArrayEquals(Arrays.copyOfRange(record, 71, 87), Arrays.copyOfRange(encrypted, 32, 48));
         assertArrayEquals(record, CryptoSupport.join(parsed.header(), encrypted));
 
-        // Assert the root relationship from fixture data before using the recovered root in M1.3.
-        var object = CryptoVectorTest.signedCase();
+        // Assert the root relationship from fixture data before opening the opaque envelope.
+        var object = EnvelopeTestBytes.fixture();
         assertTrue(Arrays.equals(vector.data().field("root_hex").hex(), object.data().field("root_hex").hex()),
                 "Bootstrap and object fixtures share a root");
         var crypto = object.data().field("crypto");
         var opened = EnvelopeReader.open(crypto.field("object_id").string(), crypto.field("object_hex").hex(), result.root());
-        assertEquals(EnvelopeReader.Status.AUTHENTICATED_V1_STRUCTURE, opened.status());
+        assertEquals(EnvelopeReader.Status.AUTHENTICATED_SEMANTIC, opened.status());
         assertArrayEquals(object.semanticBytes(), opened.semanticBytes());
     }
 
@@ -105,6 +105,6 @@ class BootstrapVectorTest {
     private static void checkFailure(VaultUnlockResult result) {
         assertEquals(VaultUnlockResult.Status.AUTHENTICATION_FAILED, result.status());
         assertNull(result.root());
-        assertThrows(IllegalStateException.class, result::binding);
+        assertThrows(IllegalStateException.class, result::fingerprint);
     }
 }

@@ -1,96 +1,19 @@
 {
-  "storage": {
-    "notes": "Noncanonical names, nested paths, symlinks and special entries never enter semantic processing. Entry kinds describe un-followed filesystem observations.",
-    "root_hex": "1111111111111111111111111111111111111111111111111111111111111111",
-    "namespace_kind": "directory",
-    "entries": [
-      {
-        "path": "objects-v1/c5fdfb91b8624f9ab649f79d0d22621c0ce10ba2ca46e59983e25ed388787a8f",
-        "kind": "regular",
-        "fixture_case": "v1.crypto.token-root.001"
-      },
-      {
-        "path": "objects-v1/CC1BE40D096AC277C2773865702A02980CD3523F897EA122837278767B27E8C5",
-        "kind": "regular",
-        "fixture_case": "v1.crypto.future-token-opaque.001"
-      },
-      {
-        "path": "objects-v1/cc1be40d096ac277c2773865702a02980cd3523f897ea122837278767b27e8c5.tmp",
-        "kind": "regular",
-        "fixture_case": "v1.crypto.future-token-opaque.001"
-      },
-      {
-        "path": "objects-v1/cc1be40d096ac277c2773865702a02980cd3523f897ea122837278767b27e8c5.sync-conflict",
-        "kind": "regular",
-        "fixture_case": "v1.crypto.future-token-opaque.001"
-      },
-      {
-        "path": "objects-v1/nested/cc1be40d096ac277c2773865702a02980cd3523f897ea122837278767b27e8c5",
-        "kind": "regular",
-        "fixture_case": "v1.crypto.future-token-opaque.001"
-      },
-      {
-        "path": "objects-v1/../objects-v1/cc1be40d096ac277c2773865702a02980cd3523f897ea122837278767b27e8c5",
-        "kind": "regular",
-        "fixture_case": "v1.crypto.future-token-opaque.001"
-      },
-      {
-        "path": "objects-v1/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-        "kind": "directory",
-        "fixture_case": "v1.crypto.future-token-opaque.001"
-      },
-      {
-        "path": "objects-v1/cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-        "kind": "symlink",
-        "fixture_case": "v1.crypto.future-token-opaque.001"
-      },
-      {
-        "path": "objects-v1/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-        "kind": "fifo",
-        "fixture_case": "v1.crypto.future-token-opaque.001"
-      },
-      {
-        "path": "objects-v1/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-        "kind": "socket",
-        "fixture_case": "v1.crypto.future-token-opaque.001"
-      },
-      {
-        "path": "objects-v1/ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-        "kind": "device",
-        "fixture_case": "v1.crypto.future-token-opaque.001"
-      }
-    ],
-    "query": {
-      "identity": "2222222222222222222222222222222222222222222222222222222222222222",
-      "candidate": "c5fdfb91b8624f9ab649f79d0d22621c0ce10ba2ca46e59983e25ed388787a8f"
-    },
-    "expect": {
-      "observations": [
-        {
-          "path": "objects-v1/c5fdfb91b8624f9ab649f79d0d22621c0ce10ba2ca46e59983e25ed388787a8f",
-          "class": "SUPPORTED_VALID"
-        }
-      ],
-      "learned_ids": [
-        "c5fdfb91b8624f9ab649f79d0d22621c0ce10ba2ca46e59983e25ed388787a8f"
-      ],
-      "opaque_unscoped_ids": [],
-      "view": {
-        "heads": [
-          "c5fdfb91b8624f9ab649f79d0d22621c0ce10ba2ca46e59983e25ed388787a8f"
-        ],
-        "value_state": "UNAMBIGUOUS",
-        "ordinary": true,
-        "author": true,
-        "candidate": true,
-        "candidate_warning": true,
-        "integrity_failure": false
-      },
-      "integrity_ok": true
-    }
-  },
   "format": "totipo-case-v1",
   "id": "v1.storage.nonobject-name-ignored.001",
   "operation": "storage",
-  "expected": "PASS"
+  "expected": "PASS",
+  "root_hex": "1111111111111111111111111111111111111111111111111111111111111111",
+  "storage": {
+    "namespace_kind": "directory",
+    "entries": [
+      {
+        "path": "objects-v1/55e041123630b2d80dfed60b0462f3666f5c6949f1f0c7a918b76b69942cb925.tmp",
+        "kind": "regular",
+        "object_hex": "1abf9fde7f03c37adbcf6fad3af9fcf4250c724eeab8d53092e0103b840a0c59a83d1f25e7ee27d47dd3463574f172dd51bbc778912958843375b7ecc220c05357f33d2cde40ad16a4e701896fdbb293cdc2390bfe4f7ef9b55eecd92cd204690044cb242f6642cea7ec8d7778ee3a639c0447ae4b65a6cecc4fc84cb4c33d721aef02f0f16c63565548bb3645a077e521a1ba530c6e0e979725ded92493ee2a0206750edaa877b7272a31f63f11d76f96f4d2fad177386ee43847eb20864e930782caf2102f45ed659f8fb2ca5f975f6171ba79ec29ff7a2920c1944b142fc33ff0dbd4ef58500a54dab0fde57238f5baf6e1e8ff92591798863f89c69bb7982f31b503d381fff086af2343739c69f41e864104fb845ae77a77365d8d231229853bc7ffc0bc6e89cf06f737a52251ad700a2c00bdd224d7659d967add33c5216fa3aa9855d31da9557de0243a194e0911e1f9e6f71fdfdcc35c524342ffff31beb34e32160052cf004914be8ebbc1d31f9229ad7cb4792992ae5c924d3aadde2d6ab7260e8c31414c8c7e647846a7ac06a38c49adae3085cbe267159f4f27cd855b1b3bdebf4109a757640cb81820228fe0afeac2950ed380f8d0b5854f4873818c3e01ab9e722d035a3ddb9094493793c2b79bde360afc9a05fa1d585505cfcc9f45589150cf9f9dc7cbe4feca46892df27703c7d4f6d0c77f347dea7b5c32f4d2e2679eba9a78bb5809ce6ec811b108f073367f643b0f9cf87e3076747798efc1b384359942ec33d231e5d4a105c7c4c05d3f3696a4b0403f4f7bb643b27f6d2a5b9ca130fc4354ec0b9bf63f19897bdf66c006a27d38457fc5b6bc13d43d290c127124528bc0aae7ceab3fbc3646ad028c423bd412ac24891ab339d19c9b08cbb55f7bb8b50023ae1c3f334f966f8af0ef5ddefd4eed3c6ee79d312fad7926c7b98a149f2f3f3cd4cb91222b04e26850db58da4845064933afb3ed4028ca93c603e2c264924bc6707a7869bc6b69a01948ea6f8b092cb9011e9b7a715c9e6fe2bd7871bd116e0ac6b278a5c7eef790a1074674f7150ec0c5d89319614857ff5bb38afe69df7f41e5944266335fdd1359d1c3c4c8983ee5448ba908200ec94158b8cc900f6457af7be2e98dbe38d5a92cea49f9ef5faa13ca7f4d05f7a655535b1677ca446c8f3bf0a545ff3a9fe32e9996f2ee473ee46d2b76bd0db2c862cf79bc79d3d6900fda97579f447cc2e48d00ec08ad4a9c99e07d58ad8f5f3d9f71ce832ea84b2a5d1b2d46f1aceb1177ab4f4ce878da64fb048eaf1cff1e5cb6b89d2a03dbafe4597625b89347ffd58ccf74186c22605d4e9aa9f087771376693ca64c27715086e2de05ace0e922d900d758ccf0fe3aa86108d5736c50978ad3400a83266e4a0aa4dd1604ce95579b4a7bc7b2d1486c90daa3a4ecadf29db907"
+      }
+    ],
+    "classes": [],
+    "diagnostics": false
+  }
 }

@@ -1,0 +1,115 @@
+{
+  "format": "totipo-case-v1",
+  "id": "v1.graph.cycle-equal.001",
+  "operation": "graph",
+  "expected": "PASS",
+  "notes": "Abstract validated TOKEN facts; symbolic IDs and cycles are not encrypted collision fixtures.",
+  "graph": {
+    "steps": [
+      {
+        "action": "add",
+        "node": {
+          "id": "A",
+          "identity": "T",
+          "parents": [
+            "B"
+          ],
+          "canonical": "A/T/X/B/metadata/\"Desktop\"/0",
+          "value": "X",
+          "client_name": "Desktop",
+          "client_time": 0
+        }
+      },
+      {
+        "action": "add",
+        "node": {
+          "id": "B",
+          "identity": "T",
+          "parents": [
+            "A"
+          ],
+          "canonical": "B/T/X/A/metadata/\"Mobile\"/18446744073709551615",
+          "value": "X",
+          "client_name": "Mobile",
+          "client_time": 18446744073709551615
+        }
+      },
+      {
+        "action": "evaluate",
+        "identity": "T",
+        "expect": {
+          "heads": [
+            "A",
+            "B"
+          ],
+          "head_objects": [
+            {
+              "id": "A",
+              "identity": "T",
+              "parents": [
+                "B"
+              ],
+              "canonical": "A/T/X/B/metadata/\"Desktop\"/0",
+              "value": "X",
+              "client_name": "Desktop",
+              "client_time": 0
+            },
+            {
+              "id": "B",
+              "identity": "T",
+              "parents": [
+                "A"
+              ],
+              "canonical": "B/T/X/A/metadata/\"Mobile\"/18446744073709551615",
+              "value": "X",
+              "client_name": "Mobile",
+              "client_time": 18446744073709551615
+            }
+          ],
+          "values": [
+            "X"
+          ],
+          "unresolved": [],
+          "conflicting": false
+        }
+      },
+      {
+        "action": "add",
+        "node": {
+          "id": "D",
+          "identity": "T",
+          "parents": [
+            "A"
+          ],
+          "canonical": "D/T/Z/A",
+          "value": "Z"
+        }
+      },
+      {
+        "action": "evaluate",
+        "identity": "T",
+        "expect": {
+          "heads": [
+            "D"
+          ],
+          "head_objects": [
+            {
+              "id": "D",
+              "identity": "T",
+              "parents": [
+                "A"
+              ],
+              "canonical": "D/T/Z/A",
+              "value": "Z"
+            }
+          ],
+          "values": [
+            "Z"
+          ],
+          "unresolved": [],
+          "conflicting": false
+        }
+      }
+    ]
+  }
+}

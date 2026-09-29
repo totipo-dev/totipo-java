@@ -71,6 +71,15 @@ class VaultUnlockerTest {
         Arrays.fill(root, (byte) 0);
         Arrays.fill(result.root(), (byte) 0);
         assertTrue(Arrays.equals(expected, result.root()), "Defensive root ownership");
+        byte[] fingerprint = java.util.HexFormat.of().parseHex(
+                "d0303d606c66abddc195cac893262a84454ecb7a17accafff1ee305f36964bf4");
+        assertArrayEquals(fingerprint, result.fingerprint());
+        Arrays.fill(result.fingerprint(), (byte) 0);
+        assertArrayEquals(fingerprint, result.fingerprint());
+        assertEquals("VaultUnlockResult[UNLOCKED]", result.toString());
+        result.close(); result.close();
+        assertThrows(IllegalStateException.class, result::root);
+        assertThrows(IllegalStateException.class, result::fingerprint);
         assertEquals("VaultUnlockResult[UNLOCKED]", result.toString());
         assertThrows(IllegalArgumentException.class, () -> VaultUnlockResult.unlocked(new byte[31]));
         assertThrows(IllegalArgumentException.class, () -> VaultUnlockResult.failure(VaultUnlockResult.Status.UNLOCKED));
