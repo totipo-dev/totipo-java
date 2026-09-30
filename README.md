@@ -4,6 +4,16 @@ Portable Java libraries targeting Totipo Vault Format v1, revision **r17**.
 The exact committed specification and language-neutral corpus are pinned in
 [SPEC_PIN.md](SPEC_PIN.md).
 
+Normal Java clients should start with `NioTotipo.open(path, password)` or
+`NioTotipo.create(path, password)` in `dev.totipo.storage.nio`, then use the
+`dev.totipo` application API: `VaultSession`, immutable `VaultState` projections,
+create/update/merge builders and session-backed TOTP. The directory must already
+exist. These entry points and saves may block; inspect their explicit lifecycle
+and persistence results. See [API_DESIGN.md](API_DESIGN.md) for the contracts and
+[facade implementation evidence](review/PUBLIC_API_FACADE_REPORT.md) for coverage.
+The public storage interfaces remain provider/internal boundaries rather than
+the ordinary application API; they are not a finalized third-party SPI.
+
 This repository has completed the r17 portable core implementation milestone:
 **90/90 portable corpus cases implemented, none deferred**. The TOKEN codec,
 graph/fold, TOKEN storage/authorship/publication, and VAULT lifecycle are complete
