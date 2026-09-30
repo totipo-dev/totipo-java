@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 
 /** Low-level replacement capability; initial publication remains separate.
- * Exact BASE comparison and r16 lifecycle reconciliation are not implemented here. */
+ * Core owns exact BASE comparison and v1 lifecycle decisions. */
 public interface VaultBootstrapReplacementStorage extends VaultBootstrapStorage {
     /** Defensively snapshots the supplied bytes into complete separate staging in
      * the same storage/filesystem context needed for atomic replacement. Before

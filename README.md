@@ -4,16 +4,21 @@ Portable Java libraries targeting Totipo Vault Format v1, revision **r17**.
 The exact committed specification and language-neutral corpus are pinned in
 [SPEC_PIN.md](SPEC_PIN.md).
 
-This repository has completed Phase 4. Configured-store observation validates TOKENs
+This repository has completed the r17 portable core implementation milestone:
+**90/90 portable corpus cases implemented, none deferred**. The TOKEN codec,
+graph/fold, TOKEN storage/authorship/publication, and VAULT lifecycle are complete
+for this corpus. Configured-store observation validates TOKENs
 for explicit graph evaluation; authorship planning uses caller-selected parents,
 complete values, and exact metadata. Immutable publication executes ordinary or
 linear-carry fold plans with safe explicit retries.
-Consumers cover all 82 bootstrap, crypto, encoding, fold, graph, metadata, size,
-storage, and TOTP cases. The eight vault workflow cases remain deferred to Phase 5.
-See [R17_PHASE4_AUTHORING_STORAGE_REPORT.md](R17_PHASE4_AUTHORING_STORAGE_REPORT.md)
+Consumers cover bootstrap, crypto, encoding, fold, graph, metadata, size,
+storage, TOTP, and all eight vault workflow cases.
+See [R17_PHASE5_VAULT_REPORT.md](R17_PHASE5_VAULT_REPORT.md)
 for implementation and validation evidence.
 Snapshot/profile integrity tests separately verify all 90 target cases. There is no full Java API stability
-promise yet; most core implementation types remain package-private.
+promise yet; most core implementation types remain package-private. Corpus completion
+is not the end of API design or implementation hardening, and does not establish
+desktop/Android readiness or an independent production security audit.
 
 The two production modules are:
 
@@ -22,7 +27,7 @@ The two production modules are:
   envelopes, exact TOKEN semantics and TLV codec, causal groups and current heads,
   deterministic fold construction, password handling, Java credential values, TOTP, entropy,
   configured-store TOKEN observation and authorship planning/publication,
-  and storage observation/publication/bootstrap SPIs.
+  VAULT creation/open/password rewrap, and storage observation/publication/bootstrap SPIs.
 - `storage-nio`: portable Java 17 configured-store filesystem implementation:
   direct-child discovery, immutable object publication, bootstrap storage, and an
   injectable directory durability capability. It depends on `core`.
@@ -58,9 +63,23 @@ exact grammar validation. Diagnostics preserve independently valid observations
 and imply no global operation gate. Valid bytes do not certify the observed set
 or its freshness. Graph evaluation explicitly consumes the validated subset.
 
-TOKEN installation uses the existing hard-link algorithm, and bootstrap replacement
-still uses the existing atomic-move mechanism. Exact BASE comparison and r17 vault
-creation/open/rewrap orchestration belong to Phase 5. TOKEN publication acknowledges
+TOKEN and initial VAULT installation use no-replace hard links; bootstrap replacement
+uses an atomic move and fails if the provider cannot support it. VAULT workflows
+open only lowercase `vault`, read at most 88 bytes, authenticate complete candidates
+and their separate stages, and preserve the exact root across password changes.
+Replacement re-observes canonical bytes and requires exact equality with authenticated
+BASE immediately before the backend attempt. This is compare-before-replace, not
+atomic CAS; the remaining race is an explicit v1 limitation. Ambiguous acknowledgements
+never report success or trigger automatic rollback/retry. Orphan TOKEN files do not
+block creation, and rewrap does not inspect or rewrite TOKENs.
+
+The vault fingerprint recognizes a root; it proves neither freshness nor authorization.
+No remembered fingerprint is required to open. A saved old wrapper and its password
+can still recover the root after rewrap; v1 does not provide rollback protection.
+Tests exercise force operations, close/reopen persistence, and injected failures,
+not universal physical power-loss guarantees.
+
+TOKEN publication acknowledges
 the local configured store only; it implies no remote propagation. Plans retain
 neither roots nor canonical plaintext. Caller parents may be unavailable; duplicate
 parent input is rejected. Partial fold publication remains ordinary immutable

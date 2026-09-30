@@ -2,7 +2,7 @@ package dev.totipo.format;
 
 /** Cryptographic unwrap result with an owned root; no storage lifecycle is implied. */
 final class VaultUnlockResult implements AutoCloseable {
-    enum Status { UNLOCKED, INVALID_FORMAT, INVALID_PASSWORD_INPUT, AUTHENTICATION_FAILED }
+    enum Status { UNLOCKED, ABSENT, UNAVAILABLE, INVALID_FORMAT, INVALID_PASSWORD_INPUT, AUTHENTICATION_FAILED }
 
     private final Status status;
     private final byte[] root;
@@ -32,7 +32,7 @@ final class VaultUnlockResult implements AutoCloseable {
     /** Caller owns the copy. No key bytes appear in toString, errors, or logs. */
     byte[] root() { requireOpen(); return root == null ? null : root.clone(); }
 
-    /** Exact r16 fingerprint of the authenticated root; caller owns the result. */
+    /** Exact v1 fingerprint of the authenticated root; caller owns the result. */
     byte[] fingerprint() {
         requireOpen();
         if (root == null) {

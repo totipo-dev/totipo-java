@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 
 /** Low-level configured durable-store bootstrap storage.
- * Lifecycle orchestration awaits r16 reconciliation.
+ * Core coordinates v1 creation and open; storage treats bootstrap bytes as opaque.
  * Implementations use the exact configured canonical namespace; alternate/conflict/temp
  * names are never automatic bootstrap inputs. No method mutates caller arrays.
  * The caller owns this store and closes it after all staged handles and reads.

@@ -13,7 +13,7 @@ import java.util.Set;
 
 /** Canonical-only NIO VAULT storage. Complete forced same-directory temporary files
  * support no-replace initial installation or atomic replacement. Lifecycle verification
- * and exact BASE comparison await r16 reconciliation.
+ * and exact BASE comparison belong to core.
  * Atomic replacement of an existing destination is provider-specific; this backend
  * requires that capability and never falls back to non-atomic overwrite.
  * Containing-directory persistence uses the injected runtime capability. Thread-confined. */
