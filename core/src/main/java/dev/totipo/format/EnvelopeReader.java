@@ -37,6 +37,8 @@ final class EnvelopeReader {
         Status status() { return status; }
         ObjectId objectId() { return objectId; }
         byte[] semanticBytes() { return semanticBytes == null ? null : semanticBytes.clone(); }
+        /** Release the owned plaintext after a synchronous consumer has copied its model. */
+        void clear() { if (semanticBytes != null) Arrays.fill(semanticBytes, (byte) 0); }
     }
 
     static byte[] nonce(ObjectId id) {

@@ -4,14 +4,14 @@ Portable Java libraries targeting Totipo Vault Format v1, revision **r17**.
 The exact committed specification and language-neutral corpus are pinned in
 [SPEC_PIN.md](SPEC_PIN.md).
 
-This repository has completed Phase 3. It provides pure causal graph/state
-evaluation and fixed linear-carry fold construction to the exact TOKEN codec.
-Consumers cover all 69 bootstrap, crypto, encoding, fold, graph, metadata, size,
-and TOTP cases. Authorship/publication orchestration and storage/vault workflow
-reconciliation remain deferred.
-r17 changes threat-model / store-freshness wording only and required no semantic
-production Java changes. Coverage remains 69/90; Phase 4 is next against r17.
-See [R17_REPIN_REPORT.md](R17_REPIN_REPORT.md) for the repin audit.
+This repository has completed Phase 4. Configured-store observation validates TOKENs
+for explicit graph evaluation; authorship planning uses caller-selected parents,
+complete values, and exact metadata. Immutable publication executes ordinary or
+linear-carry fold plans with safe explicit retries.
+Consumers cover all 82 bootstrap, crypto, encoding, fold, graph, metadata, size,
+storage, and TOTP cases. The eight vault workflow cases remain deferred to Phase 5.
+See [R17_PHASE4_AUTHORING_STORAGE_REPORT.md](R17_PHASE4_AUTHORING_STORAGE_REPORT.md)
+for implementation and validation evidence.
 Snapshot/profile integrity tests separately verify all 90 target cases. There is no full Java API stability
 promise yet; most core implementation types remain package-private.
 
@@ -21,6 +21,7 @@ The two production modules are:
   Argon2id, root/object crypto, private keyed object identity, authenticated fixed
   envelopes, exact TOKEN semantics and TLV codec, causal groups and current heads,
   deterministic fold construction, password handling, Java credential values, TOTP, entropy,
+  configured-store TOKEN observation and authorship planning/publication,
   and storage observation/publication/bootstrap SPIs.
 - `storage-nio`: portable Java 17 configured-store filesystem implementation:
   direct-child discovery, immutable object publication, bootstrap storage, and an
@@ -52,14 +53,18 @@ for a future supported backend if needed. No native-access JVM flags are require
 Discovery observes the configured root and exact `objects-v1` directory without
 following final symlinks, considers only direct canonical lowercase-hex regular
 files, and reports namespace/enumeration issues diagnostically. Candidate bytes
-are hostile; bounded reading and envelope authentication remain separate primitives.
-A snapshot implies no global operation gate.
+are hostile; the TOKEN reader composes bounded reads, envelope authentication, and
+exact grammar validation. Diagnostics preserve independently valid observations
+and imply no global operation gate. Valid bytes do not certify the observed set
+or its freshness. Graph evaluation explicitly consumes the validated subset.
 
-Storage mechanics are retained for later r17 lifecycle reconciliation. Object
-installation still uses the existing hard-link algorithm, and bootstrap replacement
+TOKEN installation uses the existing hard-link algorithm, and bootstrap replacement
 still uses the existing atomic-move mechanism. Exact BASE comparison and r17 vault
-creation/open/rewrap orchestration belong to Phase 5. These mechanisms do not yet
-constitute full r17 storage/workflow conformance.
+creation/open/rewrap orchestration belong to Phase 5. TOKEN publication acknowledges
+the local configured store only; it implies no remote propagation. Plans retain
+neither roots nor canonical plaintext. Caller parents may be unavailable; duplicate
+parent input is rejected. Partial fold publication remains ordinary immutable
+history, and the same plan can be retried explicitly after failure.
 
 The test snapshot is under `core/src/test/resources/totipo-spec/v1-pre-rc/` and is
 excluded from production JARs. Java derives behavior from the normative

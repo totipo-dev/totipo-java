@@ -18,6 +18,9 @@ dependencies {
     testImplementation(platform(libs.junit.bom))
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)
+    // Exercise package-private orchestration against the real backend only in tests.
+    testImplementation(project(":storage-nio"))
+    testImplementation(testFixtures(project(":storage-nio")))
 }
 
 // Inspect every production class, so an accidental target increase fails `check`.
