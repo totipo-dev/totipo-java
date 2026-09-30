@@ -5,10 +5,25 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Optional;
 
 /** Small shared NIO operations; the local execution environment is trusted. */
 final class NioFiles {
     private NioFiles() {}
+    /** Observe spelling, not provider lookup aliases. Does not follow or inspect the child. */
+    static Optional<Path> findExactDirectChild(Path parent, String expected) throws IOException {
+        try (var entries = Files.newDirectoryStream(parent)) {
+            return selectExactChild(entries, expected);
+        } catch (DirectoryIteratorException failure) {
+            throw failure.getCause();
+        }
+    }
+    static Optional<Path> selectExactChild(Iterable<Path> entries, String expected) {
+        for (Path entry : entries) {
+            if (entry.getFileName().toString().equals(expected)) return Optional.of(entry);
+        }
+        return Optional.empty();
+    }
     static Path root(Path path) throws IOException {
         if (!path.isAbsolute())
             throw new IllegalArgumentException("ABSOLUTE_PATH_REQUIRED");

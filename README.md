@@ -13,12 +13,16 @@ complete values, and exact metadata. Immutable publication executes ordinary or
 linear-carry fold plans with safe explicit retries.
 Consumers cover bootstrap, crypto, encoding, fold, graph, metadata, size,
 storage, TOTP, and all eight vault workflow cases.
-See [R17_PHASE5_VAULT_REPORT.md](R17_PHASE5_VAULT_REPORT.md)
-for implementation and validation evidence.
+Implementation evidence is executable in
+[Phase2ConformanceTest](core/src/test/java/dev/totipo/format/Phase2ConformanceTest.java).
 Snapshot/profile integrity tests separately verify all 90 target cases. There is no full Java API stability
 promise yet; most core implementation types remain package-private. Corpus completion
 is not the end of API design or implementation hardening, and does not establish
 desktop/Android readiness or an independent production security audit.
+Independent interoperability has not yet been demonstrated, and this milestone
+does not claim release readiness. NIO provider qualification is limited to the
+local case-sensitive Linux filesystem tested here; exact canonical naming and
+the required operation capabilities must be qualified on each target provider.
 
 The two production modules are:
 
@@ -48,6 +52,17 @@ Build and test with the repository wrapper in the existing Nix development shell
 ./gradlew --offline --no-daemon --no-build-cache --rerun-tasks clean test
 ```
 
+The complete local integration suite assumes a case-sensitive filesystem, symlink
+and hard-link support, atomic moves over existing targets where tested, directory
+channels accepting force, POSIX permissions, and `mkfifo` for POSIX fixtures.
+These are test-environment assumptions, not all protocol requirements. Some
+provider integration fixtures report unsupported capabilities through JUnit
+assumptions; the normative 90-case conformance inventory must still execute
+90/90 without skips. Portable semantic conformance and provider integration
+evidence are separate: case-sensitive-host tests do not qualify case-insensitive
+providers. Windows, macOS, Android, and physical crash/power-loss behavior remain
+unqualified by this suite.
+
 Directory durability is attempted using `NioDurability` and pure Java NIO.
 `NioDurability` is a pure-Java runtime capability. Successful return means the
 provider accepted the requested directory-channel force operation; unsupported
@@ -62,6 +77,9 @@ are hostile; the TOKEN reader composes bounded reads, envelope authentication, a
 exact grammar validation. Diagnostics preserve independently valid observations
 and imply no global operation gate. Valid bytes do not certify the observed set
 or its freshness. Graph evaluation explicitly consumes the validated subset.
+Canonical namespace, existing object, and `vault` lookups select exact observed
+direct-child directory-entry spellings. Alternate-case siblings are ignored;
+provider alias collisions during no-replace creation fail conservatively.
 
 TOKEN and initial VAULT installation use no-replace hard links; bootstrap replacement
 uses an atomic move and fails if the provider cannot support it. VAULT workflows
@@ -88,12 +106,6 @@ history, and the same plan can be retried explicitly after failure.
 The test snapshot is under `core/src/test/resources/totipo-spec/v1-pre-rc/` and is
 excluded from production JARs. Java derives behavior from the normative
 specification and language-neutral corpus, not from the Go implementation.
-Historical r16 migration reports: see [R16_PHASE1_RECONCILIATION_REPORT.md](R16_PHASE1_RECONCILIATION_REPORT.md) for
-validation, deletions, and remaining phases. See
-[R16_PHASE2_TOKEN_CODEC_REPORT.md](R16_PHASE2_TOKEN_CODEC_REPORT.md) for exact codec
-coverage, validation evidence, and the Phase 3 boundary.
-See [R16_PHASE3_GRAPH_FOLD_REPORT.md](R16_PHASE3_GRAPH_FOLD_REPORT.md) for graph/fold
-semantics, corpus coverage, validation evidence, and the Phase 4 boundary.
 
 To intentionally refresh build reproducibility inputs, use `bootstrap-m0.sh` and
 review the resulting wrapper, Nix lock, module dependency locks, and verification

@@ -7,7 +7,7 @@ import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
-/** Strict r16 encoding. Borrows caller input; owned encodings must be cleared by the caller. */
+/** Strict v1 encoding. Borrows caller input; owned encodings must be cleared by the caller. */
 final class PasswordBytes {
     static final int MAX_BYTES = 1024;
 

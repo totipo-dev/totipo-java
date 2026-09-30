@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/** Pure r16 graph derivation over a finite set of already validated identity/content facts. */
+/** Pure v1 graph derivation over a finite set of already validated identity/content facts. */
 final class TokenGraph {
     // Fixed-width lowercase hex has exactly the unsigned lexicographic byte order.
     static final Comparator<ObjectId> OBJECT_ORDER = Comparator.comparing(ObjectId::filename);

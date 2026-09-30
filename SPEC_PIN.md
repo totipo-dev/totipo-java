@@ -28,6 +28,8 @@ Java derives semantics from the normative specification and language-neutral cor
 
 r17 is a threat-model / store-freshness clarification only. All 90 case JSON files
 are byte-identical to the previous r16 pin. Java required no semantic production
-changes. The implemented corpus remains 69 / 90 cases; storage (13) and vault (8)
-remain deferred. Integrity tests establish the pinned target, not implementation
-coverage of all semantic cases. No upstream implementation code is imported.
+changes for that revision transition. The r17 pin is unchanged. The implementation
+now executes 90 / 90 portable corpus cases, with no portable categories deferred.
+Integrity tests establish the pinned target; semantic consumers separately establish
+implementation coverage. This accounting is not a release claim.
+No upstream implementation code is imported.

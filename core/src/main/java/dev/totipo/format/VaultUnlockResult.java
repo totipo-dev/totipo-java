@@ -1,6 +1,6 @@
 package dev.totipo.format;
 
-/** Cryptographic unwrap result with an owned root; no storage lifecycle is implied. */
+/** Internal result with an owned root. Storage observation statuses are provisional API-design debt. */
 final class VaultUnlockResult implements AutoCloseable {
     enum Status { UNLOCKED, ABSENT, UNAVAILABLE, INVALID_FORMAT, INVALID_PASSWORD_INPUT, AUTHENTICATION_FAILED }
 

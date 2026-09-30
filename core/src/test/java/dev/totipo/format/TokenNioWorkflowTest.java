@@ -19,6 +19,43 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 class TokenNioWorkflowTest {
+    @ParameterizedTest @ValueSource(booleans = {false, true})
+    void alternateCaseEncryptedObjectNeverAcknowledgesExactAndCanonicalRetryIsDiscoverable(boolean mixed) throws Exception {
+        Path directory = directory();
+        try {
+            var plan = TokenPublicationTest.plan(0);
+            var stage = plan.stages().get(0);
+            var sealed = V1EnvelopeWriter.seal(TokenPublicationTest.root(), TokenWriter.write(stage.token()));
+            assertEquals(stage.objectId(), sealed.id());
+            String name = sealed.id().filename();
+            String alias = name.toUpperCase(java.util.Locale.ROOT);
+            if (mixed) {
+                int letter = 0;
+                while (Character.isDigit(name.charAt(letter))) letter++;
+                alias = name.substring(0, letter) + Character.toUpperCase(name.charAt(letter)) + name.substring(letter + 1);
+            }
+            assertNotEquals(name, alias);
+            Path namespace = Files.createDirectory(directory.resolve("objects-v1"));
+            Path sibling = Files.write(namespace.resolve(alias), sealed.bytes());
+            var before = Files.readAttributes(sibling, BasicFileAttributes.class);
+            assertTrue(read(directory).validatedTokens().isEmpty());
+            try (var store = NioV1ObjectPublicationStore.open(directory, new NioDurability())) {
+                assertEquals(PUBLISHED_NEW, store.publish(sealed.id(), sealed.bytes()));
+            }
+            try (var store = NioV1ObjectPublicationStore.open(directory, path -> fail("Exact retry must remain read-only"))) {
+                assertEquals(ALREADY_PRESENT_EXACT, store.publish(sealed.id(), sealed.bytes()));
+            }
+            try (var snapshot = new NioDiscoverySource(directory).snapshot()) {
+                assertEquals(List.of(sealed.id()), snapshot.candidates().stream().map(DiscoverySource.Candidate::id).toList());
+            }
+            assertEquals(List.of(new ValidatedToken(stage.objectId(), stage.token())), read(directory).validatedTokens());
+            assertArrayEquals(sealed.bytes(), Files.readAllBytes(sibling));
+            var after = Files.readAttributes(sibling, BasicFileAttributes.class);
+            assertEquals(before.fileKey(), after.fileKey());
+            assertEquals(before.lastModifiedTime(), after.lastModifiedTime());
+        } finally { StorageVectorChecks.deleteTree(directory); }
+    }
+
     private static Path directory() throws IOException {
         return Files.createTempDirectory(Path.of("build"), "token-workflow-").toAbsolutePath();
     }

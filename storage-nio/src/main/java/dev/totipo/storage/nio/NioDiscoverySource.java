@@ -20,7 +20,9 @@ public final class NioDiscoverySource implements DiscoverySource {
     @Override public Snapshot snapshot() throws IOException {
         if (!Files.readAttributes(root, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS).isDirectory())
             return new Snapshot(List.of(), SnapshotIssue.UNSAFE_NAMESPACE);
-        Path directory = root.resolve("objects-v1");
+        var exact = NioFiles.findExactDirectChild(root, "objects-v1");
+        if (exact.isEmpty()) return new Snapshot(List.of(), SnapshotIssue.NONE);
+        Path directory = exact.get();
         try {
             if (!Files.readAttributes(directory, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS).isDirectory())
                 return new Snapshot(List.of(), SnapshotIssue.UNSAFE_NAMESPACE);

@@ -6,7 +6,7 @@ import javax.crypto.Cipher;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
-/** Reusable §13–14 deterministic envelope; no semantic policy or storage. */
+/** Reusable v1 deterministic envelope; no semantic policy or storage. */
 final class V1EnvelopeWriter {
     private V1EnvelopeWriter() {}
     record ObjectBytes(ObjectId id, byte[] bytes) {

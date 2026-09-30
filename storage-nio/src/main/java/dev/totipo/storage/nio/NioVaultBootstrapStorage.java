@@ -42,10 +42,9 @@ public final class NioVaultBootstrapStorage implements VaultBootstrapReplacement
     private void usable() throws IOException { if (closed) throw new IOException("STORE_CLOSED"); }
     @Override public InputStream openCanonicalRead() throws IOException {
         usable();
-        Path canonical = root.resolve("vault");
-        try { NioFiles.regular(canonical); }
-        catch (NoSuchFileException absent) { return null; }
-        return new ByteArrayInputStream(NioFiles.read(canonical, 88));
+        var canonical = NioFiles.findExactDirectChild(root, "vault");
+        if (canonical.isEmpty()) return null;
+        return new ByteArrayInputStream(NioFiles.read(canonical.get(), 88));
     }
     @Override public StagedBootstrap stageInitial(byte[] candidate) throws IOException { return stage(candidate, false); }
     @Override public StagedReplacement stageReplacement(byte[] candidate) throws IOException { return stage(candidate, true); }
@@ -84,8 +83,11 @@ public final class NioVaultBootstrapStorage implements VaultBootstrapReplacement
             operations.syncDirectory(root);
         }
         @Override public void replaceCanonicalDurably() throws IOException {
-            attempt(true); NioFiles.regular(root.resolve("vault"));
-            operations.move(temp, root.resolve("vault")); operations.syncDirectory(root);
+            attempt(true);
+            Path canonical = NioFiles.findExactDirectChild(root, "vault")
+                    .orElseThrow(() -> new NoSuchFileException("vault"));
+            NioFiles.regular(canonical);
+            operations.move(temp, canonical); operations.syncDirectory(root);
         }
         @Override public void close() { ended = true; stages.remove(this); NioFiles.cleanup(temp); }
     }

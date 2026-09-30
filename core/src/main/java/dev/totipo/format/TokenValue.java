@@ -10,7 +10,7 @@ record TokenValue(int status, String issuer, String account, Credential credenti
         Objects.requireNonNull(credential);
     }
 
-    /** Intrinsic r16 bounds, required by the complete TOKEN model and codec. */
+    /** Intrinsic v1 bounds, required by the complete TOKEN model and codec. */
     void validate() {
         if (status != 1 && status != 2) throw new IllegalArgumentException("Invalid status");
         StrictUtf8.encode(issuer, 256);

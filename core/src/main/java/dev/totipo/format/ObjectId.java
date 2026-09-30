@@ -4,7 +4,7 @@ import java.security.MessageDigest;
 import java.util.Arrays;
 import java.util.HexFormat;
 
-/** Owned 32-byte keyed semantic identity (§13), distinct from its filename encoding. */
+/** Owned 32-byte keyed v1 semantic identity, distinct from its filename encoding. */
 public final class ObjectId {
     private final byte[] bytes;
 

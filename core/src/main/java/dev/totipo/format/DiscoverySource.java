@@ -3,7 +3,6 @@ package dev.totipo.format;
 import java.io.IOException;
 import java.nio.channels.ReadableByteChannel;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 
@@ -41,9 +40,10 @@ public interface DiscoverySource {
         public Snapshot(List<Candidate> candidates, SnapshotIssue issue, java.io.Closeable resource) {
             Objects.requireNonNull(issue);
             candidates = candidates.stream().sorted(Comparator.comparing(c -> c.id().filename())).toList();
-            var ids = new HashSet<ObjectId>();
-            for (var c : candidates) {
-                if (!ids.add(c.id())) { throw new IllegalArgumentException("Duplicate candidate name"); }
+            for (int i = 1; i < candidates.size(); i++) {
+                if (candidates.get(i - 1).id().equals(candidates.get(i).id())) {
+                    throw new IllegalArgumentException("Duplicate candidate name");
+                }
             }
             this.candidates = candidates;
             this.issue = issue;

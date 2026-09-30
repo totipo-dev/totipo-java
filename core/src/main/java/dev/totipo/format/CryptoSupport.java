@@ -7,7 +7,7 @@ import java.util.Arrays;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
-/** Operation-local JCA primitives and the r16 key hierarchy. */
+/** Operation-local JCA primitives and the v1 key hierarchy. */
 final class CryptoSupport {
     private CryptoSupport() {}
 

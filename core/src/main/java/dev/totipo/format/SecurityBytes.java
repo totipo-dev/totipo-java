@@ -18,5 +18,5 @@ final class SecurityBytes {
         return other instanceof SecurityBytes value && Arrays.equals(bytes, value.bytes);
     }
     @Override public int hashCode() { return Arrays.hashCode(bytes); }
+    @Override public String toString() { return "SecurityBytes[redacted]"; }
 }
-

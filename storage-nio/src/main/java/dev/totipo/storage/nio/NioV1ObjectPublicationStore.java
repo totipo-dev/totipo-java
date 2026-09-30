@@ -27,6 +27,7 @@ public final class NioV1ObjectPublicationStore implements V1ObjectPublicationSto
         int write(FileChannel channel, ByteBuffer bytes) throws IOException { return channel.write(bytes); }
         void force(FileChannel channel, String point) throws IOException { at(point); channel.force(true); }
         void sync(Path directory, String point) throws IOException { at(point); durability.syncDirectory(directory); }
+        void createDirectory(Path directory) throws IOException { Files.createDirectory(directory); }
         byte[] readExisting(Path target, String point) throws IOException { at(point); return NioFiles.read(target, 1025); }
         void link(Path target, Path temp) throws IOException {
             at("before-link"); Files.createLink(target, temp); at("after-link");
@@ -38,14 +39,25 @@ public final class NioV1ObjectPublicationStore implements V1ObjectPublicationSto
         if (exactObjectBytes.length != 1024) throw new IllegalArgumentException("EXACT_1024_BYTES_REQUIRED");
         byte[] owned = exactObjectBytes.clone(); operations.at("snapshot");
 
-        Path directory = root.resolve("objects-v1");
-        try { operations.at("mkdir"); Files.createDirectory(directory); rootSyncPending = true; }
-        catch (FileAlreadyExistsException exists) { NioFiles.directory(directory); }
+        operations.at("mkdir");
+        var namespace = NioFiles.findExactDirectChild(root, "objects-v1");
+        if (namespace.isEmpty()) {
+            try { operations.createDirectory(root.resolve("objects-v1")); rootSyncPending = true; }
+            catch (FileAlreadyExistsException exists) {
+                // Only an exactly spelled concurrent winner can be reopened.
+                namespace = NioFiles.findExactDirectChild(root, "objects-v1");
+                if (namespace.isEmpty()) throw exists;
+            }
+            if (namespace.isEmpty()) namespace = NioFiles.findExactDirectChild(root, "objects-v1");
+        }
+        Path directory = namespace.orElseThrow(() -> new IOException("CANONICAL_NAMESPACE_UNAVAILABLE"));
+        NioFiles.directory(directory);
         // Retain a failed creation barrier for retry on this instance.
         if (rootSyncPending) { operations.sync(root, "root-sync"); rootSyncPending = false; }
         Path target = directory.resolve(id.filename());
-        if (Files.exists(target, LinkOption.NOFOLLOW_LINKS)) {
-            if (!Arrays.equals(owned, operations.readExisting(target, "existing-read"))) throw new IOException("OBJECT_BYTES_MISMATCH");
+        var existing = NioFiles.findExactDirectChild(directory, id.filename());
+        if (existing.isPresent()) {
+            if (!Arrays.equals(owned, operations.readExisting(existing.get(), "existing-read"))) throw new IOException("OBJECT_BYTES_MISMATCH");
             return PublicationResult.ALREADY_PRESENT_EXACT;
         }
         operations.at("temporary");
@@ -55,7 +67,8 @@ public final class NioV1ObjectPublicationStore implements V1ObjectPublicationSto
             operations.force(channel, "stage-sync");
             try { operations.link(target, temp); }
             catch (FileAlreadyExistsException exists) {
-                if (!Arrays.equals(owned, operations.readExisting(target, "existing-read"))) throw new IOException("OBJECT_BYTES_MISMATCH");
+                Path exact = NioFiles.findExactDirectChild(directory, id.filename()).orElseThrow(() -> exists);
+                if (!Arrays.equals(owned, operations.readExisting(exact, "existing-read"))) throw new IOException("OBJECT_BYTES_MISMATCH");
                 return PublicationResult.ALREADY_PRESENT_EXACT;
             }
             operations.force(channel, "post-link-sync");

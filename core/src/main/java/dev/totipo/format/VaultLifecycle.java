@@ -10,6 +10,7 @@ import java.util.Objects;
  * No TOKEN observation, application recognition policy, or persistent lifecycle state.
  * Durable acknowledgements concern only the configured local store, not its freshness. */
 final class VaultLifecycle {
+    // FAILED includes ambiguous persistence; it never proves canonical bytes are unchanged.
     enum PasswordChangeResult { SUCCESS, STALE, FAILED }
     enum CreationStatus { CREATED, FAILED }
 

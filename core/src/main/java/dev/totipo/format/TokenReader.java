@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Optional;
 
-/** Exact r16 TOKEN grammar. Borrows P synchronously; retains only owned model values. */
+/** Exact v1 TOKEN grammar. Borrows P synchronously; retains only owned model values. */
 final class TokenReader {
     private TokenReader() {}
 

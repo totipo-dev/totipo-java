@@ -1,6 +1,6 @@
 package dev.totipo.format;
 
-/** Generic r16 framing only. Borrows the input synchronously; fields own copies. */
+/** Generic v1 framing only. Borrows the input synchronously; fields own copies. */
 final class TlvReader {
     enum Status { FIELD, END, TRUNCATED_HEADER, TRUNCATED_VALUE }
 

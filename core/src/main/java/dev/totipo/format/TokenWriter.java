@@ -2,7 +2,7 @@ package dev.totipo.format;
 
 import java.util.Arrays;
 
-/** Deterministic r16 semantic codec only; no identity generation or publication. */
+/** Deterministic v1 semantic codec only; no identity generation or publication. */
 final class TokenWriter {
     private TokenWriter() {}
 
