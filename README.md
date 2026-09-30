@@ -1,14 +1,17 @@
 # Totipo Java
 
-Portable Java libraries targeting Totipo Vault Format v1, revision **r16**.
+Portable Java libraries targeting Totipo Vault Format v1, revision **r17**.
 The exact committed specification and language-neutral corpus are pinned in
 [SPEC_PIN.md](SPEC_PIN.md).
 
-This repository is in a staged r16 migration. Phase 3 adds pure causal graph/state
+This repository has completed Phase 3. It provides pure causal graph/state
 evaluation and fixed linear-carry fold construction to the exact TOKEN codec.
 Consumers cover all 69 bootstrap, crypto, encoding, fold, graph, metadata, size,
 and TOTP cases. Authorship/publication orchestration and storage/vault workflow
 reconciliation remain deferred.
+r17 changes threat-model / store-freshness wording only and required no semantic
+production Java changes. Coverage remains 69/90; Phase 4 is next against r17.
+See [R17_REPIN_REPORT.md](R17_REPIN_REPORT.md) for the repin audit.
 Snapshot/profile integrity tests separately verify all 90 target cases. There is no full Java API stability
 promise yet; most core implementation types remain package-private.
 
@@ -52,16 +55,16 @@ files, and reports namespace/enumeration issues diagnostically. Candidate bytes
 are hostile; bounded reading and envelope authentication remain separate primitives.
 A snapshot implies no global operation gate.
 
-Storage mechanics are retained for later r16 lifecycle reconciliation. Object
+Storage mechanics are retained for later r17 lifecycle reconciliation. Object
 installation still uses the existing hard-link algorithm, and bootstrap replacement
-still uses the existing atomic-move mechanism. Exact BASE comparison and r16 vault
+still uses the existing atomic-move mechanism. Exact BASE comparison and r17 vault
 creation/open/rewrap orchestration belong to Phase 5. These mechanisms do not yet
-constitute full r16 storage/workflow conformance.
+constitute full r17 storage/workflow conformance.
 
 The test snapshot is under `core/src/test/resources/totipo-spec/v1-pre-rc/` and is
 excluded from production JARs. Java derives behavior from the normative
 specification and language-neutral corpus, not from the Go implementation.
-See [R16_PHASE1_RECONCILIATION_REPORT.md](R16_PHASE1_RECONCILIATION_REPORT.md) for
+Historical r16 migration reports: see [R16_PHASE1_RECONCILIATION_REPORT.md](R16_PHASE1_RECONCILIATION_REPORT.md) for
 validation, deletions, and remaining phases. See
 [R16_PHASE2_TOKEN_CODEC_REPORT.md](R16_PHASE2_TOKEN_CODEC_REPORT.md) for exact codec
 coverage, validation evidence, and the Phase 3 boundary.

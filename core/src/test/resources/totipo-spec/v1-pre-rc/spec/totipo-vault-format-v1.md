@@ -1,14 +1,15 @@
 # Totipo Vault Format v1
 
-**Status:** design draft, revision 16  
+**Status:** design draft, revision 17  
 **Protocol version:** 1  
-**Revision:** r16  
+**Revision:** r17  
 **Scope:** encrypted complete-state TOTP assertions, causal interpretation,
 canonical encoding, cryptography, and durable store operations.
 
 The key words MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY express normative
-requirements. This is a pre-RC revision; r16 deliberately changes TOKEN wire
-bytes. Earlier revision history is historical, not an alternative grammar.
+requirements. This is a pre-RC revision; r17 clarifies the threat model without
+changing r16 protocol behavior or wire bytes. Earlier revision history is
+historical, not an alternative grammar.
 
 **Historical note:** v0 was an unreleased design draft. v1 defines no migration
 protocol from v0. Historical artifacts are outside the v1 protocol.
@@ -18,7 +19,9 @@ protocol from v0. Historical artifacts are outside the v1 protocol.
 Totipo v1 operates on a configured durable object store. Synchronization is
 optional and external. A local-only store, USB/removable storage, shared
 filesystem, network mount, manually copied directory, or directory watched by
-synchronization software uses the same protocol.
+synchronization software uses the same protocol. Totipo validates and authenticates
+what it observes; it does not cryptographically prove that the configured store
+presents the complete or freshest valid history (Section 2).
 
 TOKEN is the sole semantic object grammar. Each immutable TOKEN is a complete
 assertion concerning one logical token. No value field is inherited. Explicit
@@ -33,22 +36,56 @@ their own compatibility relationship to v1.
 
 ## 2. Threat model and storage boundary
 
-External store bytes MUST be treated as hostile and validated. The local kernel,
-filesystem implementation, process namespace, and processes with the application's
-privileges are trusted for baseline conformance. Stronger defenses against
+Every configured-store entry and byte sequence that an implementation observes
+MUST be treated as untrusted input and MUST obtain v1 protocol meaning only through
+the applicable structural, cryptographic, and semantic validation. These checks
+establish validity of the observed representation, not completeness or freshness
+of the configured-store view.
+
+Totipo v1 does not guarantee that the configured store presents a complete or
+freshest view of vault history. A store may omit, remove, replay, restore, or
+replace previously valid objects or VAULT representations without v1 necessarily
+being able to establish that a fresher valid state once existed. v1 provides no
+cryptographic rollback or deletion resistance for history no longer presented by
+the configured store. A valid older representation may still authenticate
+correctly. Without independent freshness/history evidence, v1 cannot in general
+distinguish it from the freshest valid representation. Immutable content
+addressing authenticates object identity; it does not authenticate the observed
+set or its freshness.
+
+This limitation MUST NOT weaken validation of observed candidate material:
+applicable path/name/type rules, bounded reads, physical size, AEAD authentication,
+padding and length, keyed OBJECT_ID, exact TOKEN grammar and semantic bounds, and
+VAULT authentication still apply (Sections 3, 6, 11, 12, and 13). Stale but valid
+authenticated material is distinct from forged or tampered bytes that fail these
+checks.
+
+The local kernel, filesystem implementation, process namespace, and processes
+with the application's privileges are trusted for baseline conformance. Stronger defenses against
 malicious same-privilege races are optional implementation hardening.
 
 Without K_root, an attacker cannot decrypt TOKEN contents, compute keyed IDs
 for guessed plaintext, or author new valid objects, assuming the cryptographic
 primitives hold. A compromised unlocked client can read secrets and author valid
-state. Storage may omit, delay, replay, replace, or lose files. v1 provides no
-cryptographic rollback or deletion resistance against such storage.
+state.
 
 The configured durable store is expected to retain successfully published objects
 under ordinary successful operation. Success does not promise perpetual retention.
 Protocol correctness MUST NOT depend on sync acknowledgement, peer count, remote
 completion, provider snapshots, conflict-copy names, or remote version retention.
 Local publication establishes no remote propagation or globally complete history.
+The success, durability acknowledgement, and ambiguous-failure requirements for
+immutable TOKEN publication, VAULT creation, and VAULT replacement (Sections 7,
+8, and 18) remain mandatory; they describe what success means when Totipo writes,
+not what history the configured environment continues to present later.
+
+**Informative deployment note:** Freshness, rollback detection, retained history,
+auditability, and stronger deletion resistance beyond Totipo's own publication
+requirements may be supplied by the configured storage/synchronization environment
+or additional application mechanisms. Deployments requiring these properties
+need to select or provide them explicitly; v1 conformance does not assume them.
+Such guarantees depend on that layer's trust and retention model; version history
+alone is not cryptographic rollback protection. Synchronization remains optional.
 
 No separate persistent graph database or local protocol object cache is required.
 Implementation caches MAY hold validated bytes or derived indexes for performance;
@@ -425,6 +462,15 @@ being evaluated, not proof of freshness or completeness. Later observations caus
 ordinary recomputation. Loss of old objects does not invalidate remaining objects
 or supply a reason to invent missing ancestry.
 
+Disappearance or presentation of an older valid store view MUST NOT cause a crash
+or turn lack of freshness evidence into protocol facts. Implementations MUST
+derive current observable state from the available validated inputs under
+Sections 15 and 16 and truthfully report unresolved references. A missing object
+MUST NOT be treated as having never existed within the currently supplied graph
+facts, nor may an unresolved parent be silently skipped. Reappearance of valid
+objects permits ordinary recomputation. This requires no cross-run remembered
+history; a fresh client may know only what the configured store currently supplies.
+
 ## 15. Causal equivalence and current heads
 
 Within one TOKEN_ID, resolve a child-to-parent edge only when the referenced ID
@@ -665,6 +711,17 @@ or deleted. That work, platform/API selection, garbage collection, and future-fa
 migration are outside this rewrite.
 
 ## 21. Revision history
+
+### v1/r17
+
+Seventeenth v1 design draft. Threat-model clarification from r16:
+
+- distinguishes hostile/untrusted observed content from completeness and freshness
+  of the configured-store view;
+- explicitly locates rollback detection, freshness, and retained-history guarantees
+  beyond v1 at the storage/application layer, with synchronization still optional;
+- makes no wire-format, cryptographic, graph, storage-publication, or semantic
+  change and changes no conformance-case outcome.
 
 ### v1/r16
 

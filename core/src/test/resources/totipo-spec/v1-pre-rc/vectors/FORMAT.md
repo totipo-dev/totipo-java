@@ -1,4 +1,4 @@
-# Portable v1/r16 case contract
+# Portable v1/r17 case contract
 
 `manifest.schema.json` and `case.schema.json` define strict JSON contracts.
 Unknown members, mixed operation payloads, invalid enum values, and omitted
@@ -113,7 +113,7 @@ Normal checks never write cases. The explicit generator is:
 go run ./conformance/cmd/generate-vectors -root .
 ```
 
-It regenerates r16 fixtures and exact moving pins, preserves RFC TOTP files, and
+It regenerates r17 fixtures and exact moving pins, preserves RFC TOTP files, and
 removes physical cases no longer in its declared corpus. Review its inputs and all
 before/after bytes. It uses the Go crypto primitives shared with the consumer;
 this is reproducibility evidence, not an independent cryptographic implementation.

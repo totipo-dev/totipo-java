@@ -25,14 +25,14 @@ class SpecSnapshotIntegrityTest {
     private static final Path ROOT = Path.of("src/test/resources/totipo-spec/v1-pre-rc");
     private static final String CHECKSUMS = "SNAPSHOT.sha256";
     private static final String PROFILE_HASH =
-            "687faf7757de7c63da68c28889bf3d0976b1858f9647b67569e3d8dfafc59c56";
+            "ec65793e4734086cb79ad1bfbe96df4030c743b4b00d56bcdfa8cc90bfcbcb9e";
     private static final Map<String, String> PINNED = Map.of(
             "spec/totipo-vault-format-v1.md",
-            "96f362d68251a801b2c433bd6435c0056d5b070bfe1258a12ae12bdf7bb7990e",
+            "f8d2ab02c97e8ac54847048a06cb088359db982fec3f176fd473ce0f223d43cf",
             "vectors/manifest.json",
-            "d03821fa2a0c41145bd8b82c6ea46800ab1a847b50c92fb9996b3c585d6f0a33",
+            "94fff22842573e15b254bb0653970761c15cf122192947a36fccc48344a84f08",
             "vectors/manifest.schema.json",
-            "3b54847e7a21bacc7956406c0d79dc172a0fb6415e9eb9c0335a511c1987664a",
+            "e7a5d8ec0392e0248ab867375b7c907a7ca1298595acdb14ecd3edcbe66df476",
             "vectors/case.schema.json",
             "d38618f53dcf0a558c389831e8838a07248066beff392812f3d277cc974e25c9",
             "requirements/v1-pre-rc.json", PROFILE_HASH);

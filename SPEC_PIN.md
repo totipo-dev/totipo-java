@@ -1,31 +1,33 @@
 # Totipo specification pin
 
 - Upstream: https://github.com/totipo-dev/totipo-spec
-- Exact upstream commit on `main`: `54f38d13d62dc811c98489eb1867d63a9bef235a`
-- Snapshot UTC timestamp: `2026-09-29T21:14:53Z`
-- Normative revision: `r16`
+- Exact upstream commit on `main`: `1d42a481f230e0adbb89dbeaa936d3c956e70fdc`
+- Snapshot UTC timestamp: `2026-09-29T22:48:30Z`
+- Normative revision: `r17`
 - Moving requirements profile: `requirements/v1-pre-rc.json`
-- Profile file SHA-256: `687faf7757de7c63da68c28889bf3d0976b1858f9647b67569e3d8dfafc59c56`
+- Profile file SHA-256: `ec65793e4734086cb79ad1bfbe96df4030c743b4b00d56bcdfa8cc90bfcbcb9e`
 - Local snapshot: `core/src/test/resources/totipo-spec/v1-pre-rc/`
 - Vendored cases: **90**; upstream files: **97** (90 cases and 7 supporting files).
 
 | Artifact | SHA-256 |
 | --- | --- |
-| `spec/totipo-vault-format-v1.md` | `96f362d68251a801b2c433bd6435c0056d5b070bfe1258a12ae12bdf7bb7990e` |
-| `vectors/manifest.json` | `d03821fa2a0c41145bd8b82c6ea46800ab1a847b50c92fb9996b3c585d6f0a33` |
-| `vectors/manifest.schema.json` | `3b54847e7a21bacc7956406c0d79dc172a0fb6415e9eb9c0335a511c1987664a` |
+| `spec/totipo-vault-format-v1.md` | `f8d2ab02c97e8ac54847048a06cb088359db982fec3f176fd473ce0f223d43cf` |
+| `vectors/manifest.json` | `94fff22842573e15b254bb0653970761c15cf122192947a36fccc48344a84f08` |
+| `vectors/manifest.schema.json` | `e7a5d8ec0392e0248ab867375b7c907a7ca1298595acdb14ecd3edcbe66df476` |
 | `vectors/case.schema.json` | `d38618f53dcf0a558c389831e8838a07248066beff392812f3d277cc974e25c9` |
-| `requirements/v1-pre-rc.json` | `687faf7757de7c63da68c28889bf3d0976b1858f9647b67569e3d8dfafc59c56` |
+| `requirements/v1-pre-rc.json` | `ec65793e4734086cb79ad1bfbe96df4030c743b4b00d56bcdfa8cc90bfcbcb9e` |
 
-The commit was selected by checking all five exact artifact hashes, its r16 revision,
+The commit was selected by checking all five exact artifact hashes, its r17 revision,
 and the 90-case manifest/profile contract. The snapshot contains only the normative
 specification, moving requirements profile, manifest, schemas, vector format guide,
 license, and manifest-listed case JSON files. `SNAPSHOT.sha256` covers each imported
 upstream file, excluding itself, in sorted path order. Every physical case hash
 matches the manifest and every required-case hash matches the profile.
 
-Java derives behavior from the normative specification and language-neutral corpus, not from the Go implementation.
+Java derives semantics from the normative specification and language-neutral corpus, not from the Go implementation.
 
-Phase 1 pins the r16 target but does not yet claim complete Java r16 semantic conformance.
-Integrity tests establish the pinned target; they do not establish implementation
+r17 is a threat-model / store-freshness clarification only. All 90 case JSON files
+are byte-identical to the previous r16 pin. Java required no semantic production
+changes. The implemented corpus remains 69 / 90 cases; storage (13) and vault (8)
+remain deferred. Integrity tests establish the pinned target, not implementation
 coverage of all semantic cases. No upstream implementation code is imported.
