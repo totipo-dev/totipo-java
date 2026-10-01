@@ -4,7 +4,7 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-utils.url = "github:numtide/flake-utils";
-    llm-agents.url = "github:numtide/llm-agents.nix?rev=06830d044f23ec9bc55cec62771122d2941c634d";
+    llm-agents.url = "github:numtide/llm-agents.nix";
     jailed-agents = {
       url = "github:andersonjoseph/jailed-agents";
       inputs.llm-agents.follows = "llm-agents";
@@ -35,4 +35,9 @@
           ];
         };
       });
+
+  nixConfig = {
+    extra-substituters = [ "https://cache.numtide.com" ];
+    extra-trusted-public-keys = [ "niks3.numtide.com-1:DTx8wZduET09hRmMtKdQDxNNthLQETkc/yaX7M4qK0g=" ];
+  };
 }
