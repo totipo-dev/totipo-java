@@ -117,7 +117,8 @@ class NioExactNameTest {
         Path upper = Files.write(directory.resolve(NAME.toUpperCase(Locale.ROOT)), bytes);
         var modified = Files.getLastModifiedTime(upper);
         try (var snapshot = new NioDiscoverySource(root).snapshot()) { assertTrue(snapshot.candidates().isEmpty()); }
-        var operations = new NioV1ObjectPublicationStore.Operations(path -> fail("No acknowledgement barrier")) {
+        // New publication must acknowledge the root even when it later loses an exclusive-create race.
+        var operations = new NioV1ObjectPublicationStore.Operations(path -> assertEquals(root, path)) {
             @Override void link(Path target, Path temp) throws IOException {
                 // Model an alias collision, or a normal exactly spelled concurrent winner.
                 if (exactWinner) Files.write(target, bytes);

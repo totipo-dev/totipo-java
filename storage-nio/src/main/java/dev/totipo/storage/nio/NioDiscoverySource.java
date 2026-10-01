@@ -20,31 +20,26 @@ public final class NioDiscoverySource implements DiscoverySource {
     @Override public Snapshot snapshot() throws IOException {
         if (!Files.readAttributes(root, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS).isDirectory())
             return new Snapshot(List.of(), SnapshotIssue.UNSAFE_NAMESPACE);
-        var exact = NioFiles.findExactDirectChild(root, "objects-v1");
-        if (exact.isEmpty()) return new Snapshot(List.of(), SnapshotIssue.NONE);
-        Path directory = exact.get();
-        try {
-            if (!Files.readAttributes(directory, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS).isDirectory())
-                return new Snapshot(List.of(), SnapshotIssue.UNSAFE_NAMESPACE);
-        } catch (NoSuchFileException absent) { return new Snapshot(List.of(), SnapshotIssue.NONE); }
+        var scan = NioObjectScan.scan(root, new NioObjectScan.Operations());
         var candidates = new ArrayList<Candidate>();
-        var issue = SnapshotIssue.NONE;
-        try (var entries = Files.newDirectoryStream(directory)) {
-            for (Path entry : entries) {
-                ObjectId id;
-                try { id = ObjectId.fromFilename(entry.getFileName().toString()); }
-                catch (IllegalArgumentException ignored) { continue; }
-                try {
-                    if (!Files.readAttributes(entry, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS).isRegularFile()) continue;
-                    candidates.add(new Candidate(id, () -> {
-                        NioFiles.regular(entry);
-                        return Files.newByteChannel(entry, StandardOpenOption.READ, LinkOption.NOFOLLOW_LINKS);
-                    }));
-                } catch (IOException e) { issue = SnapshotIssue.ENUMERATION_UNAVAILABLE; }
-            }
-        } catch (DirectoryIteratorException | IOException | SecurityException e) {
-            issue = SnapshotIssue.ENUMERATION_UNAVAILABLE;
+        for (var entry : scan.entries()) {
+            if (entry.kind() != dev.totipo.spi.EntryKind.REGULAR) continue;
+            ObjectId id;
+            try { id = ObjectId.fromFilename(entry.name().value()); }
+            catch (IllegalArgumentException ignored) { continue; }
+            candidates.add(new Candidate(id, () -> {
+                Path directory = NioObjectScan.namespace(root);
+                if (directory == null) throw new NoSuchFileException("objects-v1");
+                Path path = NioFiles.findExactDirectChild(directory, entry.name().value())
+                        .orElseThrow(() -> new NoSuchFileException(entry.name().value()));
+                NioFiles.regular(path);
+                return Files.newByteChannel(path, StandardOpenOption.READ, LinkOption.NOFOLLOW_LINKS);
+            }));
         }
+        var issue = scan instanceof dev.totipo.spi.ObjectScan.Incomplete incomplete
+                ? (incomplete.reason() == dev.totipo.spi.StoreFailure.UNSAFE_NAMESPACE
+                    ? SnapshotIssue.UNSAFE_NAMESPACE : SnapshotIssue.ENUMERATION_UNAVAILABLE)
+                : SnapshotIssue.NONE;
         return new Snapshot(candidates, issue);
     }
 }

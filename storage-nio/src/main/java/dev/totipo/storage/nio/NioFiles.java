@@ -32,11 +32,11 @@ final class NioFiles {
     }
     static void directory(Path path) throws IOException {
         if (!Files.readAttributes(path, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS).isDirectory())
-            throw new IOException("REAL_DIRECTORY_REQUIRED");
+            throw new NioNamespace("REAL_DIRECTORY_REQUIRED");
     }
     static void regular(Path path) throws IOException {
         if (!Files.readAttributes(path, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS).isRegularFile())
-            throw new IOException("REGULAR_FILE_REQUIRED");
+            throw new NioNamespace("REGULAR_FILE_REQUIRED");
     }
     static Path temporary(Path directory, String prefix) throws IOException {
         return Files.createTempFile(directory, prefix, ".tmp");

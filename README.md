@@ -11,8 +11,11 @@ create/update/merge builders and session-backed TOTP. The directory must already
 exist. These entry points and saves may block; inspect their explicit lifecycle
 and persistence results. See [API_DESIGN.md](API_DESIGN.md) for the contracts and
 [facade implementation evidence](review/PUBLIC_API_FACADE_REPORT.md) for coverage.
-The public storage interfaces remain provider/internal boundaries rather than
-the ordinary application API; they are not a finalized third-party SPI.
+Provider integrations use the deliberate `dev.totipo.spi` boundary, implemented
+by `NioTotipoStore`. This SPI is experimental, not frozen for source/binary
+compatibility. Providers understand only storage layout and storage semantics;
+protocol interpretation stays in core. Ordinary applications need no SPI types.
+See [SPI_DESIGN.md](SPI_DESIGN.md) for the boundary and ownership contract.
 
 This repository has completed the r17 portable core implementation milestone:
 **90/90 portable corpus cases implemented, none deferred**. The TOKEN codec,
@@ -80,9 +83,10 @@ providers fail rather than being treated as durable. Java SE does not guarantee
 directory fsync semantics on every provider. `StorageDurability` stays injectable
 for a future supported backend if needed. No native-access JVM flags are required.
 
-Discovery observes the configured root and exact `objects-v1` directory without
-following final symlinks, considers only direct canonical lowercase-hex regular
-files, and reports namespace/enumeration issues diagnostically. Candidate bytes
+Provider scans expose all observed direct children of the exact `objects-v1`
+directory, with no-follow kind and optional logical length observations. Core
+selects canonical lowercase-hex regular candidates and reports namespace/enumeration
+issues diagnostically. Candidate bytes
 are hostile; the TOKEN reader composes bounded reads, envelope authentication, and
 exact grammar validation. Diagnostics preserve independently valid observations
 and imply no global operation gate. Valid bytes do not certify the observed set
@@ -91,8 +95,9 @@ Canonical namespace, existing object, and `vault` lookups select exact observed
 direct-child directory-entry spellings. Alternate-case siblings are ignored;
 provider alias collisions during no-replace creation fail conservatively.
 
-TOKEN and initial VAULT installation use no-replace hard links; bootstrap replacement
-uses an atomic move and fails if the provider cannot support it. VAULT workflows
+TOKEN and initial VAULT installation use no-replace hard links. The SPI NIO provider
+attempts atomic replacement, falling back to a non-atomic move when atomic move is
+unsupported; the legacy low-level adapter retains its atomic-only contract. VAULT workflows
 open only lowercase `vault`, read at most 88 bytes, authenticate complete candidates
 and their separate stages, and preserve the exact root across password changes.
 Replacement re-observes canonical bytes and requires exact equality with authenticated

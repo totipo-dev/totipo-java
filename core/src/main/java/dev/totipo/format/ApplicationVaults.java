@@ -7,11 +7,20 @@ import java.security.MessageDigest;
 import java.util.Arrays;
 import java.util.Objects;
 
-/** Provider bridge, not the ordinary application entry point. Owns transferred stores on all paths.
- * Publication acknowledgements must establish configured-store durability, including exact-existing
- * objects after uncertain installation. The NIO application adapter adds the needed barriers. */
+/** Core application construction. The deliberate provider entry point is Totipo with TotipoStore.
+ * The three-interface overloads remain only as legacy internal migration/test adapters. */
 public final class ApplicationVaults {
     private ApplicationVaults() { }
+
+    public static OpenResult open(dev.totipo.spi.TotipoStore store, char[] password) {
+        var adapter = new StoreAdapter(store);
+        return open(adapter, adapter, adapter, password);
+    }
+
+    public static CreateVaultResult create(dev.totipo.spi.TotipoStore store, char[] password) {
+        var adapter = new StoreAdapter(store);
+        return create(adapter, adapter, adapter, password);
+    }
 
     public static OpenResult open(VaultBootstrapReplacementStorage bootstrap, DiscoverySource discovery,
                                   V1ObjectPublicationStore publication, char[] password) {
@@ -63,6 +72,8 @@ public final class ApplicationVaults {
             var session = new ApplicationSession(root, bootstrap, discovery, publication);
             transferred = true;
             return new CreateVaultResult.Created(session);
+        } catch (StoreAdapter.DefiniteFailure failure) {
+            return failure.alreadyPresent ? new CreateVaultResult.AlreadyExists() : new CreateVaultResult.Failed();
         } catch (IOException | SecurityException | UnsupportedOperationException e) {
             return attempted ? new CreateVaultResult.Uncertain() : new CreateVaultResult.Failed();
         } catch (RuntimeException e) {
@@ -106,6 +117,8 @@ public final class ApplicationVaults {
             attempted = true;
             stage.replaceCanonicalDurably();
             return PasswordChangeResult.CHANGED;
+        } catch (StoreAdapter.DefiniteFailure failure) {
+            return PasswordChangeResult.FAILED;
         } catch (IOException | SecurityException | UnsupportedOperationException e) {
             return attempted ? PasswordChangeResult.UNCERTAIN : PasswordChangeResult.FAILED;
         } catch (RuntimeException e) {
