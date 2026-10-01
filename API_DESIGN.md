@@ -6,6 +6,14 @@ remain authoritative for protocol facts. `dev.totipo` defines application behavi
 `dev.totipo.storage.nio.NioTotipo` is the ordinary filesystem entry point. There is
 no API stability promise yet.
 
+## Maven modules
+
+`totipo-core` contains the portable protocol/application API and core implementation.
+`totipo-storage-nio` supplies the normal filesystem/NIO entry point and storage
+provider, exposing core transitively. Ordinary applications use `NioTotipo` and
+the high-level API; publication does not promote experimental SPI internals to
+normal application entry points. See README for release availability and coordinates.
+
 ## Entry points and lifecycle outcomes
 
 `NioTotipo.open(path, password)` opens an existing configured-store directory and

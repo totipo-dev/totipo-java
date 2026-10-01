@@ -25,11 +25,13 @@
           packages = with pkgs; [
             jdk25_headless
             gradle_9
+            python3
             (jailed-agents.lib.${system}.makeJailedCodex {
               fwdEnv = [ "JAVA_HOME" ];
               extraPkgs = with pkgs; [
                 jdk25_headless
                 gradle_9
+                python3
               ];
             })
           ];

@@ -125,3 +125,34 @@ specification and language-neutral corpus, not from the Go implementation.
 To intentionally refresh build reproducibility inputs, use `bootstrap-m0.sh` and
 review the resulting wrapper, Nix lock, module dependency locks, and verification
 metadata changes. Normal builds do not regenerate specification vectors.
+
+## Maven consumption (release preparation)
+
+Java implementation release **0.1.0 is being prepared and is not claimed to be
+available on Maven Central**. After the operator publishes it, normal applications
+can use Maven Central and:
+
+```kotlin
+implementation("dev.totipo:totipo-storage-nio:0.1.0")
+```
+
+`totipo-storage-nio` is the normal filesystem/NIO entry point and provider. It
+exposes `totipo-core` transitively, including `VaultSession` and `VaultState`.
+Use `NioTotipo` and the high-level application API; the SPI guidance above remains
+unchanged. For portable protocol/application API and core implementation without
+an NIO provider:
+
+```kotlin
+implementation("dev.totipo:totipo-core:0.1.0")
+```
+
+Core brings Bouncy Castle 1.86 at runtime for Argon2id, without exposing BC as a
+public compile dependency. Both artifacts require Java 17; tests, test fixtures,
+and the specification snapshot are excluded from publications.
+
+`VERSION` is the single implementation version source. Protocol compatibility is
+separate: 0.1.0 implements v1/r17. Future bug-fix releases can continue to implement
+v1/r17, and later specification revisions do not mechanically dictate Java semantic
+versions. See [the release checklist](RELEASE_CHECKLIST.md) for exact provenance,
+credential-free Maven consumer verification, signing, and the manual Central gates.
+Publication checks additionally require Python 3.9+ (standard library only).

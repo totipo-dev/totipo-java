@@ -28,4 +28,7 @@ jobs:
           echo "238e777fcddd7e34f9708186085def2abd6e08e658505b38718d79d74c21abd5  gradle/wrapper/gradle-wrapper.jar" | sha256sum -c -
 
       - name: Build
-        run: ./gradlew build
+        run: ./gradlew build verifyPublication consumerSmoke
+
+      - name: Verify Maven POM-only consumer
+        run: ./gradlew -p publishing/consumer-smoke --offline -PpomOnly clean check

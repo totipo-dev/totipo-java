@@ -46,3 +46,9 @@ tasks.test {
     inputs.dir(snapshot)
     systemProperty("totipo.test.snapshot", snapshot.asFile.absolutePath)
 }
+
+// Preserve internal fixture consumers while excluding fixtures from publication.
+(components["java"] as AdhocComponentWithVariants).apply {
+    withVariantsFromConfiguration(configurations["testFixturesApiElements"]) { skip() }
+    withVariantsFromConfiguration(configurations["testFixturesRuntimeElements"]) { skip() }
+}
