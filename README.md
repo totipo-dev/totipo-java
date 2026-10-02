@@ -5,13 +5,13 @@ The exact committed specification and language-neutral corpus are pinned in
 [SPEC_PIN.md](SPEC_PIN.md).
 
 Normal Java clients should start with `NioTotipo.open(path, password)` or
-`NioTotipo.create(path, password)` in `dev.totipo.storage.nio`, then use the
-`dev.totipo` application API: `VaultSession`, immutable `VaultState` projections,
+`NioTotipo.create(path, password)` in `org.totipo.storage.nio`, then use the
+`org.totipo` application API: `VaultSession`, immutable `VaultState` projections,
 create/update/merge builders and session-backed TOTP. The directory must already
 exist. These entry points and saves may block; inspect their explicit lifecycle
 and persistence results. See [API_DESIGN.md](API_DESIGN.md) for the contracts and
 [facade implementation evidence](review/PUBLIC_API_FACADE_REPORT.md) for coverage.
-Provider integrations use the deliberate `dev.totipo.spi` boundary, implemented
+Provider integrations use the deliberate `org.totipo.spi` boundary, implemented
 by `NioTotipoStore`. This SPI is experimental, not frozen for source/binary
 compatibility. Providers understand only storage layout and storage semantics;
 protocol interpretation stays in core. Ordinary applications need no SPI types.
@@ -27,7 +27,7 @@ linear-carry fold plans with safe explicit retries.
 Consumers cover bootstrap, crypto, encoding, fold, graph, metadata, size,
 storage, TOTP, and all eight vault workflow cases.
 Implementation evidence is executable in
-[Phase2ConformanceTest](core/src/test/java/dev/totipo/format/Phase2ConformanceTest.java).
+[Phase2ConformanceTest](core/src/test/java/org/totipo/format/Phase2ConformanceTest.java).
 Snapshot/profile integrity tests separately verify all 90 target cases. There is no full Java API stability
 promise yet; most core implementation types remain package-private. Corpus completion
 is not the end of API design or implementation hardening, and does not establish
@@ -133,7 +133,7 @@ available on Maven Central**. After the operator publishes it, normal applicatio
 can use Maven Central and:
 
 ```kotlin
-implementation("dev.totipo:totipo-storage-nio:0.1.0")
+implementation("org.totipo:totipo-storage-nio:0.1.0")
 ```
 
 `totipo-storage-nio` is the normal filesystem/NIO entry point and provider. It
@@ -143,7 +143,7 @@ unchanged. For portable protocol/application API and core implementation without
 an NIO provider:
 
 ```kotlin
-implementation("dev.totipo:totipo-core:0.1.0")
+implementation("org.totipo:totipo-core:0.1.0")
 ```
 
 Core brings Bouncy Castle 1.86 at runtime for Argon2id, without exposing BC as a
@@ -155,4 +155,6 @@ separate: 0.1.0 implements v1/r17. Future bug-fix releases can continue to imple
 v1/r17, and later specification revisions do not mechanically dictate Java semantic
 versions. See [the release checklist](RELEASE_CHECKLIST.md) for exact provenance,
 credential-free Maven consumer verification, signing, and the manual Central gates.
+The [J1.1 namespace migration report](review/J1_1_NAMESPACE_MIGRATION_REPORT.md)
+records the current release identity and supersedes J1 coordinates for release readiness.
 Publication checks additionally require Python 3.9+ (standard library only).

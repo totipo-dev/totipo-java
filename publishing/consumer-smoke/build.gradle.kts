@@ -4,7 +4,7 @@ plugins { java }
 val releaseVersion = file("../../VERSION").readText().removeSuffix("\n")
 java { toolchain.languageVersion.set(JavaLanguageVersion.of(25)) }
 tasks.withType<JavaCompile>().configureEach { options.release.set(17) }
-dependencies { implementation("dev.totipo:totipo-storage-nio:$releaseVersion") }
+dependencies { implementation("org.totipo:totipo-storage-nio:$releaseVersion") }
 dependencyLocking {
     lockAllConfigurations()
     lockMode.set(LockMode.STRICT)
@@ -21,7 +21,7 @@ val verifyBoundary = tasks.register("verifyBoundary") {
                     (component.id as ModuleComponentIdentifier).let { "${it.group}:${it.module}:${it.version}" }
                 }
             }.toSet()
-        val publicApi = setOf("dev.totipo:totipo-storage-nio:$releaseVersion", "dev.totipo:totipo-core:$releaseVersion")
+        val publicApi = setOf("org.totipo:totipo-storage-nio:$releaseVersion", "org.totipo:totipo-core:$releaseVersion")
         check(coordinates(compileArtifacts.get()) == publicApi)
         val runtime = coordinates(runtimeArtifacts.get())
         check(runtime == publicApi + "org.bouncycastle:bcprov-jdk18on:1.86")

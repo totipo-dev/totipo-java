@@ -1,6 +1,6 @@
 # Totipo specification pin
 
-- Upstream: https://github.com/totipo-dev/totipo-spec
+- Upstream: https://github.com/totipo-org/totipo-spec
 - Exact upstream commit on `main`: `1d42a481f230e0adbb89dbeaa936d3c956e70fdc`
 - Snapshot UTC timestamp: `2026-09-29T22:48:30Z`
 - Normative revision: `r17`

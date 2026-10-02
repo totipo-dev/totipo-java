@@ -2,8 +2,8 @@
 
 This document is normative for this implementation phase, not part of the Totipo
 wire-format specification. The pinned v1/r17 specification and unchanged corpus
-remain authoritative for protocol facts. `dev.totipo` defines application behavior;
-`dev.totipo.storage.nio.NioTotipo` is the ordinary filesystem entry point. There is
+remain authoritative for protocol facts. `org.totipo` defines application behavior;
+`org.totipo.storage.nio.NioTotipo` is the ordinary filesystem entry point. There is
 no API stability promise yet.
 
 ## Maven modules
@@ -346,7 +346,7 @@ are exceptions, not persistence result variants.
 The existing public `format` storage interfaces and the new `ApplicationVaults`
 bridge are provider/internal boundaries needed by the two-module build, not normal
 application API or a frozen third-party SPI. Application code needs only
-`dev.totipo` and `NioTotipo`. Package-private codecs, graph, fold and crypto stay
+`org.totipo` and `NioTotipo`. Package-private codecs, graph, fold and crypto stay
 package-private. The facade does not change protocol encoding or r17 semantics.
 
 Deployment/sync remains separate: there is no replication, remote acknowledgement,

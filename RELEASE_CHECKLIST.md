@@ -8,8 +8,8 @@ determine the Java semantic version.
 
 Release provenance:
 
-- Maven coordinates: `dev.totipo:totipo-core:0.1.0` and
-  `dev.totipo:totipo-storage-nio:0.1.0`.
+- Maven coordinates: `org.totipo:totipo-core:0.1.0` and
+  `org.totipo:totipo-storage-nio:0.1.0`.
 - Protocol: v1/r17, specification commit
   `1d42a481f230e0adbb89dbeaa936d3c956e70fdc`; authoritative hashes in `SPEC_PIN.md`.
 - Portable corpus: 90/90, none deferred. Reconfirm on the final release commit.
@@ -48,7 +48,7 @@ Run from the repository root. No global Maven local repository is used.
 - [ ] Javadocs generate at the existing package visibility; warnings reviewed.
 - [ ] Local Maven publication under `build/repository` contains only two GAVs.
 - [ ] `verifyPublication` passes structural POM/module metadata checks, exact
-  `storage-nio -> dev.totipo:totipo-core:0.1.0` mapping, scopes, content allowlists,
+  `storage-nio -> org.totipo:totipo-core:0.1.0` mapping, scopes, content allowlists,
   Java 17 bytecode and unsigned artifact/checksum inventory.
 - [ ] Fixture classifiers, fixture capabilities and fixture dependencies absent.
 - [ ] Standalone consumer compiles with module metadata and with POM-only
@@ -58,7 +58,8 @@ Run from the repository root. No global Maven local repository is used.
   `build` between runs, compare, and record the result. Repository index
   timestamps and detached signatures are excluded. This is same-environment
   evidence, not a cross-machine reproducibility guarantee.
-- [ ] `git diff --check` passes; no production Java/spec/corpus changes.
+- [ ] `git diff --check` passes; production Java changes are limited to the reviewed
+  namespace migration; no specification/corpus changes.
 
 The smoke project is independent, not a root subproject. Its sole requested
 dependency reads the implementation version from `VERSION`. An exclusive file
@@ -78,7 +79,9 @@ with that flag. Root itself has no publication. No ordinary CI job holds secrets
 Do not set plugin auto-enable properties such as `mavenCentralPublishing` or
 `signAllPublications` in a global Gradle properties file for local verification.
 
-- [ ] Operator has authority for namespace `dev.totipo` (not checked by agent).
+- [ ] Operator verifies Central namespace authority for `org.totipo`, corresponding to
+  ownership/control of `totipo.org` (operator reports domain ownership; Central
+  namespace verification remains a human gate and has not been performed here).
 - [ ] Central Portal user token is stored outside the repository as Gradle
   properties `mavenCentralUsername` and `mavenCentralPassword` (token fields,
   not the Portal login password).

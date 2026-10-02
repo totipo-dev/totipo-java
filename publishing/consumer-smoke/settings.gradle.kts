@@ -10,7 +10,7 @@ dependencyResolutionManagement {
                     metadataSources { mavenPom(); ignoreGradleMetadataRedirection() }
                 }
             } }
-            filter { includeGroup("dev.totipo") }
+            filter { includeGroup("org.totipo") }
         }
         mavenCentral { content { includeModule("org.bouncycastle", "bcprov-jdk18on") } }
     }

@@ -3,16 +3,16 @@
 This document describes the implemented Java storage-provider boundary. It is
 not part of the Totipo wire-format specification. The SPI is experimental / not
 frozen yet: there is no long-term third-party source or binary compatibility
-promise. The normal application entry point remains `dev.totipo` together with
-`dev.totipo.storage.nio.NioTotipo`; applications need not construct SPI values.
+promise. The normal application entry point remains `org.totipo` together with
+`org.totipo.storage.nio.NioTotipo`; applications need not construct SPI values.
 
 > The storage provider understands the Totipo storage layout, not the Totipo protocol.
 
 ```text
 application
-    -> dev.totipo application API
+    -> org.totipo application API
     -> core protocol/application implementation
-    -> dev.totipo.spi.TotipoStore
+    -> org.totipo.spi.TotipoStore
     -> NIO provider
 
 <root>/
@@ -33,7 +33,7 @@ password authentication, ObjectId or canonical object-name grammar, envelopes,
 TOKEN syntax, parents, heads, graph/fold, merge/conflict semantics, TOTP,
 freshness/rollback policy, authorization, or sync.
 
-All provider-facing types live in `dev.totipo.spi` and import no domain or crypto
+All provider-facing types live in `org.totipo.spi` and import no domain or crypto
 types:
 
 | Type | Role |

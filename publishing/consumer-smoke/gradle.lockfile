@@ -2,7 +2,7 @@
 # Manual edits can break the build and are not advised.
 # This file is expected to be part of source control.
 # To regenerate this file, run: ./gradlew :dependencies --write-locks
-dev.totipo:totipo-core:0.1.0=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
-dev.totipo:totipo-storage-nio:0.1.0=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
 org.bouncycastle:bcprov-jdk18on:1.86=runtimeClasspath,testRuntimeClasspath
+org.totipo:totipo-core:0.1.0=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+org.totipo:totipo-storage-nio:0.1.0=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
 empty=annotationProcessor,testAnnotationProcessor

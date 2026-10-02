@@ -1,7 +1,7 @@
-import dev.totipo.OpenResult;
-import dev.totipo.VaultSession;
-import dev.totipo.VaultState;
-import dev.totipo.storage.nio.NioTotipo;
+import org.totipo.OpenResult;
+import org.totipo.VaultSession;
+import org.totipo.VaultState;
+import org.totipo.storage.nio.NioTotipo;
 import java.nio.file.Path;
 import java.util.concurrent.Flow;
 

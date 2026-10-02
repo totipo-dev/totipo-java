@@ -25,11 +25,11 @@ require(!centralRelease || gradle.startParameter.taskNames.none { it.substringAf
 
 subprojects {
     apply(plugin = "java-library")
-    group = "dev.totipo"
+    group = "org.totipo"
     version = rootProject.version
     apply(plugin = "com.vanniktech.maven.publish")
     extensions.configure<com.vanniktech.maven.publish.MavenPublishBaseExtension> {
-        coordinates("dev.totipo", "totipo-${project.name}", project.version.toString())
+        coordinates("org.totipo", "totipo-${project.name}", project.version.toString())
         // Archives already belong to the Java component; avoid duplicate plugin tasks/fixtures sources.
         configure(com.vanniktech.maven.publish.JavaLibrary(
             javadocJar = com.vanniktech.maven.publish.JavadocJar.None(),
@@ -42,7 +42,7 @@ subprojects {
         pom {
             name.set(if (project.name == "core") "Totipo Java Core" else "Totipo Java NIO Storage")
             description.set(if (project.name == "core") "Portable Totipo protocol/application API and core implementation" else "Filesystem/NIO entry point and storage provider for Totipo, exposing core transitively")
-            url.set("https://github.com/totipo-dev/totipo-java")
+            url.set("https://github.com/totipo-org/totipo-java")
             licenses { license {
                 name.set("Apache License 2.0")
                 url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
@@ -53,9 +53,9 @@ subprojects {
                 url.set("https://github.com/ingon/")
             } }
             scm {
-                url.set("https://github.com/totipo-dev/totipo-java")
-                connection.set("scm:git:https://github.com/totipo-dev/totipo-java.git")
-                developerConnection.set("scm:git:ssh://git@github.com/totipo-dev/totipo-java.git")
+                url.set("https://github.com/totipo-org/totipo-java")
+                connection.set("scm:git:https://github.com/totipo-org/totipo-java.git")
+                developerConnection.set("scm:git:ssh://git@github.com/totipo-org/totipo-java.git")
             }
         }
     }
