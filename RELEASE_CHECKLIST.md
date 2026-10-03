@@ -1,17 +1,17 @@
-# Totipo Java 0.1.0 release checklist
+# Totipo Java 0.1.1 release checklist
 
 This is preparation, not a published release. The Maven version is the Java
 implementation release version, read from `VERSION`. Protocol compatibility is
 independent: this worktree is aligned to Totipo Vault Format v1/r18 without
-portable behavior changes from its prior r17 pin. `VERSION` remains 0.1.0;
-a reviewed follow-up alignment release would likely be v0.1.1. Future bug fixes may
+portable behavior changes from its prior r17 pin. `VERSION` is 0.1.1
+for this proposed patch alignment release. Future bug fixes may
 continue implementing v1/r18; a new specification revision does not mechanically
 determine the Java semantic version.
 
 Release provenance:
 
-- Maven coordinates: `org.totipo:totipo-core:0.1.0` and
-  `org.totipo:totipo-storage-nio:0.1.0`.
+- Maven coordinates: `org.totipo:totipo-core:0.1.1` and
+  `org.totipo:totipo-storage-nio:0.1.1`.
 - Protocol: v1/r18, specification commit
   `4623a7e1718e23504903096c92332597057bd8f0`; authoritative hashes in `SPEC_PIN.md`.
 - Conformance: protocol-foundation core operations, audited facade TOKEN projections
@@ -24,7 +24,7 @@ Release provenance:
 - Portable corpus: 90/90, none deferred. Reconfirm on the final release commit.
 - Java source commit: **operator must record the exact reviewed commit here/in
   the release notes after committing, before release**. The preparation baseline
-  is not the final release source commit. Tag convention: `v0.1.0`.
+  is not the final release source commit. Tag convention: `v0.1.1`.
 - Java 17 production bytecode; builds use pinned Gradle 9.8.0 and JDK 25.
 - Qualification limits in README still apply; no new desktop, Android, provider,
   independent interoperability, or security-audit claim follows from publication.
@@ -57,7 +57,7 @@ Run from the repository root. No global Maven local repository is used.
 - [ ] Javadocs generate at the existing package visibility; warnings reviewed.
 - [ ] Local Maven publication under `build/repository` contains only two GAVs.
 - [ ] `verifyPublication` passes structural POM/module metadata checks, exact
-  `storage-nio -> org.totipo:totipo-core:0.1.0` mapping, scopes, content allowlists,
+  `storage-nio -> org.totipo:totipo-core:0.1.1` mapping, scopes, content allowlists,
   Java 17 bytecode and unsigned artifact/checksum inventory.
 - [ ] Fixture classifiers, fixture capabilities and fixture dependencies absent.
 - [ ] Standalone consumer compiles with module metadata and with POM-only
@@ -124,7 +124,7 @@ Current plugin guidance: [Central Portal](https://vanniktech.github.io/gradle-ma
 - [ ] Both artifacts independently downloadable from Maven Central in a fresh
   consumer without local staging/source substitution.
 - [ ] Released artifact hashes recorded and verified.
-- [ ] Source tag `v0.1.0` and release notes map to the exact Java commit/version,
+- [ ] Source tag `v0.1.1` and release notes map to the exact Java commit/version,
   spec commit and 90/90 corpus evidence.
 - [ ] Desktop migration may begin only after Central artifacts are independently
   downloadable. No desktop checkout is changed by this milestone.

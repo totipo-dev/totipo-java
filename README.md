@@ -160,12 +160,12 @@ metadata changes. Normal builds do not regenerate specification vectors.
 
 ## Maven consumption (release preparation)
 
-Java implementation release **0.1.0 is being prepared and is not claimed to be
+Java implementation release **0.1.1 is being prepared and is not claimed to be
 available on Maven Central**. After the operator publishes it, normal applications
 can use Maven Central and:
 
 ```kotlin
-implementation("org.totipo:totipo-storage-nio:0.1.0")
+implementation("org.totipo:totipo-storage-nio:0.1.1")
 ```
 
 `totipo-storage-nio` is the normal filesystem/NIO entry point and provider. It
@@ -175,7 +175,7 @@ unchanged. For portable protocol/application API and core implementation without
 an NIO provider:
 
 ```kotlin
-implementation("org.totipo:totipo-core:0.1.0")
+implementation("org.totipo:totipo-core:0.1.1")
 ```
 
 Core brings Bouncy Castle 1.86 at runtime for Argon2id, without exposing BC as a
@@ -184,10 +184,13 @@ and the specification snapshot are excluded from publications.
 
 `VERSION` is the single implementation version source. Protocol compatibility is
 separate: this worktree targets v1/r18, aligned from the prior v1/r17 pin without
-portable behavior changes. `VERSION` remains 0.1.0; a reviewed alignment patch
-release would likely be v0.1.1. Specification revisions do not mechanically dictate
+portable behavior changes. `VERSION` is 0.1.1 for this proposed patch alignment
+release. Specification revisions do not mechanically dictate
 Java semantic versions. See [the release checklist](RELEASE_CHECKLIST.md) for exact provenance,
 credential-free Maven consumer verification, signing, and the manual Central gates.
 The [J1.1 namespace migration report](review/J1_1_NAMESPACE_MIGRATION_REPORT.md)
-records the current release identity and supersedes J1 coordinates for release readiness.
+records the namespace migration and supersedes J1 coordinates. The proposed
+v0.1.1 validation is recorded in the
+[release-preparation report](review/V0_1_1_RELEASE_PREPARATION_REPORT.md), with
+[release notes](review/V0_1_1_RELEASE_NOTES.md).
 Publication checks additionally require Python 3.9+ (standard library only).
