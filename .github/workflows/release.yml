@@ -1,0 +1,236 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Exact VERSION to release (for example, 0.1.1)
+        required: true
+        type: string
+      commit:
+        description: Full 40-character lowercase SHA of the reviewed current main commit
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  REQUESTED_VERSION: ${{ inputs.version }}
+  REQUESTED_COMMIT: ${{ inputs.commit }}
+  DISPATCH_REF: ${{ github.ref }}
+  DISPATCH_SHA: ${{ github.sha }}
+  # Keep Gradle configuration/daemon state away from signing secrets.
+  GRADLE_OPTS: -Dorg.gradle.configuration-cache=false -Dorg.gradle.daemon=false
+
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    outputs:
+      version: ${{ steps.inputs.outputs.version }}
+      commit: ${{ steps.inputs.outputs.commit }}
+      inventory: ${{ steps.inventory.outputs.inventory }}
+    steps:
+      # Validate before checkout uses the operator-supplied ref.
+      - name: Validate dispatch inputs
+        id: inputs
+        run: |
+          [[ "$REQUESTED_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9]+([.-][A-Za-z0-9]+)*)?$ ]] || { echo 'Invalid release version'; exit 1; }
+          [[ "${REQUESTED_VERSION^^}" != *-SNAPSHOT ]] || { echo 'A release cannot be a SNAPSHOT'; exit 1; }
+          [[ "$REQUESTED_COMMIT" =~ ^[0-9a-f]{40}$ ]] || { echo 'commit must be exactly 40 lowercase hexadecimal characters'; exit 1; }
+          [[ "$DISPATCH_REF" == refs/heads/main ]] || { echo 'Dispatch must select main'; exit 1; }
+          [[ "$DISPATCH_SHA" == "$REQUESTED_COMMIT" ]] || { echo 'Dispatch SHA differs from reviewed commit'; exit 1; }
+          printf 'version=%s\ncommit=%s\n' "$REQUESTED_VERSION" "$REQUESTED_COMMIT" >> "$GITHUB_OUTPUT"
+      - name: Checkout reviewed commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ steps.inputs.outputs.commit }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify identity and release absence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 publishing/release.py identity
+      - name: Check immutable Central coordinates
+        run: python3 publishing/release.py state
+      - name: Set up JDK 25
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: "25"
+      - name: Verify Gradle wrapper JAR
+        run: |
+          echo '238e777fcddd7e34f9708186085def2abd6e08e658505b38718d79d74c21abd5  gradle/wrapper/gradle-wrapper.jar' | sha256sum -c -
+      - name: Check release guardrail failure paths
+        run: python3 -B -m unittest discover -s publishing -p test_release.py
+      - name: Full normal and forced offline release gates
+        run: |
+          ./gradlew clean test build verifyPublication consumerSmoke
+          python3 publishing/release.py tests
+          cp build/publication-sha256.json "$RUNNER_TEMP/normal-publication-sha256.json"
+          ./gradlew --offline --no-daemon --no-build-cache --rerun-tasks clean test build verifyPublication consumerSmoke
+          python3 publishing/release.py tests
+          export EXPECTED_INVENTORY="$(cat "$RUNNER_TEMP/normal-publication-sha256.json")"
+          python3 publishing/release.py compare
+          ./gradlew -p publishing/consumer-smoke --offline -PpomOnly clean check
+      - name: Focused spec and profile integrity
+        run: |
+          ./gradlew :core:test --tests org.totipo.conformance.SpecSnapshotIntegrityTest --tests org.totipo.conformance.R18ProfileIntegrityTest
+          python3 publishing/release.py focused-tests
+          (cd core/src/test/resources/totipo-spec/v1-pre-rc && sha256sum -c SNAPSHOT.sha256)
+          git diff --check
+          git status --short
+          test -z "$(git status --porcelain --untracked-files=all)"
+      - name: Record verified unsigned artifact inventory
+        id: inventory
+        run: python3 publishing/release.py inventory
+
+  publish-central:
+    needs: preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    # Administrator must configure protection/reviewers and main-only deployment.
+    environment: release
+    env:
+      EXPECTED_INVENTORY: ${{ needs.preflight.outputs.inventory }}
+    steps:
+      - name: Check required environment secrets
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_IN_MEMORY_KEY }}
+        run: |
+          test -n "$ORG_GRADLE_PROJECT_mavenCentralUsername" || { echo 'Missing required environment secret: MAVEN_CENTRAL_USERNAME'; exit 1; }
+          test -n "$ORG_GRADLE_PROJECT_mavenCentralPassword" || { echo 'Missing required environment secret: MAVEN_CENTRAL_PASSWORD'; exit 1; }
+          test -n "$ORG_GRADLE_PROJECT_signingInMemoryKey" || { echo 'Missing required environment secret: SIGNING_IN_MEMORY_KEY'; exit 1; }
+      - name: Checkout validated commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.preflight.outputs.commit }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Inspect signing key requirements without importing it
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_IN_MEMORY_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_IN_MEMORY_KEY_PASSWORD }}
+        run: python3 publishing/release.py secrets
+      - name: Revalidate after environment approval
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 publishing/release.py identity
+      - name: Detect same-run partial publication
+        id: central
+        run: python3 publishing/release.py state
+      - name: Set up JDK 25
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: "25"
+      - name: Verify Gradle wrapper JAR
+        run: |
+          echo '238e777fcddd7e34f9708186085def2abd6e08e658505b38718d79d74c21abd5  gradle/wrapper/gradle-wrapper.jar' | sha256sum -c -
+      - name: Rebuild and compare unsigned artifacts
+        run: |
+          ./gradlew --no-daemon --no-build-cache clean verifyPublication
+          python3 publishing/release.py compare
+      - name: Signing preflight before upload
+        if: steps.central.outputs.mode == 'publish'
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_IN_MEMORY_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_IN_MEMORY_KEY_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.SIGNING_IN_MEMORY_KEY_ID }}
+        run: |
+          if [[ -z "$ORG_GRADLE_PROJECT_signingInMemoryKeyId" ]]; then unset ORG_GRADLE_PROJECT_signingInMemoryKeyId; fi
+          if [[ -z "$ORG_GRADLE_PROJECT_signingInMemoryKeyPassword" ]]; then unset ORG_GRADLE_PROJECT_signingInMemoryKeyPassword; fi
+          ./gradlew --no-daemon --no-build-cache --no-configuration-cache -PcentralRelease=true :core:signMavenPublication :storage-nio:signMavenPublication
+          python3 publishing/release.py signed
+      - name: Publish and release to Maven Central
+        if: steps.central.outputs.mode == 'publish'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_IN_MEMORY_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_IN_MEMORY_KEY_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.SIGNING_IN_MEMORY_KEY_ID }}
+        run: |
+          # Check main/tag/Central again immediately before crossing the boundary.
+          python3 publishing/release.py identity
+          python3 publishing/release.py upload-ready
+          if [[ -z "$ORG_GRADLE_PROJECT_signingInMemoryKeyId" ]]; then unset ORG_GRADLE_PROJECT_signingInMemoryKeyId; fi
+          if [[ -z "$ORG_GRADLE_PROJECT_signingInMemoryKeyPassword" ]]; then unset ORG_GRADLE_PROJECT_signingInMemoryKeyPassword; fi
+          ./gradlew --no-daemon --no-build-cache --no-configuration-cache -PcentralRelease=true publishAndReleaseToMavenCentral
+
+  verify-central:
+    needs: [preflight, publish-central]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 65
+    env:
+      EXPECTED_INVENTORY: ${{ needs.preflight.outputs.inventory }}
+    steps:
+      - name: Checkout validated commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.preflight.outputs.commit }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check exact source identity
+        run: |
+          python3 publishing/release.py inputs
+          test "$(git rev-parse HEAD)" = "$REQUESTED_COMMIT"
+          test "$(cat VERSION)" = "$REQUESTED_VERSION"
+      - name: Set up JDK 25
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: "25"
+      - name: Verify Gradle wrapper JAR
+        run: |
+          echo '238e777fcddd7e34f9708186085def2abd6e08e658505b38718d79d74c21abd5  gradle/wrapper/gradle-wrapper.jar' | sha256sum -c -
+      - name: Fresh unsigned staging and exact remote verification
+        run: |
+          ./gradlew --no-daemon --no-build-cache clean verifyPublication
+          python3 publishing/release.py remote
+      - name: Fresh Central-only module and POM consumers
+        run: |
+          for mode in module pom; do
+            consumer_home="$(mktemp -d "$RUNNER_TEMP/totipo-central-$mode.XXXXXX")"
+            extra=()
+            if [[ "$mode" == pom ]]; then extra=(-PpomOnly); fi
+            GRADLE_USER_HOME="$consumer_home" ./gradlew -p publishing/consumer-smoke \
+              --no-daemon --no-build-cache -PremoteCentral "${extra[@]}" clean check
+            rm -rf "$consumer_home"
+          done
+          git diff --check
+          test -z "$(git status --porcelain --untracked-files=all)"
+
+  tag-and-github-release:
+    needs: [preflight, verify-central]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout validated commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.preflight.outputs.commit }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Annotated source tag then GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 publishing/release.py tag-release

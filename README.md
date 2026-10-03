@@ -158,11 +158,13 @@ To intentionally refresh build reproducibility inputs, use `bootstrap-m0.sh` and
 review the resulting wrapper, Nix lock, module dependency locks, and verification
 metadata changes. Normal builds do not regenerate specification vectors.
 
-## Maven consumption (release preparation)
+## Maven consumption
 
-Java implementation release **0.1.1 is being prepared and is not claimed to be
-available on Maven Central**. After the operator publishes it, normal applications
-can use Maven Central and:
+The Maven coordinates for Java implementation version **0.1.1** are shown below.
+Maven Central is the binary distribution channel; the manually dispatched
+[Release workflow](.github/workflows/release.yml) validates, signs, publishes and
+verifies each release before creating its source tag and GitHub release.
+Applications consuming that version use Maven Central and:
 
 ```kotlin
 implementation("org.totipo:totipo-storage-nio:0.1.1")
@@ -184,13 +186,13 @@ and the specification snapshot are excluded from publications.
 
 `VERSION` is the single implementation version source. Protocol compatibility is
 separate: this worktree targets v1/r18, aligned from the prior v1/r17 pin without
-portable behavior changes. `VERSION` is 0.1.1 for this proposed patch alignment
-release. Specification revisions do not mechanically dictate
-Java semantic versions. See [the release checklist](RELEASE_CHECKLIST.md) for exact provenance,
-credential-free Maven consumer verification, signing, and the manual Central gates.
+portable behavior changes. `VERSION` is 0.1.1 for this patch alignment release.
+Specification revisions do not mechanically dictate Java semantic versions.
+See [the release checklist](RELEASE_CHECKLIST.md) for exact provenance,
+credential-free validation and the protected release-environment approval gate.
 The [J1.1 namespace migration report](review/J1_1_NAMESPACE_MIGRATION_REPORT.md)
-records the namespace migration and supersedes J1 coordinates. The proposed
-v0.1.1 validation is recorded in the
+records the namespace migration and supersedes J1 coordinates. The v0.1.1
+preparation validation is recorded in the
 [release-preparation report](review/V0_1_1_RELEASE_PREPARATION_REPORT.md), with
 [release notes](review/V0_1_1_RELEASE_NOTES.md).
 Publication checks additionally require Python 3.9+ (standard library only).

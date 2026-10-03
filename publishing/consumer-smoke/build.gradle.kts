@@ -34,3 +34,10 @@ val verifyBoundary = tasks.register("verifyBoundary") {
     }
 }
 tasks.check { dependsOn(verifyBoundary) }
+
+val runtimeSmoke = tasks.register<JavaExec>("runtimeSmoke") {
+    dependsOn(tasks.classes)
+    classpath = sourceSets.main.get().runtimeClasspath
+    mainClass.set("ConsumerSmoke")
+}
+tasks.check { dependsOn(runtimeSmoke, "verifyRepositorySelection") }
