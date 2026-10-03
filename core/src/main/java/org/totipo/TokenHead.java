@@ -5,5 +5,6 @@ package org.totipo;
 public interface TokenHead {
     TokenId tokenId();
     RevisionId revision();
+    /** Exact metadata of this revision, including on captured heads after later observations or close. */
     ClientMetadata metadata();
 }

@@ -293,6 +293,11 @@ exact pre-replacement comparison; `replaceCanonical` itself is not atomic CAS.
 Tests of abstract outcomes and accepted force calls do not establish physical
 power-loss behavior on every provider or filesystem.
 
+The [focused §12 facade audit](review/V1_R18_CAUSAL_FACT_METADATA_REPORT.md) confirms
+that private captured ancestry indexes do not represent historical TOKEN objects.
+Actually represented heads retain exact metadata independently. This creates no
+historical-object persistence requirement and changes no store/SPI behavior.
+
 Pre-creation `scanObjects()` can expose possible orphan-looking names during
 available observation, before ownership transfers to `Totipo.create`. These are
 unauthenticated context, not proof of a recoverable vault or a creation veto.

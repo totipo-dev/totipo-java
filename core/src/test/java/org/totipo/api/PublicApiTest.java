@@ -6,11 +6,14 @@ import org.totipo.testing.MemoryVault;
 import org.totipo.format.ApplicationCausalFixture;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import java.nio.file.*;
 import java.time.*;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 import static org.junit.jupiter.api.Assertions.*;
 
 class PublicApiTest {
@@ -52,6 +55,113 @@ class PublicApiTest {
             saved(update.issuer(issuer).metadata(new ClientMetadata(Optional.of("branch-" + store.publications), Optional.empty())).save());
         }
         return refresh(session).token(head.tokenId()).orElseThrow();
+    }
+    static Stream<ClientMetadata> exactMetadataVariants() {
+        return Stream.of(Optional.<String>empty(), Optional.of(""), Optional.of(" A\u0000\n e\u0301 😀 "))
+                .flatMap(name -> Stream.of(Optional.<Long>empty(), Optional.of(0L), Optional.of(1L),
+                        Optional.of(Long.MIN_VALUE), Optional.of(-1L)).map(time -> new ClientMetadata(name, time)));
+    }
+    @ParameterizedTest @MethodSource("exactMetadataVariants")
+    void representedMetadataSurvivesRefreshDisappearanceReappearanceAndClose(ClientMetadata metadata) {
+        SaveResult.Saved result;
+        try (var secret = NewSecret.copyOf(new byte[]{1, 2, 3}); var create = session.state().createToken()) {
+            result = saved(create.secret(secret).metadata(metadata).save());
+        }
+        var captured = refresh(session);
+        var represented = captured.token(result.tokenId()).orElseThrow();
+        var head = represented.heads().get(0);
+        assertEquals(metadata, head.metadata());
+        assertEquals(metadata, represented.alternatives().get(0).heads().get(0).metadata());
+        assertEquals(metadata, refresh(session).token(result.tokenId()).orElseThrow().heads().get(0).metadata());
+        var bytes = store.objects.remove(head.revision().hex());
+        assertNotNull(bytes);
+        assertTrue(refresh(session).token(result.tokenId()).isEmpty());
+        assertEquals(metadata, captured.token(result.tokenId()).orElseThrow().heads().get(0).metadata());
+        store.objects.put(head.revision().hex(), bytes);
+        assertEquals(metadata, refresh(session).token(result.tokenId()).orElseThrow().heads().get(0).metadata());
+        // An update authors a new object: absent operation metadata does not replace parent metadata.
+        try (var update = session.state().update(head)) { saved(update.issuer("new assertion").save()); }
+        assertEquals(ClientMetadata.empty(), refresh(session).token(result.tokenId()).orElseThrow().heads().get(0).metadata());
+        session.close();
+        assertEquals(metadata, head.metadata());
+        assertEquals(metadata, represented.alternatives().get(0).heads().get(0).metadata());
+    }
+    @Test void capturedMergeAncestrySurvivesMissingIntermediateWithoutRepresentingIt() {
+        var original = create("ancestor");
+        var intermediate = branch(original.heads().get(0), "intermediate");
+        var descendant = branch(intermediate.heads().get(0), "descendant");
+        var captured = session.state();
+        var intermediateHead = intermediate.heads().get(0);
+        var descendantHead = descendant.heads().get(0);
+        var metadata = new ClientMetadata(Optional.of("resolution e\u0301 😀"), Optional.of(-1L));
+        // The merge captures C -> B -> A, including B which is already absent from public heads.
+        try (var merge = captured.merge(original.id()).issuer("resolved").metadata(metadata)) {
+            store.objects.remove(intermediateHead.revision().hex());
+            store.objects.remove(descendantHead.revision().hex());
+            var observed = refresh(session).token(original.id()).orElseThrow();
+            assertEquals(original.heads(), observed.heads());
+            assertEquals(List.of("ancestor"), observed.alternatives().stream().map(a -> a.descriptor().issuer()).toList());
+            // A is contained in the captured frontier through the missing B; no new conflict exists.
+            saved(merge.save());
+        }
+        var resolved = refresh(session).token(original.id()).orElseThrow();
+        assertEquals(Set.of("resolved", "ancestor"), resolved.alternatives().stream()
+                .map(a -> a.descriptor().issuer()).collect(java.util.stream.Collectors.toSet()));
+        assertEquals(metadata, resolved.alternatives().stream().filter(a -> a.descriptor().issuer().equals("resolved"))
+                .findFirst().orElseThrow().heads().get(0).metadata());
+        assertEquals(descendantHead.metadata(), captured.token(original.id()).orElseThrow().heads().get(0).metadata());
+        assertEquals(intermediateHead.metadata(), intermediate.alternatives().get(0).heads().get(0).metadata());
+        // Current graph evaluation uses available objects only; retained merge ancestry creates no historical heads.
+        assertTrue(resolved.heads().stream().noneMatch(h -> h.revision().equals(intermediateHead.revision())
+                || h.revision().equals(descendantHead.revision())));
+    }
+    @Test void equalHeadsAndConflictResolutionKeepPerObjectMetadataThroughPartialRetryAndFold() {
+        var original = create("base");
+        var expected = new HashMap<RevisionId, ClientMetadata>();
+        for (int i = 0; i < 7; i++) {
+            var metadata = new ClientMetadata(Optional.of("branch-" + i), Optional.of(i == 0 ? -1L : i));
+            try (var update = session.state().update(original.heads().get(0))) {
+                var result = saved(update.issuer(i == 6 ? "conflict" : "equal").metadata(metadata).save());
+                expected.put(result.revisions().get(0), metadata);
+            }
+            refresh(session);
+        }
+        var captured = session.state();
+        var conflict = captured.token(original.id()).orElseThrow();
+        assertTrue(conflict.hasConflict());
+        assertEquals(6, conflict.alternatives().stream().filter(a -> a.descriptor().issuer().equals("equal"))
+                .findFirst().orElseThrow().heads().size());
+        conflict.heads().forEach(h -> assertEquals(expected.get(h.revision()), h.metadata()));
+        var authored = new ClientMetadata(Optional.of(""), Optional.of(Long.MIN_VALUE));
+        try (var merge = captured.merge(original.id()).issuer("resolved").metadata(authored)) {
+            merge.secretChoices().get(0).alternatives().stream().flatMap(a -> a.heads().stream())
+                    .forEach(h -> assertEquals(expected.get(h.revision()), h.metadata()));
+            var lateMetadata = new ClientMetadata(Optional.of("late"), Optional.of(0L));
+            SaveResult.Saved late;
+            try (var update = captured.update(original.heads().get(0))) {
+                late = saved(update.issuer("equal").metadata(lateMetadata).save());
+            }
+            expected.put(late.revisions().get(0), lateMetadata);
+            var additional = assertInstanceOf(SaveResult.AdditionalConflict.class, merge.save());
+            additional.latest().token(original.id()).orElseThrow().heads()
+                    .forEach(h -> assertEquals(expected.get(h.revision()), h.metadata()));
+            try (var partial = additional.resolution()) {
+                store.publicationMode = 2;
+                var uncertain = assertInstanceOf(SaveResult.PublicationUncertain.class, partial.save());
+                store.publicationMode = 0;
+                try (var retry = uncertain.retry()) {
+                    assertEquals(2, saved(retry.retryPublication()).revisions().size()); // Seven parents require a fold.
+                }
+            }
+            var result = refresh(session).token(original.id()).orElseThrow();
+            assertEquals(2, result.heads().size());
+            assertEquals(authored, result.alternatives().stream().filter(a -> a.descriptor().issuer().equals("resolved"))
+                    .findFirst().orElseThrow().heads().get(0).metadata());
+            assertEquals(lateMetadata, result.alternatives().stream().filter(a -> a.descriptor().issuer().equals("equal"))
+                    .findFirst().orElseThrow().heads().get(0).metadata());
+        }
+        session.close();
+        conflict.heads().forEach(h -> assertEquals(expected.get(h.revision()), h.metadata()));
     }
     @Test void nioCreateOpenAndLifecycle(@TempDir Path path) {
         VaultState old;

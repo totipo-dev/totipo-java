@@ -14,9 +14,13 @@ Release provenance:
   `org.totipo:totipo-storage-nio:0.1.0`.
 - Protocol: v1/r18, specification commit
   `4623a7e1718e23504903096c92332597057bd8f0`; authoritative hashes in `SPEC_PIN.md`.
-- Conformance: protocol-foundation core operations and qualified low-level NIO/core
-  store operations as scoped in README; no blanket facade core claim or application
-  conformance. Review the retained-history metadata qualification in API_DESIGN.md.
+- Conformance: protocol-foundation core operations, audited facade TOKEN projections
+  and metadata handling in create/update/merge (including partial resolution and
+  frozen retries), and qualified low-level NIO/core store operations as scoped in
+  README. No blanket facade certification or application conformance. The previous
+  historical-metadata qualification is resolved by the
+  [focused §12 audit](review/V1_R18_CAUSAL_FACT_METADATA_REPORT.md); application-observation
+  limitations in API_DESIGN.md remain.
 - Portable corpus: 90/90, none deferred. Reconfirm on the final release commit.
 - Java source commit: **operator must record the exact reviewed commit here/in
   the release notes after committing, before release**. The preparation baseline

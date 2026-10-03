@@ -373,13 +373,23 @@ conformance to qualified NIO storage with the applicable core orchestration. No 
 application conformance is claimed. The term application API describes a library
 boundary; it does not establish conformance of a desktop or Android application.
 
-There is a pre-existing metadata qualification: `ApplicationSession.CausalFact`
-retains per-object historical identity/token/parents without metadata, and states
-and merge bases retain these facts. Although TOKEN models, graph views, folds and
-all exposed/captured heads preserve exact metadata, §12 applies to retained object
-representations too. The facade therefore has no blanket core-conformance claim.
-Human review must resolve this retained-history issue before extending that claim;
-this repin does not redesign retention or change the API.
+The [focused §12 audit](review/V1_R18_CAUSAL_FACT_METADATA_REPORT.md) resolves the
+previous historical-metadata qualification. `ApplicationSession.CausalFact` retains
+causal/topological facts derived from a validated TOKEN but does not retain or
+represent that TOKEN object itself. Its OBJECT_ID-keyed token/parent links are
+private, used only for same-token containment during merge checks. Observation
+replaces the current index; captured states and merge bases may keep older links.
+They cannot reconstruct historical values, metadata or heads from this index.
+Session-interned complete values are semantic projections with no historical
+OBJECT_ID lookup; captured alternatives retain their own heads and exact metadata.
+
+Audited facade TOKEN projections and metadata handling in create/update/merge,
+including additional-conflict states, partial resolution, folds and frozen retries,
+are included in the corresponding core-conformance operations. An editor authors
+new objects with explicitly supplied operation metadata, absent by default; it does
+not replace or inherit the metadata of its parents. §12 requires exact metadata
+while an object representation is retained, not indefinite historical persistence.
+There is no blanket certification of every facade operation or application behavior.
 
 Callers have the following information for implementing r18 application behavior:
 
@@ -393,7 +403,7 @@ Callers have the following information for implementing r18 application behavior
 | Missing ancestry and unavailable observation | `unresolvedReferences()`, `VaultState.observation()` and `diagnostics()` report known gaps. Diagnostic reason strings do not identify arbitrary unreadable candidate objects in the facade; the SPI exposes entry names and read results. Per-object unavailable attribution through the facade is a human-review limitation. |
 | Complete-known vs unavailable | Represented alternatives contain validated complete values; missing/unreadable ancestry has no synthesized value. Absence from observation does not prove deletion or a complete unknown value. |
 | Newly learned resolution alternatives | Merge reobserves; `SaveResult.AdditionalConflict` returns the latest state and an explicit partial-resolution capability when a relevant alternative is newly learned, including a distinct equal-valued head. The application performs disclosure and the decision. |
-| Exact represented-head metadata | `TokenHead.metadata()` exposes exact optional name and optional unsigned-u64 time bits; it preserves absent/present-empty and absent/zero distinctions. The retained historical-fact qualification above remains. |
+| Exact represented-head metadata | `TokenHead.metadata()` exposes exact optional name and optional unsigned-u64 time bits; it preserves absent/present-empty and absent/zero distinctions. Captured heads preserve these distinctions after later observations, source disappearance and session closure. |
 | Password rewrap | `PasswordChangeResult` distinguishes changed/authentication-failed/stale/failed/uncertain. Applications must describe same-root rewrap truthfully and recover uncertainty by observation/opening. It is not a full security reset. |
 
 The root-compromise guidance in §8.1 is informative and defines no migration or

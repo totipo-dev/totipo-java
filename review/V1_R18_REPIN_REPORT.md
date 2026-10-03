@@ -8,9 +8,10 @@ byte-identical and pass under both pins. Production Java edits are Javadoc only.
 
 This is a repin/conformance-documentation change. The library claims core and store
 conformance only for the operations identified below; it does not claim application
-conformance. A pre-existing facade historical-metadata qualification and application
-observation limitations are explicitly flagged for human review, without an API
-redesign. No commit, tag, release, push, signing or external publication was performed.
+conformance. At repin time, a facade historical-metadata scope question and application
+observation limitations were flagged for human review, without an API redesign.
+The subsequent [focused §12 audit](V1_R18_CAUSAL_FACT_METADATA_REPORT.md) resolves
+the historical-metadata question; application-observation limitations remain. No commit, tag, release, push, signing or external publication was performed.
 
 The starting worktree contained an untracked report about the earlier upstream
 profile defect. This report supersedes that blocked audit: upstream committed the
@@ -63,7 +64,7 @@ editorial changes; no portable protocol requirement changed.
 | Root-compromise guidance (§8.1) | No implementation change; informative guidance defines no migration/re-key protocol. API docs clarify the boundary. |
 | Cycle clarification (§15) | No Java change; iterative bounded SCC traversal and abstract-cycle interpretation remain required and tested. |
 | Same-ID clarification (§13) | No Java change; contradictory valid objects still excluded and references remain unresolved. Informative collision discussion does not relax validation. |
-| Metadata references (§§12, 15–17) | Documentation: exact retention was already required. Codec/models/graph/fold/exposed heads preserve it; historical facade causal-fact retention needs review. No wire/equality/fold change. |
+| Metadata references (§§12, 15–17) | Documentation: exact retention was already required. Codec/models/graph/fold/exposed heads preserve it; the subsequent focused §12 audit resolves historical facade causal-fact retention as a derived index. No wire/equality/fold change. |
 | Historical cleanup (§21) | No implementation change. Exact upstream spec archives r1–r15 details to upstream review material; Java's existing historical reports remain untouched. The archive is outside the established 97-file snapshot. |
 
 Explicit portable invariants checked:
@@ -94,7 +95,7 @@ make these operation-scoped claims:
 
 | Scope | Claimed modules / operations / limits |
 | --- | --- |
-| v1 core conforming | `core` protocol foundation: bootstrap reading/creation/rewrap; object crypto/identity; TOKEN encoding/validation and exact per-object metadata; graph/current-state evaluation; complete-value equality; bounded folds; TOTP. These protocol models/operations retain metadata. No blanket claim for all `VaultSession` facade representations. |
+| v1 core conforming | `core` protocol foundation: bootstrap reading/creation/rewrap; object crypto/identity; TOKEN encoding/validation and exact per-object metadata; graph/current-state evaluation; complete-value equality; bounded folds; TOTP. These protocol models/operations retain metadata. The subsequent focused §12 audit includes audited facade TOKEN projections and create/update/merge metadata handling; no blanket certification of every facade operation. |
 | v1 store conforming | `storage-nio` with low-level core observation/publication/VAULT orchestration: observation, immutable publication, no-replace initial creation, replacement with exact compare-before-replace, required-byte preservation and explicit durability outcomes. Core authenticates and compares; the SPI does not interpret protocol bytes. Qualified only by the tested local case-sensitive Linux provider capabilities. |
 | v1 application conforming | **Not claimed.** A reusable library exposes facts but does not implement interactive UI confirmation, warnings, truthful presentation, relevant-alternative disclosure or safe untrusted-text rendering. |
 
@@ -115,12 +116,17 @@ and `TokenFoldTest` preserve each object's metadata and operation-wide fold meta
 Exposed and previously captured `TokenHead` instances retain exact metadata even
 when equal-valued heads are grouped by semantic value.
 
-**Human-review qualification:** `ApplicationSession.CausalFact` retains historical
-object identity/token/parents without metadata. Current states and merge bases retain
-these maps. This falls within the retained-object scope question in §12, which was
-already present in r17. The facade therefore has no unqualified core-conformance
-claim. This repin adds documentation, not a historical-retention/API redesign.
-Resolve that issue before extending the core claim to every facade operation.
+**Subsequent §12 audit resolution:** The
+[focused CausalFact audit](V1_R18_CAUSAL_FACT_METADATA_REPORT.md) resolves the scope
+question identified at repin. `ApplicationSession.CausalFact` retains causal/topological
+facts derived from a validated TOKEN but does not retain or represent that TOKEN
+object itself. Only merge containment consumes these links; no historical object
+or metadata presentation derives from them. Actual current/captured heads retain
+exact metadata independently. No production semantic fix was required. The previous
+historical-metadata qualification is removed, and audited facade TOKEN projections
+and create/update/merge metadata handling (including partial resolution/frozen retries)
+are included in the corresponding core operations. Application-observation limitations
+and the absence of blanket facade/application certification remain.
 
 | Application fact | Existing support / limitation |
 | --- | --- |
@@ -132,7 +138,7 @@ Resolve that issue before extending the core claim to every facade operation.
 | Missing ancestry / unavailable | `unresolvedReferences`, observation progress and diagnostics expose known gaps. Facade diagnostics lack arbitrary candidate identity; SPI names/read outcomes supply lower-level detail. Per-object unavailable attribution through the facade is a human-review limitation. |
 | Complete-known vs unavailable | Represented alternatives have validated complete values; missing/unreadable objects have no fabricated complete value. Retained alternatives remain session-backed capabilities. |
 | Newly learned relevant alternatives | Merge reobserves; `SaveResult.AdditionalConflict` returns latest state and a partial-resolution choice, including newly learned equal-valued distinct heads. Application performs disclosure/decision. |
-| Exact metadata | Every represented public head has exact optional name and optional u64 bits; historical causal-fact limitation remains explicit above. |
+| Exact metadata | Every represented public head has exact optional name and optional u64 bits; the subsequent §12 audit establishes that causal facts are derived indexes, not retained objects. |
 | Rewrap semantics/results | `PasswordChangeResult` distinguishes CHANGED/AUTHENTICATION_FAILED/STALE/FAILED/UNCERTAIN. Same root with fresh salt/nonce; old wrappers remain usable. |
 
 No application-specific UI, policy, dialog or new API surface was added.
@@ -209,8 +215,9 @@ constants/revision assertions and documentation are updated separately.
 Final safeguards confirm empty-password readability, orphan-tolerant creation,
 unchanged tombstone SECRET_BYTES, same-root rewrap, bounded cycle-safe traversal,
 same-ID exclusion, and exact metadata in the claimed protocol operations/public
-heads. The pre-existing historical-facade metadata limitation is disclosed rather
-than hidden behind a broad conformance claim.
+heads. The historical-facade metadata question recorded at repin is now resolved
+by the subsequent focused §12 audit above. The repin's validation/diff evidence
+below remains historical evidence of that earlier change.
 
 ## Validation
 
@@ -378,8 +385,9 @@ is a rename with only class/revision changes, not removal of integrity coverage.
 Suitable for human review as a small r18-alignment patch change: exact repaired
 committed pin, unchanged portable semantics/corpus and passing Java/package
 validation. Release suitability is limited to the documented operation-scoped
-claims and existing provider qualifications. Human review must acknowledge the
-historical-facade metadata qualification and application-observation limitations;
-this work does not certify blanket facade core conformance or application conformance.
+claims and existing provider qualifications. The subsequent focused §12 audit
+resolves the historical-facade metadata qualification without a semantic fix;
+application-observation limitations remain. Neither audit certifies every facade
+operation or application conformance.
 Version selection, committing, signing, tagging and publishing remain future
 operator work. No unexpected semantic change was found in the final diff.

@@ -41,10 +41,14 @@ r18 conformance claims are scoped by supported operation (§20). The protocol
 foundation in `core` is **v1 core conforming** for bootstrap reading/creation/rewrap,
 object crypto and identity, TOKEN encoding/validation and exact object metadata,
 graph/current-state computation, complete-value equality, bounded folds and TOTP.
-This claim covers the protocol models and operations, not every facade projection.
-The high-level facade retains historical ancestry facts without metadata; that
-pre-existing §12 qualification needs human review before claiming core conformance
-for the entire `VaultSession` API. Exposed and captured `TokenHead` metadata is exact.
+The audited facade TOKEN projections and metadata handling in create/update/merge,
+including partial resolution and frozen publication retries, are included in these
+core operations. Exposed and captured heads preserve exact per-object metadata.
+`ApplicationSession.CausalFact` retains causal/topological facts derived from a
+validated TOKEN but does not retain or represent that TOKEN object itself. The
+previous historical-metadata qualification is resolved by the
+[focused §12 audit](review/V1_R18_CAUSAL_FACT_METADATA_REPORT.md). This is an
+operation-scoped claim, not certification of every facade operation.
 See [API scope and application responsibilities](API_DESIGN.md#r18-conformance-scope-and-application-responsibilities).
 
 The `storage-nio` provider with core's low-level observation/publication/VAULT

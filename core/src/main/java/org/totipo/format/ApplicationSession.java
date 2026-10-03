@@ -33,7 +33,14 @@ final class ApplicationSession implements VaultSession {
     private boolean closed; // Guarded by gate.
     private volatile State current;
     private final ApplicationStates publisher;
+    /**
+     * Causal/topological facts derived from a validated TOKEN, keyed by OBJECT_ID.
+     * This is not a retained representation of that TOKEN: it contains no value or
+     * metadata and is consumed only by Merge.additional() for same-token ancestry.
+     * Public current/captured heads retain exact per-object metadata independently.
+     */
     private record CausalFact(org.totipo.TokenId token, List<ObjectId> parents) { }
+    // Replaced each observation; captured states/merge bases may retain an older causal index.
     private Map<ObjectId, CausalFact> ancestry = Map.of();
 
     ApplicationSession(byte[] root, VaultBootstrapReplacementStorage bootstrap, DiscoverySource discovery,
@@ -93,7 +100,8 @@ final class ApplicationSession implements VaultSession {
             graph.contradictoryObjectIds().forEach(id -> diagnostics.add(new VaultDiagnostic("CONTRADICTORY_OBJECT")));
             var links = new HashMap<ObjectId, CausalFact>();
             var tokens = new ArrayList<TokenState>();
-            // Every validated value is retained by the session so historical references remain usable.
+            // Complete semantic values (not TOKEN objects) are interned for captured alternatives.
+            // There is no historical OBJECT_ID -> value lookup; captured heads keep their metadata.
             // Equality-map entries own their secrets; redundant parsed copies are wiped after projection.
             var redundant = new ArrayList<SecurityBytes>();
             for (var object : observation.validatedTokens()) {
@@ -431,7 +439,8 @@ final class ApplicationSession implements VaultSession {
             });
         }
         boolean additional() {
-            // Walk the newly observed ancestry from F0, including references that resolved this pass.
+            // Walk ancestry from F0, including references that resolved this pass. Captured
+            // links may outlive source objects; they only answer containment, never rebuild heads.
             var contained = new HashSet<ObjectId>();
             var pending = new ArrayDeque<>(frontier);
             while (!pending.isEmpty()) {

@@ -2,6 +2,7 @@ package org.totipo;
 
 import java.time.Duration;
 import java.util.Objects;
+/** Visible semantic-value fields; this projection does not represent a specific TOKEN object. */
 public record TokenDescriptor(TokenStatus status, String issuer, String account,
         TotpAlgorithm algorithm, int digits, Duration period) {
     public TokenDescriptor {
