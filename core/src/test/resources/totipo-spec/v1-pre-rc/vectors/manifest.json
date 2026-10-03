@@ -1,7 +1,7 @@
 {
   "format": "totipo-vector-manifest-v1",
   "protocol": "totipo-v1",
-  "spec_revision": "r17",
+  "spec_revision": "r18",
   "cases": [
     {
       "id": "v1.bootstrap.ascii.001",

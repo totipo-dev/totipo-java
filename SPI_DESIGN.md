@@ -100,7 +100,7 @@ exists. Core translates incompleteness into its existing discovery diagnostics
 and merge-freshness behavior.
 
 Positively absent `objects-v1` maps to Complete with an empty list, preserving
-r17 behavior. Scans and reads never create it. An unsafe/unavailable namespace
+r18 behavior. Scans and reads never create it. An unsafe/unavailable namespace
 maps to Incomplete. An alias of the canonical namespace is never enumerated as
 canonical; NIO detects a lookup collision without an exact directory-entry
 spelling as unsafe. A distinct uppercase sibling on a case-sensitive filesystem
@@ -279,6 +279,22 @@ enumeration, publication and staging engines; they do not maintain independent
 mutation implementations. StorageDurability remains the existing NIO-specific
 directory acknowledgement capability.
 
-No wire format, r17 semantics, crypto, TOKEN grammar, graph/fold, merge,
+No wire format, r18 semantics, crypto, TOKEN grammar, graph/fold, merge,
 application projection, state-stream, or application persistence semantics are
 redefined here. Existing conformance and facade tests remain authoritative.
+
+## r18 scope qualification
+
+The NIO provider and low-level core orchestration claim v1 store conformance for
+observation, immutable object publication, initial VAULT installation, exact
+compare-before-replace and replacement, and explicit durability-result handling,
+subject to README's provider qualification. Core performs authentication and the
+exact pre-replacement comparison; `replaceCanonical` itself is not atomic CAS.
+Tests of abstract outcomes and accepted force calls do not establish physical
+power-loss behavior on every provider or filesystem.
+
+Pre-creation `scanObjects()` can expose possible orphan-looking names during
+available observation, before ownership transfers to `Totipo.create`. These are
+unauthenticated context, not proof of a recoverable vault or a creation veto.
+Exhaustive enumeration is not required. Application warning/confirmation policy
+and application conformance are outside this storage contract.

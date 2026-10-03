@@ -23,16 +23,17 @@ import org.junit.jupiter.api.io.TempDir;
 /** Snapshot integrity checks only: this test does not interpret any Totipo protocol bytes. */
 class SpecSnapshotIntegrityTest {
     private static final Path ROOT = Path.of("src/test/resources/totipo-spec/v1-pre-rc");
+    private static final String SOURCE_COMMIT = "4623a7e1718e23504903096c92332597057bd8f0";
     private static final String CHECKSUMS = "SNAPSHOT.sha256";
     private static final String PROFILE_HASH =
-            "ec65793e4734086cb79ad1bfbe96df4030c743b4b00d56bcdfa8cc90bfcbcb9e";
+            "4c7954cd2b59aa0afbbe3c22080cadddf72135d884b186a671266c29d58418df";
     private static final Map<String, String> PINNED = Map.of(
             "spec/totipo-vault-format-v1.md",
-            "f8d2ab02c97e8ac54847048a06cb088359db982fec3f176fd473ce0f223d43cf",
+            "8a357e75f3ddd92efa954fde2ffc9af33f40a2c2396d6afbf1d5de5f00bc4f8a",
             "vectors/manifest.json",
-            "94fff22842573e15b254bb0653970761c15cf122192947a36fccc48344a84f08",
+            "bd2b52adc05b26e09790f5f7367761b2b86ba3cf8d97d10ed187fcf7213fcf02",
             "vectors/manifest.schema.json",
-            "e7a5d8ec0392e0248ab867375b7c907a7ca1298595acdb14ecd3edcbe66df476",
+            "f6dfef831f9b391ef8c9e675024b9cb9cb6cc352858c182439ee8847e55c3647",
             "vectors/case.schema.json",
             "d38618f53dcf0a558c389831e8838a07248066beff392812f3d277cc974e25c9",
             "requirements/v1-pre-rc.json", PROFILE_HASH);
@@ -47,7 +48,12 @@ class SpecSnapshotIntegrityTest {
             assertTrue(paths.contains(pin.getKey()), pin.getKey());
             assertEquals(pin.getValue(), sha256(ROOT.resolve(pin.getKey())), pin.getKey());
         }
-        List<String> profilePin = Files.readAllLines(Path.of("../SPEC_PIN.md")).stream()
+        List<String> pinDocument = Files.readAllLines(Path.of("../SPEC_PIN.md"));
+        assertEquals(List.of("- Exact upstream commit: `" + SOURCE_COMMIT + "`"),
+                pinDocument.stream().filter(line -> line.startsWith("- Exact upstream commit:")).toList());
+        assertEquals(List.of("- Normative revision: `r18`"),
+                pinDocument.stream().filter(line -> line.startsWith("- Normative revision:")).toList());
+        List<String> profilePin = pinDocument.stream()
                 .filter(line -> line.startsWith("- Profile file SHA-256:")).toList();
         assertEquals(List.of("- Profile file SHA-256: `" + PROFILE_HASH + "`"), profilePin,
                 "SPEC_PIN.md must identify the exact vendored profile");

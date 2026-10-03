@@ -572,7 +572,7 @@ class PublicApiTest {
         }
     }
     @Test void passwordChangeRejectsTrailingOrShortBaseWithBoundedRead() {
-        // The pinned r17 record is 87 bytes; 88 is only the lookahead bound.
+        // The pinned r18 record is 87 bytes; 88 is only the lookahead bound.
         assertEquals(87, bootstrap.length);
         store.bootstrapReadLimit = bootstrap.length + 1;
         for (int size : new int[]{bootstrap.length + 1, bootstrap.length + 4096, bootstrap.length - 1}) {

@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 /** Pins corpus/profile integrity, not implementation coverage of its semantic cases. */
-class R17ProfileIntegrityTest {
+class R18ProfileIntegrityTest {
     @Test void movingProfileRequiresExactlyThePhysicalManifestCases() throws Exception {
         Path root = Path.of("src/test/resources/totipo-spec/v1-pre-rc");
         var manifest = VectorCaseLoader.parse(Files.readString(root.resolve("vectors/manifest.json")), "manifest");
@@ -21,8 +21,8 @@ class R17ProfileIntegrityTest {
         assertEquals("moving-pre-rc", profile.field("status").string());
         assertEquals("totipo-v1", manifest.field("protocol").string());
         assertEquals("totipo-v1", profile.field("protocol").string());
-        assertEquals("r17", manifest.field("spec_revision").string());
-        assertEquals("r17", profile.field("spec_revision").string());
+        assertEquals("r18", manifest.field("spec_revision").string());
+        assertEquals("r18", profile.field("spec_revision").string());
         for (var pin : java.util.Map.of("spec_sha256", "spec/totipo-vault-format-v1.md",
                 "manifest_sha256", "vectors/manifest.json", "schema_sha256", "vectors/manifest.schema.json",
                 "case_schema_sha256", "vectors/case.schema.json").entrySet()) {

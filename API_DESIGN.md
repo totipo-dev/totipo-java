@@ -1,9 +1,9 @@
 # Totipo Java application API
 
 This document is normative for this implementation phase, not part of the Totipo
-wire-format specification. The pinned v1/r17 specification and unchanged corpus
-remain authoritative for protocol facts. `org.totipo` defines application behavior;
-`org.totipo.storage.nio.NioTotipo` is the ordinary filesystem entry point. There is
+wire-format specification. The pinned v1/r18 specification and unchanged corpus
+remain authoritative for protocol facts. `org.totipo` defines library API behavior
+for applications; `org.totipo.storage.nio.NioTotipo` is the ordinary filesystem entry point. There is
 no API stability promise yet.
 
 ## Maven modules
@@ -37,7 +37,10 @@ BASE before replacement. An unavailable/invalid observation or definite staging
 failure is `FAILED`. Once replacement is attempted, unacknowledged replacement
 is `UNCERTAIN`; neither password is then asserted to be canonical. Recover by
 re-observation/reopen. There is no automatic retry or rollback. Rewrapping retains
-the existing root and does not rewrite TOKENs. Compare-before-replace is not CAS.
+the existing root, draws fresh salt and nonce, and does not rewrite TOKENs.
+Historical wrappers and their old passwords remain usable; this does not rotate the
+root, revoke old wrappers, provide rollback protection, or recover from root
+compromise. Compare-before-replace is not CAS.
 
 The pinned protocol VAULT record is exactly **87 bytes**. Lifecycle reads of
 password-change BASE/CURRENT and staged creation/replacement records request at
@@ -149,7 +152,14 @@ all three heads remain visible. Applications need not reconstruct grouping.
 The descriptor contains status, issuer, account, algorithm, digits and period.
 `TokenHead` exposes token identity, `RevisionId` and exact `ClientMetadata`.
 Client time uses optional unsigned-u64 raw long bits, with no freshness policy.
-Metadata is outside semantic value equality. Tombstones remain complete values.
+Metadata is outside semantic value equality. An absent client name differs from a
+present empty name; exact validated Unicode text is retained without normalization.
+Absent client time differs from zero. All unsigned values are retained as raw long
+bits (for example, `-1L` is unsigned 18446744073709551615); use unsigned conversion
+for display. Each equal-valued head retains its own metadata, including captured
+heads that become historical. Tombstones remain complete values, including secrets;
+tombstoning or deleting a token does not securely erase immutable history or provider
+copies.
 
 Head equality/hash identity is **session identity + TokenId + exact RevisionId**.
 Alternative equality/hash identity is **session identity + TokenId + complete
@@ -251,7 +261,7 @@ elimination, globally newest state, or observation by any peer. The NIO facade
 requires the existing file/directory force capability. On an exact-existing
 acknowledgement it additionally forces the file, object directory and root so an
 uncertain earlier install is not treated as freshly durable solely from a read.
-The low-level r17 exact-existing publication behavior remains unchanged.
+The low-level r18 exact-existing publication behavior remains unchanged.
 
 Before the first provider publication call, the operation freezes token ID,
 parents, complete value, metadata, fold stages, identities and exact encrypted
@@ -347,11 +357,46 @@ The existing public `format` storage interfaces and the new `ApplicationVaults`
 bridge are provider/internal boundaries needed by the two-module build, not normal
 application API or a frozen third-party SPI. Application code needs only
 `org.totipo` and `NioTotipo`. Package-private codecs, graph, fold and crypto stay
-package-private. The facade does not change protocol encoding or r17 semantics.
+package-private. The facade does not change protocol encoding or r18 semantics.
 
 Deployment/sync remains separate: there is no replication, remote acknowledgement,
 rollback resistance, device enrollment, recovery-crypto change, UI, QR scanner,
 platform qualification expansion, automatic winner, or field-level CRDT here.
-Evidence remains the local case-sensitive Linux provider suite and pinned r17
+Evidence remains the local case-sensitive Linux provider suite and pinned r18
 corpus, not independent interoperability, universal crash safety or other-platform
 qualification.
+
+## r18 conformance scope and application responsibilities
+
+README scopes v1 core conformance to the protocol foundation operations and v1 store
+conformance to qualified NIO storage with the applicable core orchestration. No v1
+application conformance is claimed. The term application API describes a library
+boundary; it does not establish conformance of a desktop or Android application.
+
+There is a pre-existing metadata qualification: `ApplicationSession.CausalFact`
+retains per-object historical identity/token/parents without metadata, and states
+and merge bases retain these facts. Although TOKEN models, graph views, folds and
+all exposed/captured heads preserve exact metadata, §12 applies to retained object
+representations too. The facade therefore has no blanket core-conformance claim.
+Human review must resolve this retained-history issue before extending that claim;
+this repin does not redesign retention or change the API.
+
+Callers have the following information for implementing r18 application behavior:
+
+| Requirement | API support and application responsibility |
+| --- | --- |
+| Empty-password intent | The caller supplies `char[]` and knows if it is empty. Empty UTF-8 remains format-valid for creation and reading. Interactive applications must obtain explicit confirmation before empty-password creation; the library supplies no dialog. |
+| Possible existing vault without bootstrap | Before transferring store ownership to `Totipo.create`, provider integrations can inspect `TotipoStore.readVault` and `scanObjects`, including observed direct-child names and incomplete-scan results. Exactly 64 lowercase hex names are unauthenticated context; applications should warn and confirm during available observation. Creation neither requires exhaustive enumeration nor vetoes orphan-looking entries. `NioTotipo.create` has no pre-creation orphan diagnostic/result: a convenience-only caller cannot receive this context through that method. Flag any need for a facade diagnostic for human review; no new API is added here. |
+| Current/historical/stale | Compare captured head revision IDs with the latest observed state's heads. Old states remain readable and their complete alternatives remain usable while the session is open. An incomplete or rolled-back observation does not prove freshness or supersession; the library supplies no universal historical/current certification. |
+| Conflict and equal-valued distinct heads | `TokenState.hasConflict()` reports distinct complete values; `alternatives()` groups equal values while `heads()` retains every distinct current identity and its metadata. Applications must disclose both kinds of alternatives truthfully. |
+| Tombstone | `TokenAlternative.descriptor().status()` exposes lifecycle state. Tombstones still have complete credentials and allow explicit TOTP; applications must not promise erasure. |
+| Missing ancestry and unavailable observation | `unresolvedReferences()`, `VaultState.observation()` and `diagnostics()` report known gaps. Diagnostic reason strings do not identify arbitrary unreadable candidate objects in the facade; the SPI exposes entry names and read results. Per-object unavailable attribution through the facade is a human-review limitation. |
+| Complete-known vs unavailable | Represented alternatives contain validated complete values; missing/unreadable ancestry has no synthesized value. Absence from observation does not prove deletion or a complete unknown value. |
+| Newly learned resolution alternatives | Merge reobserves; `SaveResult.AdditionalConflict` returns the latest state and an explicit partial-resolution capability when a relevant alternative is newly learned, including a distinct equal-valued head. The application performs disclosure and the decision. |
+| Exact represented-head metadata | `TokenHead.metadata()` exposes exact optional name and optional unsigned-u64 time bits; it preserves absent/present-empty and absent/zero distinctions. The retained historical-fact qualification above remains. |
+| Password rewrap | `PasswordChangeResult` distinguishes changed/authentication-failed/stale/failed/uncertain. Applications must describe same-root rewrap truthfully and recover uncertainty by observation/opening. It is not a full security reset. |
+
+The root-compromise guidance in §8.1 is informative and defines no migration or
+re-key protocol. Cycle-safe traversal and defensive same-ID exclusion remain
+required despite the informative constructibility notes. UI wording, untrusted-text
+rendering, warnings and confirmation belong to the consuming application.

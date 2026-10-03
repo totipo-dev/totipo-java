@@ -2,10 +2,10 @@
   "format": "totipo-requirements-v1",
   "status": "moving-pre-rc",
   "protocol": "totipo-v1",
-  "spec_revision": "r17",
-  "manifest_sha256": "94fff22842573e15b254bb0653970761c15cf122192947a36fccc48344a84f08",
-  "spec_sha256": "f8d2ab02c97e8ac54847048a06cb088359db982fec3f176fd473ce0f223d43cf",
-  "schema_sha256": "e7a5d8ec0392e0248ab867375b7c907a7ca1298595acdb14ecd3edcbe66df476",
+  "spec_revision": "r18",
+  "manifest_sha256": "bd2b52adc05b26e09790f5f7367761b2b86ba3cf8d97d10ed187fcf7213fcf02",
+  "spec_sha256": "8a357e75f3ddd92efa954fde2ffc9af33f40a2c2396d6afbf1d5de5f00bc4f8a",
+  "schema_sha256": "f6dfef831f9b391ef8c9e675024b9cb9cb6cc352858c182439ee8847e55c3647",
   "case_schema_sha256": "d38618f53dcf0a558c389831e8838a07248066beff392812f3d277cc974e25c9",
   "required_cases": [
     {

@@ -2,16 +2,21 @@
 
 This is preparation, not a published release. The Maven version is the Java
 implementation release version, read from `VERSION`. Protocol compatibility is
-independent: 0.1.0 implements Totipo Vault Format v1/r17. Future bug fixes may
-continue implementing v1/r17; a new specification revision does not mechanically
+independent: this worktree is aligned to Totipo Vault Format v1/r18 without
+portable behavior changes from its prior r17 pin. `VERSION` remains 0.1.0;
+a reviewed follow-up alignment release would likely be v0.1.1. Future bug fixes may
+continue implementing v1/r18; a new specification revision does not mechanically
 determine the Java semantic version.
 
 Release provenance:
 
 - Maven coordinates: `org.totipo:totipo-core:0.1.0` and
   `org.totipo:totipo-storage-nio:0.1.0`.
-- Protocol: v1/r17, specification commit
-  `1d42a481f230e0adbb89dbeaa936d3c956e70fdc`; authoritative hashes in `SPEC_PIN.md`.
+- Protocol: v1/r18, specification commit
+  `4623a7e1718e23504903096c92332597057bd8f0`; authoritative hashes in `SPEC_PIN.md`.
+- Conformance: protocol-foundation core operations and qualified low-level NIO/core
+  store operations as scoped in README; no blanket facade core claim or application
+  conformance. Review the retained-history metadata qualification in API_DESIGN.md.
 - Portable corpus: 90/90, none deferred. Reconfirm on the final release commit.
 - Java source commit: **operator must record the exact reviewed commit here/in
   the release notes after committing, before release**. The preparation baseline
@@ -24,7 +29,7 @@ Release provenance:
 
 - [ ] Clean worktree; exact Java commit reviewed and recorded.
 - [ ] `VERSION` reviewed; both module coordinates match it.
-- [ ] Protocol v1/r17 and exact `SPEC_PIN.md` hashes reviewed and unchanged.
+- [ ] Protocol v1/r18 and exact `SPEC_PIN.md` hashes reviewed and unchanged.
 - [ ] Complete portable corpus executes 90/90 without skips or changed outcomes.
 
 ## Credential-free build and publication gates
@@ -58,8 +63,9 @@ Run from the repository root. No global Maven local repository is used.
   `build` between runs, compare, and record the result. Repository index
   timestamps and detached signatures are excluded. This is same-environment
   evidence, not a cross-machine reproducibility guarantee.
-- [ ] `git diff --check` passes; production Java changes are limited to the reviewed
-  namespace migration; no specification/corpus changes.
+- [ ] `git diff --check` passes; production Java changes contain no protocol-semantic changes;
+  the exact committed r18 snapshot and independent pins are reviewed; case files
+  and expected outcomes are unchanged.
 
 The smoke project is independent, not a root subproject. Its sole requested
 dependency reads the implementation version from `VERSION`. An exclusive file

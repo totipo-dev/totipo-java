@@ -1,6 +1,6 @@
 # Totipo Java
 
-Portable Java libraries targeting Totipo Vault Format v1, revision **r17**.
+Portable Java libraries targeting Totipo Vault Format v1, revision **r18**.
 The exact committed specification and language-neutral corpus are pinned in
 [SPEC_PIN.md](SPEC_PIN.md).
 
@@ -17,7 +17,7 @@ compatibility. Providers understand only storage layout and storage semantics;
 protocol interpretation stays in core. Ordinary applications need no SPI types.
 See [SPI_DESIGN.md](SPI_DESIGN.md) for the boundary and ownership contract.
 
-This repository has completed the r17 portable core implementation milestone:
+This repository has completed the r18 portable core implementation milestone:
 **90/90 portable corpus cases implemented, none deferred**. The TOKEN codec,
 graph/fold, TOKEN storage/authorship/publication, and VAULT lifecycle are complete
 for this corpus. Configured-store observation validates TOKENs
@@ -36,6 +36,34 @@ Independent interoperability has not yet been demonstrated, and this milestone
 does not claim release readiness. NIO provider qualification is limited to the
 local case-sensitive Linux filesystem tested here; exact canonical naming and
 the required operation capabilities must be qualified on each target provider.
+
+r18 conformance claims are scoped by supported operation (§20). The protocol
+foundation in `core` is **v1 core conforming** for bootstrap reading/creation/rewrap,
+object crypto and identity, TOKEN encoding/validation and exact object metadata,
+graph/current-state computation, complete-value equality, bounded folds and TOTP.
+This claim covers the protocol models and operations, not every facade projection.
+The high-level facade retains historical ancestry facts without metadata; that
+pre-existing §12 qualification needs human review before claiming core conformance
+for the entire `VaultSession` API. Exposed and captured `TokenHead` metadata is exact.
+See [API scope and application responsibilities](API_DESIGN.md#r18-conformance-scope-and-application-responsibilities).
+
+The `storage-nio` provider with core's low-level observation/publication/VAULT
+orchestration is **v1 store conforming** for those supported operations: observation,
+immutable publication, no-replace creation, replacement, exact compare-before-replace
+and explicit durability results. This claim retains the provider and filesystem
+qualifications above and below; abstract tests do not prove physical power-loss
+behavior on every filesystem. The NIO SPI alone does not authenticate protocol bytes;
+core supplies that validation and the exact comparison before replacement.
+
+**v1 application conformance is not claimed.** A reusable library and its state API
+do not implement the application's confirmations, warnings, truthful presentation,
+alternative disclosure or safe rendering of untrusted text. Interactive applications
+must confirm empty-password creation and should warn/confirm when available
+pre-creation observation finds possible orphan objects. Empty passwords remain
+readable, and unauthenticated orphan-looking names do not veto creation. Tombstones
+retain secrets and history; deletion is not secure erasure. Rewrap retains the same
+root with fresh salt/nonce; it does not revoke old wrappers or recover a compromised
+root. These are application responsibilities even when the library supplies data.
 
 The two production modules are:
 
@@ -151,9 +179,10 @@ public compile dependency. Both artifacts require Java 17; tests, test fixtures,
 and the specification snapshot are excluded from publications.
 
 `VERSION` is the single implementation version source. Protocol compatibility is
-separate: 0.1.0 implements v1/r17. Future bug-fix releases can continue to implement
-v1/r17, and later specification revisions do not mechanically dictate Java semantic
-versions. See [the release checklist](RELEASE_CHECKLIST.md) for exact provenance,
+separate: this worktree targets v1/r18, aligned from the prior v1/r17 pin without
+portable behavior changes. `VERSION` remains 0.1.0; a reviewed alignment patch
+release would likely be v0.1.1. Specification revisions do not mechanically dictate
+Java semantic versions. See [the release checklist](RELEASE_CHECKLIST.md) for exact provenance,
 credential-free Maven consumer verification, signing, and the manual Central gates.
 The [J1.1 namespace migration report](review/J1_1_NAMESPACE_MIGRATION_REPORT.md)
 records the current release identity and supersedes J1 coordinates for release readiness.
